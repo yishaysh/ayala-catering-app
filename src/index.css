@@ -1,0 +1,24 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+  .animate-in {
+    animation-duration: 0.3s;
+    animation-fill-mode: both;
+    animation-timing-function: ease-out;
+  }
+}
+
+nav::-webkit-scrollbar {
+    display: none;
+}
+
+nav {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
