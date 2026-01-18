@@ -17,19 +17,36 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     const handleWhatsAppCheckout = () => {
-        let message = language === 'he' ? `היי איילה, אשמח לבצע הזמנה:\n\n` : `Hi Ayala, I'd like to place an order:\n\n`;
+        // WhatsApp Formatting:
+        // *Text* = Bold
+        // _Text_ = Italic
+        
+        const line = "━━━━━━━━━━━━━━━━";
+        let message = "";
+
+        if (language === 'he') {
+            message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
+        } else {
+            message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
+        }
         
         cart.forEach(item => {
             const displayItem = getLocalizedItem(item, language);
-            message += `• ${item.quantity}x ${displayItem.name} (₪${item.price * item.quantity})\n`;
+            // Item Header: Quantity x Name (Price)
+            message += `🔹 *${item.quantity}x ${displayItem.name}*\n`;
+            
+            // Sub-details
             if (item.selected_modifications && item.selected_modifications.length > 0) {
-                 message += `  [${item.selected_modifications.join(', ')}]\n`;
+                 message += `   🔸 שינויים: ${item.selected_modifications.join(', ')}\n`;
             }
             if (item.notes) {
-                message += `  (${item.notes})\n`;
+                message += `   ✏️ הערות: ${item.notes}\n`;
             }
+            message += `\n`; // Spacing between items
         });
-        message += `\n${t.total}: ₪${total}`;
+
+        message += `${line}\n`;
+        message += `*${t.total}: ₪${total}* 💰`;
         
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/972547474764?text=${encoded}`, '_blank');
@@ -46,7 +63,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         <div className="fixed inset-0 z-50 flex justify-end font-sans">
             <div 
                 className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm transition-opacity" 
-                onClick={onClose}
+                // Removed onClick={onClose} to prevent closing on backdrop click
             ></div>
 
             <div className={`

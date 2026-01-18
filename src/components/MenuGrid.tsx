@@ -170,7 +170,9 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
     {/* Image Preview Modal */}
     {selectedImage && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-stone-900/90 backdrop-blur-sm transition-opacity" onClick={() => setSelectedImage(null)}></div>
+            <div className="absolute inset-0 bg-stone-900/90 backdrop-blur-sm transition-opacity" 
+                // Removed onClick to prevent close on backdrop
+            ></div>
             <div className="relative bg-white rounded-2xl overflow-hidden shadow-2xl max-w-2xl w-full animate-in zoom-in-95 duration-200">
                 <button 
                     onClick={() => setSelectedImage(null)}
@@ -196,10 +198,11 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
     {itemToAdd && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 font-sans">
              {/* Backdrop */}
-             <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" onClick={() => setItemToAdd(null)}></div>
+             <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" 
+                // Removed onClick to prevent close on backdrop
+             ></div>
              
              {/* Modal Container */}
-             {/* Changed items-end to items-center (via flex container above) and added padding p-4 */}
              <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
                 
                 {/* Header (Fixed) */}

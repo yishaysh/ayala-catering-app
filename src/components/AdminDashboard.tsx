@@ -217,7 +217,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             {/* Edit Modal - Centered */}
             {editingItem && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" onClick={() => setEditingItem(null)}></div>
+                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" 
+                        // Removed onClick to prevent close on backdrop
+                    ></div>
                     <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 text-start flex flex-col">
                         <div className="flex justify-between items-center mb-6 shrink-0">
                             <h2 className="text-2xl font-serif font-bold text-stone-900">{t.editItemTitle}: {getLocalizedItem(editingItem, language).name}</h2>
@@ -295,7 +297,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             {/* Add Item Modal - Centered */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
+                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" 
+                        // Removed onClick to prevent close on backdrop
+                    ></div>
                     <div className="relative bg-white w-full max-h-[90vh] md:h-auto md:max-w-2xl rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 text-start flex flex-col">
                         <div className="flex justify-between items-center mb-6 shrink-0">
                             <h2 className="text-2xl font-serif font-bold text-stone-900">{t.createItemTitle}</h2>
