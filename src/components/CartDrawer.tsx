@@ -32,7 +32,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         message += `\n${t.total}: ₪${total}`;
         
         const encoded = encodeURIComponent(message);
-        window.open(`https://wa.me/972501234567?text=${encoded}`, '_blank');
+        window.open(`https://wa.me/972547474764?text=${encoded}`, '_blank');
     };
 
     const getUnitName = (type: string) => {
