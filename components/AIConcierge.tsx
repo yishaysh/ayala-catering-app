@@ -1,7 +1,7 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore, translations, Translations } from '../store';
-import { Sparkles, Loader2, Send, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Loader2, Send, CheckCircle2, Key } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 import { MenuItem } from '../types';
 
@@ -11,19 +11,47 @@ export const AIConcierge: React.FC = () => {
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [recommendation, setRecommendation] = useState<{ items: { id: string, quantity: number }[], explanation: string } | null>(null);
+    const [hasKey, setHasKey] = useState(true);
+
+    // Dynamic check for API Key availability in browser
+    useEffect(() => {
+        const checkKey = async () => {
+            if (window.aistudio) {
+                const selected = await window.aistudio.hasSelectedApiKey();
+                setHasKey(selected || !!process.env.API_KEY);
+            } else {
+                setHasKey(!!process.env.API_KEY);
+            }
+        };
+        checkKey();
+    }, []);
+
+    const handleConnectKey = async () => {
+        if (window.aistudio) {
+            await window.aistudio.openSelectKey();
+            setHasKey(true);
+        }
+    };
 
     const generateRecommendation = async () => {
         if (!prompt.trim()) return;
         
         setIsGenerating(true);
         try {
-            // DIRECT initialization using process.env.API_KEY as per instructions.
+            // Re-initialize for fresh key access
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const menuSummary = (menuItems || []).map(m => ({ id: m.id, name: m.name, price: m.price, cat: m.category })).slice(0, 50);
+            
+            // Prepare a light version of the menu for the prompt to save tokens
+            const menuSummary = (menuItems || []).map(m => ({ 
+                id: m.id, 
+                name: m.name, 
+                price: m.price, 
+                cat: m.category 
+            })).slice(0, 60);
 
             const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
-                contents: `User event request: "${prompt}". Using this menu: ${JSON.stringify(menuSummary)}, recommend a balanced selection of dishes and quantities. Return ONLY valid JSON.`,
+                contents: `User event: "${prompt}". Using our catering menu: ${JSON.stringify(menuSummary)}. Recommend a balanced menu mix. Return ONLY JSON.`,
                 config: {
                     responseMimeType: "application/json",
                     responseSchema: {
@@ -47,14 +75,18 @@ export const AIConcierge: React.FC = () => {
                 }
             });
 
-            if (response.text) {
-                const data = JSON.parse(response.text.trim());
+            const text = response.text;
+            if (text) {
+                const data = JSON.parse(text.trim());
                 setRecommendation(data);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("AI Error:", error);
-            // Graceful error handling for end user
-            alert(language === 'he' ? "חלה שגיאה בבניית התפריט. אנא נסו שוב." : "Error generating menu. Please try again.");
+            if (error?.message?.includes("API Key")) {
+                setHasKey(false);
+            } else {
+                alert(language === 'he' ? "חלה שגיאה קטנה בבניית התפריט. בואו ננסה שוב!" : "Minor error planning. Let's try again!");
+            }
         } finally {
             setIsGenerating(false);
         }
@@ -75,6 +107,24 @@ export const AIConcierge: React.FC = () => {
             setPrompt('');
         }
     };
+
+    if (!hasKey) {
+        return (
+            <div className="bg-stone-900 border border-gold-500/30 rounded-3xl p-8 mb-12 shadow-2xl text-center">
+                <div className="inline-flex p-4 bg-gold-500/10 rounded-full text-gold-500 mb-4 animate-bounce">
+                    <Key size={32} />
+                </div>
+                <h3 className="text-xl font-serif font-bold text-white mb-2">נדרש חיבור לבינה מלאכותית</h3>
+                <p className="text-stone-400 text-sm mb-6">כדי להשתמש בקונסיירז' הדיגיטלי, עליך לחבר מפתח API של גוגל.</p>
+                <button 
+                    onClick={handleConnectKey}
+                    className="bg-gold-500 text-stone-900 font-bold px-8 py-3 rounded-full hover:bg-gold-400 transition transform active:scale-95"
+                >
+                    חבר מפתח עכשיו
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-stone-900 border border-gold-500/30 rounded-3xl p-6 md:p-8 mb-12 shadow-2xl relative overflow-hidden group">
