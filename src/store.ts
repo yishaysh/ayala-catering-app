@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel, AdvancedCalculationSettings } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel, AdvancedCalculationSettings, FeatureFlags } from './types';
 import { supabase } from './lib/supabase';
 
 // INITIAL MENU FALLBACK
@@ -25,6 +25,7 @@ interface AppState {
   guestCount: number;
   language: Language;
   isLoading: boolean;
+  featureFlags: FeatureFlags;
   
   // Calculator State
   eventType: EventType;
@@ -34,17 +35,20 @@ interface AppState {
 
   // Actions
   fetchMenuItems: () => Promise<void>;
+  fetchSettings: () => Promise<void>;
   setGuestCount: (count: number) => void;
   setEventType: (type: EventType) => void;
   setHungerLevel: (level: HungerLevel) => void;
   setLanguage: (lang: Language) => void;
   addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
+  bulkAddToCart: (items: { item: MenuItem, quantity: number }[]) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
   addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
   updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
   updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
+  updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
   clearCart: () => void;
   
   cartTotal: () => number;
@@ -90,6 +94,12 @@ export const translations = {
     eventType: "סוג האירוע",
     hungerLevel: "רמת רעב",
     calcResults: "המלצות להרכב האירוע",
+    aiTitle: "הקונסיירז' הדיגיטלי (AI)",
+    aiPlaceholder: "תארו לנו את האירוע... (לדוגמה: יום הולדת ל-20 איש בשישי בצהריים, אוהבים מתוקים)",
+    aiGenerate: "בני לי תפריט",
+    aiApplying: "מנתח...",
+    aiApply: "החל המלצה על העגלה",
+    aiExplanation: "למה בחרתי את זה?",
     
     'brunch': "בראנץ'",
     'dinner': "ארוחת ערב",
@@ -148,6 +158,9 @@ export const translations = {
         eventLogic: "לוגיקה לפי סוג אירוע",
         unitsPerPerson: "יח' לאדם",
         coverage: "כיסוי",
+        featureMgmt: "ניהול פיצ'רים",
+        showCalc: "הצג מחשבון אירוח",
+        showAI: "הצג קונסיירז' AI",
         
         tableEventType: "סוג אירוע",
         tableSandwiches: "כריכים",
@@ -197,6 +210,12 @@ export const translations = {
     eventType: "Event Type",
     hungerLevel: "Hunger Level",
     calcResults: "Recommended Menu Composition",
+    aiTitle: "AI Event Concierge",
+    aiPlaceholder: "Describe your event... (e.g. Birthday party for 20 people, we love sweets)",
+    aiGenerate: "Plan for me",
+    aiApplying: "Analyzing...",
+    aiApply: "Apply Recommendation",
+    aiExplanation: "Why this choice?",
 
     categories: {
       'Salads': 'Fresh Salads',
@@ -246,6 +265,9 @@ export const translations = {
         eventLogic: "Event Logic Matrix",
         unitsPerPerson: "Units/Prsn",
         coverage: "Coverage",
+        featureMgmt: "Feature Management",
+        showCalc: "Show Event Calculator",
+        showAI: "Show AI Concierge",
 
         tableEventType: "Event Type",
         tableSandwiches: "Sandwiches",
@@ -268,6 +290,10 @@ export const useStore = create<AppState>()(
       isLoading: false,
       eventType: 'snack',
       hungerLevel: 'medium',
+      featureFlags: {
+        showCalculator: true,
+        showAI: true
+      },
       calculationSettings: {
         sandwichesPerPerson: 1.5,
         pastriesPerPerson: 1.0,
@@ -298,6 +324,18 @@ export const useStore = create<AppState>()(
           set({ isLoading: false });
       },
 
+      fetchSettings: async () => {
+        const { data, error } = await supabase
+            .from('app_settings')
+            .select('*')
+            .eq('key', 'features')
+            .single();
+
+        if (data && data.value) {
+            set({ featureFlags: data.value as FeatureFlags });
+        }
+      },
+
       setLanguage: (lang) => set({ language: lang }),
       setGuestCount: (count) => set({ guestCount: count }),
       setEventType: (type) => set({ eventType: type }),
@@ -325,6 +363,16 @@ export const useStore = create<AppState>()(
               }] 
           });
         }
+      },
+
+      bulkAddToCart: (items) => {
+          const newItems = items.map(({ item, quantity }) => ({
+              ...item,
+              quantity,
+              notes: '',
+              selected_modifications: []
+          }));
+          set({ cart: [...get().cart, ...newItems] });
       },
 
       removeFromCart: (itemId) => {
@@ -383,6 +431,17 @@ export const useStore = create<AppState>()(
           }));
       },
 
+      updateFeatureFlags: async (flags) => {
+        const newFlags = { ...get().featureFlags, ...flags };
+        set({ featureFlags: newFlags });
+        
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({ key: 'features', value: newFlags });
+        
+        if (error) console.error("Failed to save feature flags", error);
+      },
+
       clearCart: () => set({ cart: [] }),
 
       cartTotal: () => {
@@ -390,7 +449,7 @@ export const useStore = create<AppState>()(
       },
     }),
     {
-      name: 'ayala-catering-storage-v2',
+      name: 'ayala-catering-storage-v5',
       partialize: (state) => ({ 
           cart: state.cart, 
           guestCount: state.guestCount, 
@@ -398,7 +457,8 @@ export const useStore = create<AppState>()(
           calculationSettings: state.calculationSettings,
           advancedSettings: state.advancedSettings,
           eventType: state.eventType,
-          hungerLevel: state.hungerLevel
+          hungerLevel: state.hungerLevel,
+          featureFlags: state.featureFlags
       }), 
     }
   )

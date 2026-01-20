@@ -1,3 +1,4 @@
+
 export type UnitType = 'tray' | 'unit' | 'liter' | 'weight';
 export type Category = 
   | 'Salads' 
@@ -10,6 +11,12 @@ export type Category =
 
 export type EventType = 'brunch' | 'dinner' | 'snack' | 'party';
 export type HungerLevel = 'light' | 'medium' | 'heavy';
+
+// Fix: Added missing FeatureFlags interface to resolve "Module '"./types"' has no exported member 'FeatureFlags'" error.
+export interface FeatureFlags {
+  showCalculator: boolean;
+  showAI: boolean;
+}
 
 export interface MenuItem {
   id: string;

@@ -4,9 +4,10 @@ import { MenuGrid } from './components/MenuGrid';
 import { HostHelper } from './components/HostHelper';
 import { CartDrawer } from './components/CartDrawer';
 import { Category } from './types';
-import { ShoppingBag, Phone, Globe, Lock, X, ChevronRight, Loader2 } from 'lucide-react';
+import { ShoppingBag, Phone, Globe, Lock, X, Loader2 } from 'lucide-react';
 import { useStore, translations } from './store';
 import { AdminDashboard } from './components/AdminDashboard';
+import { AIConcierge } from './components/AIConcierge';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts'];
 
@@ -15,7 +16,7 @@ const LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/pub
 
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading } = useStore();
+  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, featureFlags, fetchSettings } = useStore();
   
   // Admin State
   const [isAdmin, setIsAdmin] = useState(false);
@@ -29,6 +30,7 @@ export default function App() {
   // Fetch Menu on Load
   useEffect(() => {
       fetchMenuItems();
+      fetchSettings();
   }, []);
 
   const handleAdminLogin = (e: React.FormEvent) => {
@@ -153,7 +155,8 @@ export default function App() {
       {/* Main Content */}
       <main className="container mx-auto px-4 -mt-16 relative z-20">
         
-        <HostHelper />
+        {featureFlags?.showCalculator && <HostHelper />}
+        {featureFlags?.showAI && <AIConcierge />}
 
         <div className="sticky top-[72px] z-40 bg-stone-50/95 backdrop-blur-md py-4 mb-8 border-b border-stone-200 -mx-4 px-4 overflow-x-auto shadow-sm">
             <nav className="flex gap-2 min-w-max mx-auto md:justify-center">
@@ -250,7 +253,6 @@ export default function App() {
                         className="w-full bg-stone-900 text-gold-500 font-bold py-3 rounded-xl hover:bg-stone-800 transition flex items-center justify-center gap-2"
                       >
                           <span>כניסה</span>
-                          <ChevronRight size={16} />
                       </button>
                   </form>
               </div>
