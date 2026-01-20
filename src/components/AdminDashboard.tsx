@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { MenuItem, Category, UnitType, EventType, HungerLevel } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface AdminDashboardProps {
     onExit: () => void;
@@ -26,7 +26,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         menuItems, updateMenuItem, addMenuItem, 
         calculationSettings, updateCalculationSettings, 
         advancedSettings, updateAdvancedSettings,
-        language, logoUrl, setLogoUrl 
+        language 
     } = useStore();
     
     const t = translations[language].admin;
@@ -41,7 +41,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [editPrice, setEditPrice] = useState(0);
     const [editStatus, setEditStatus] = useState(true);
     const [editMods, setEditMods] = useState('');
-    const [editImageUrl, setEditImageUrl] = useState('');
 
     const [newItem, setNewItem] = useState<Partial<MenuItem>>({
         name: '',
@@ -53,7 +52,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         serves_min: 10,
         serves_max: 10,
         availability_status: true,
-        image_url: '',
         tags: []
     });
     const [addMods, setAddMods] = useState('');
@@ -67,7 +65,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         setEditingItem(item);
         setEditPrice(item.price);
         setEditStatus(item.availability_status);
-        setEditImageUrl(item.image_url || '');
         const mods = language === 'he' ? item.allowed_modifications : (item.allowed_modifications_en || item.allowed_modifications);
         setEditMods(mods ? mods.join(', ') : '');
     };
@@ -78,7 +75,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         const updateData: Partial<MenuItem> = {
             price: editPrice,
             availability_status: editStatus,
-            image_url: editImageUrl,
         };
         if (language === 'he') updateData.allowed_modifications = modsArray;
         else updateData.allowed_modifications_en = modsArray;
@@ -99,14 +95,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             serves_max: Number(newItem.serves_max),
             is_premium: newItem.is_premium || false,
             availability_status: true,
-            image_url: newItem.image_url,
+            // Image URL not controlled by admin
             tags: [],
             allowed_modifications: modsArray,
             allowed_modifications_en: modsArray
         };
         await addMenuItem(itemToSave);
         setIsAddModalOpen(false);
-        setNewItem({ name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, image_url: '', tags: [] });
+        setNewItem({ name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [] });
         setAddMods('');
     };
 
@@ -138,24 +134,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     <input type="number" defaultValue={500} className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" />
                 </div>
                 
-                {/* Site Logo Setting */}
-                <div className="bg-white p-6 rounded-lg shadow-sm md:col-span-2">
-                    <div className="flex items-center gap-2 mb-2">
-                      <ImageIcon size={16} className="text-gold-500" />
-                      <h3 className="text-sm font-bold text-stone-900 uppercase">{t.logoUrl}</h3>
-                    </div>
-                    <input 
-                      type="text" 
-                      value={logoUrl}
-                      onChange={(e) => setLogoUrl(e.target.value)}
-                      placeholder={t.logoPlaceholder}
-                      className="w-full border-b border-stone-300 text-sm py-2 focus:outline-none focus:border-gold-500"
-                    />
-                </div>
-
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.prepTime}</h3>
                     <input type="number" defaultValue={48} className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" />
+                </div>
+                
+                <div className="bg-white p-6 rounded-lg shadow-sm md:col-span-2 relative overflow-hidden">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="p-1.5 bg-gold-100 rounded text-gold-600">
+                             <Calculator size={16} />
+                        </div>
+                        <h3 className="text-sm font-bold text-stone-900 uppercase">{t.calcSettings}</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-6">
+                        <div>
+                             <label className="text-xs text-stone-500 font-bold block mb-1">{t.sandwichesPerPerson}</label>
+                             <input 
+                                type="number" 
+                                step="0.1"
+                                value={calculationSettings.sandwichesPerPerson}
+                                onChange={(e) => updateCalculationSettings({ sandwichesPerPerson: parseFloat(e.target.value) })}
+                                className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500"
+                             />
+                        </div>
+                        <div>
+                             <label className="text-xs text-stone-500 font-bold block mb-1">{t.pastriesPerPerson}</label>
+                             <input 
+                                type="number" 
+                                step="0.1"
+                                value={calculationSettings.pastriesPerPerson}
+                                onChange={(e) => updateCalculationSettings({ pastriesPerPerson: parseFloat(e.target.value) })}
+                                className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500"
+                             />
+                        </div>
+                         <div>
+                             <label className="text-xs text-stone-500 font-bold block mb-1">{t.trayCapacity}</label>
+                             <input 
+                                type="number" 
+                                value={calculationSettings.averageTrayCapacity}
+                                onChange={(e) => updateCalculationSettings({ averageTrayCapacity: parseInt(e.target.value) })}
+                                className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500"
+                             />
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -248,7 +270,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         </div>
                         <div className="space-y-4 flex-1 overflow-y-auto">
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label><input type="number" value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" /></div>
-                            <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.imageUrl}</label><input type="text" value={editImageUrl} onChange={(e) => setEditImageUrl(e.target.value)} placeholder={t.imageUrlPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" /></div>
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.status}</label><div className="flex items-center gap-4"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={editStatus} onChange={() => setEditStatus(true)} className="w-4 h-4 text-gold-500" /><span>{t.inStock}</span></label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={!editStatus} onChange={() => setEditStatus(false)} className="w-4 h-4 text-red-500" /><span>{t.outOfStockLabel}</span></label></div></div>
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.modifications}</label><textarea value={editMods} onChange={(e) => setEditMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-24" /></div>
                         </div>
@@ -265,7 +286,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         <div className="space-y-4 flex-1 overflow-y-auto">
                             <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-bold text-stone-700 mb-1">{t.productName}</label><input type="text" value={newItem.name} onChange={(e) => setNewItem({...newItem, name: e.target.value})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" /></div><div><label className="block text-sm font-bold text-stone-700 mb-1">{t.category}</label><select value={newItem.category} onChange={(e) => setNewItem({...newItem, category: e.target.value as Category})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white">{CATEGORY_OPTIONS.map(c => (<option key={c} value={c}>{rootT.categories[c]}</option>))}</select></div></div>
                             <div className="grid grid-cols-2 gap-4"><div><label className="block text-sm font-bold text-stone-700 mb-1">{t.price}</label><input type="number" value={newItem.price} onChange={(e) => setNewItem({...newItem, price: Number(e.target.value)})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" /></div><div><label className="block text-sm font-bold text-stone-700 mb-1">{t.unitType}</label><select value={newItem.unit_type} onChange={(e) => setNewItem({...newItem, unit_type: e.target.value as UnitType})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white">{UNIT_OPTIONS.map(u => (<option key={u} value={u}>{rootT[u as 'tray'|'unit'|'liter'] || u}</option>))}</select></div></div>
-                            <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.imageUrl}</label><input type="text" value={newItem.image_url} onChange={(e) => setNewItem({...newItem, image_url: e.target.value})} placeholder={t.imageUrlPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" /></div>
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.description}</label><textarea value={newItem.description} onChange={(e) => setNewItem({...newItem, description: e.target.value})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-20" /></div>
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.modifications}</label><textarea value={addMods} onChange={(e) => setAddMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-20" /></div>
                         </div>

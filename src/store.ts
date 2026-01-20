@@ -25,7 +25,6 @@ interface AppState {
   guestCount: number;
   language: Language;
   isLoading: boolean;
-  logoUrl: string;
   
   // Calculator State
   eventType: EventType;
@@ -39,7 +38,6 @@ interface AppState {
   setEventType: (type: EventType) => void;
   setHungerLevel: (level: HungerLevel) => void;
   setLanguage: (lang: Language) => void;
-  setLogoUrl: (url: string) => void;
   addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
@@ -147,10 +145,7 @@ export const translations = {
         eventLogic: "לוגיקה לפי סוג אירוע",
         unitsPerPerson: "יח' לאדם",
         coverage: "כיסוי",
-        imageUrl: "כתובת תמונה (URL)",
-        imageUrlPlaceholder: "הדבק כאן קישור לתמונה מ-Supabase",
-        logoUrl: "קישור ללוגו האתר",
-        logoPlaceholder: "הדבק כאן את הקישור ללוגו (PNG/JPG)",
+        // Image URL strings removed from admin translation as they are no longer used
         
         tableEventType: "סוג אירוע",
         tableSandwiches: "כריכים",
@@ -246,10 +241,6 @@ export const translations = {
         eventLogic: "Event Logic Matrix",
         unitsPerPerson: "Units/Prsn",
         coverage: "Coverage",
-        imageUrl: "Image URL",
-        imageUrlPlaceholder: "Paste direct image link here",
-        logoUrl: "Site Logo URL",
-        logoPlaceholder: "Paste logo URL here",
 
         tableEventType: "Event Type",
         tableSandwiches: "Sandwiches",
@@ -270,7 +261,7 @@ export const useStore = create<AppState>()(
       guestCount: 0,
       language: 'he',
       isLoading: false,
-      logoUrl: "https://placehold.co/200x80/1c1917/d4af37?text=AYALA&font=playfair-display",
+      // logoUrl removed from state
       eventType: 'snack',
       hungerLevel: 'medium',
       calculationSettings: {
@@ -304,7 +295,7 @@ export const useStore = create<AppState>()(
       },
 
       setLanguage: (lang) => set({ language: lang }),
-      setLogoUrl: (url) => set({ logoUrl: url }),
+      // setLogoUrl removed
       setGuestCount: (count) => set({ guestCount: count }),
       setEventType: (type) => set({ eventType: type }),
       setHungerLevel: (level) => set({ hungerLevel: level }),
@@ -401,7 +392,7 @@ export const useStore = create<AppState>()(
           cart: state.cart, 
           guestCount: state.guestCount, 
           language: state.language,
-          logoUrl: state.logoUrl,
+          // logoUrl removed
           calculationSettings: state.calculationSettings,
           advancedSettings: state.advancedSettings,
           eventType: state.eventType,
