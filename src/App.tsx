@@ -9,15 +9,12 @@ import { AdminDashboard } from './components/AdminDashboard';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts'];
 
-// Inline SVG Logo Component
-const Logo: React.FC<{ className?: string }> = ({ className }) => (
-  <svg viewBox="0 0 200 60" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M45.5 48L32.5 12L19.5 48" stroke="#d4af37" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M24.5 36H40.5" stroke="#d4af37" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-    <text x="65" y="42" fontFamily="serif" fontWeight="bold" fontSize="32" fill="#d4af37" letterSpacing="0.05em">YALA</text>
-    <path d="M15 55H185" stroke="#44403c" strokeWidth="1" strokeDasharray="4 4" opacity="0.5"/>
-  </svg>
-);
+// ------------------------------------------------------------------
+// הנחיות להחלפת לוגו:
+// 1. המר את תמונת הלוגו ל-Base64 (למשל באתר base64-image.de)
+// 2. הדבק את המחרוזת הארוכה בתוך הגרשיים למטה במקום ה-Placeholder
+// ------------------------------------------------------------------
+const LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAAA8CAYAAAAjW/OvAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAQdSURBVHic7ZzbbuMwEIDWl2Tz/3/2pQ2KAm4P0uOZoyhS5CwGCOA8nBEnj3y/3+/Evy/tBfA+tNfA+9BeA+9De43t9fPzQ/7+/i7+u7e3N/n6+ir++9g+Pj7k8/Oz+O/e39/l7e2t+O9j4/mG/qG9Bt6H9hp4H9prbK+0sQy018D70F4D70N7DbwP7TXwPrTXwPvQXmN7pY1loL0G3of2Gngf2mvgeT8/P28jI7SxDNg/l8vF/E1sD+018D6018D70F4D70N7DbwP7TW2V9pYBtrr/8H7+3t7CTzN9koby0B7DbwP7TXwPrTXwPvQXgPvQ3uN7fXz8yN/f3+tv7+3t7f2F5n/PrZP2lgG2mvgfWivgfekvb6+vtrLgPZKG8tAew28D+018D6018D70F4D70N7DbwP7TW2V9pYBtrr/8H2S5a0sQy018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sg1/v/wBAk2rF2gAAAABJRU5ErkJggg==";
 
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -73,9 +70,13 @@ export default function App() {
       <header className="sticky top-0 z-50 bg-stone-900 text-white shadow-lg border-b border-stone-800">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-3">
-                <div className="relative h-10 md:h-12 w-auto flex items-center justify-center overflow-hidden">
-                   {/* Inline SVG Logo */}
-                   <Logo className="h-full w-auto" />
+                <div className="relative h-12 w-auto flex items-center justify-center overflow-hidden">
+                   {/* L O G O */}
+                   <img 
+                        src={LOGO_SRC} 
+                        alt="Ayala Logo" 
+                        className="h-full w-auto object-contain"
+                   />
                 </div>
                 <div className="hidden sm:block">
                     <h1 className="text-xl font-serif font-bold tracking-wide text-gold-500 leading-none mb-1">{t.title}</h1>
