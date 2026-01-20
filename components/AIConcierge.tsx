@@ -11,25 +11,26 @@ export const AIConcierge: React.FC = () => {
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [recommendation, setRecommendation] = useState<{ items: { id: string, quantity: number }[], explanation: string } | null>(null);
-    const [hasKey, setHasKey] = useState(true);
+    const [needsKey, setNeedsKey] = useState(false);
 
-    // Dynamic check for API Key availability in browser
+    // Initial check for key selection state
     useEffect(() => {
         const checkKey = async () => {
             if (window.aistudio) {
-                const selected = await window.aistudio.hasSelectedApiKey();
-                setHasKey(selected || !!process.env.API_KEY);
-            } else {
-                setHasKey(!!process.env.API_KEY);
+                const hasKey = await window.aistudio.hasSelectedApiKey();
+                // If hasKey is false, it might still work if process.env.API_KEY is injected, 
+                // but for Gemini 3 models we generally prefer selected keys.
+                // We'll only show the key button if a specific "Key missing" error occurs or if explicitly needed.
             }
         };
         checkKey();
     }, []);
 
-    const handleConnectKey = async () => {
+    const handleOpenKeyDialog = async () => {
         if (window.aistudio) {
             await window.aistudio.openSelectKey();
-            setHasKey(true);
+            // Assume success and clear the warning state
+            setNeedsKey(false);
         }
     };
 
@@ -38,20 +39,22 @@ export const AIConcierge: React.FC = () => {
         
         setIsGenerating(true);
         try {
-            // Re-initialize for fresh key access
+            // ALWAYS initialize right before use to get latest key
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             
-            // Prepare a light version of the menu for the prompt to save tokens
+            // Limit menu items to prevent context overflow while keeping variety
             const menuSummary = (menuItems || []).map(m => ({ 
                 id: m.id, 
                 name: m.name, 
-                price: m.price, 
                 cat: m.category 
-            })).slice(0, 60);
+            })).slice(0, 50);
 
             const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
-                contents: `User event: "${prompt}". Using our catering menu: ${JSON.stringify(menuSummary)}. Recommend a balanced menu mix. Return ONLY JSON.`,
+                contents: `Event Request: "${prompt}". 
+                Our Catering Menu: ${JSON.stringify(menuSummary)}. 
+                Task: Recommend 3-6 items with quantities for this event. 
+                Return JSON only.`,
                 config: {
                     responseMimeType: "application/json",
                     responseSchema: {
@@ -79,13 +82,16 @@ export const AIConcierge: React.FC = () => {
             if (text) {
                 const data = JSON.parse(text.trim());
                 setRecommendation(data);
+                setNeedsKey(false);
             }
         } catch (error: any) {
             console.error("AI Error:", error);
-            if (error?.message?.includes("API Key")) {
-                setHasKey(false);
+            const errorMsg = error?.message || "";
+            
+            if (errorMsg.includes("API Key") || errorMsg.includes("Requested entity was not found")) {
+                setNeedsKey(true);
             } else {
-                alert(language === 'he' ? "חלה שגיאה קטנה בבניית התפריט. בואו ננסה שוב!" : "Minor error planning. Let's try again!");
+                alert(language === 'he' ? "שגיאה בחיבור ל-AI. אנא נסו שוב." : "AI Connection Error. Please try again.");
             }
         } finally {
             setIsGenerating(false);
@@ -108,24 +114,6 @@ export const AIConcierge: React.FC = () => {
         }
     };
 
-    if (!hasKey) {
-        return (
-            <div className="bg-stone-900 border border-gold-500/30 rounded-3xl p-8 mb-12 shadow-2xl text-center">
-                <div className="inline-flex p-4 bg-gold-500/10 rounded-full text-gold-500 mb-4 animate-bounce">
-                    <Key size={32} />
-                </div>
-                <h3 className="text-xl font-serif font-bold text-white mb-2">נדרש חיבור לבינה מלאכותית</h3>
-                <p className="text-stone-400 text-sm mb-6">כדי להשתמש בקונסיירז' הדיגיטלי, עליך לחבר מפתח API של גוגל.</p>
-                <button 
-                    onClick={handleConnectKey}
-                    className="bg-gold-500 text-stone-900 font-bold px-8 py-3 rounded-full hover:bg-gold-400 transition transform active:scale-95"
-                >
-                    חבר מפתח עכשיו
-                </button>
-            </div>
-        );
-    }
-
     return (
         <div className="bg-stone-900 border border-gold-500/30 rounded-3xl p-6 md:p-8 mb-12 shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 blur-[50px] pointer-events-none"></div>
@@ -140,39 +128,62 @@ export const AIConcierge: React.FC = () => {
                 </div>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 mb-6">
-                <textarea
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    placeholder={t.aiPlaceholder}
-                    className="flex-1 bg-stone-800 border border-stone-700 rounded-2xl p-4 text-white placeholder-stone-500 focus:outline-none focus:border-gold-500 transition-colors h-24 resize-none text-start shadow-inner"
-                />
-                <button
-                    onClick={generateRecommendation}
-                    disabled={isGenerating || !prompt.trim()}
-                    className="md:w-32 bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-stone-900 font-bold rounded-2xl transition-all active:scale-95 flex flex-col items-center justify-center p-4 gap-2 shadow-lg"
-                >
-                    {isGenerating ? <Loader2 className="animate-spin" /> : <Send size={24} />}
-                    <span className="text-xs uppercase tracking-tighter">{isGenerating ? t.aiApplying : t.aiGenerate}</span>
-                </button>
-            </div>
-
-            {recommendation && (
-                <div className="bg-stone-800/50 rounded-2xl p-6 animate-slide-in-top border border-gold-500/20 text-start">
-                    <h4 className="text-gold-500 font-bold mb-2 flex items-center gap-2">
-                        <CheckCircle2 size={18} />
-                        {t.aiExplanation}
-                    </h4>
-                    <p className="text-stone-300 text-sm mb-6 leading-relaxed">
-                        {recommendation.explanation}
+            {needsKey ? (
+                <div className="bg-stone-800 border border-gold-500/20 rounded-2xl p-6 text-center animate-zoom-in">
+                    <div className="inline-flex p-3 bg-gold-500/10 rounded-full text-gold-500 mb-4">
+                        <Key size={24} />
+                    </div>
+                    <h4 className="text-white font-bold mb-2">חיבור API נדרש</h4>
+                    <p className="text-stone-400 text-sm mb-6 max-w-xs mx-auto">
+                        כדי להשתמש ב-AI, יש לבחור מפתח API מהפרויקט שלך.
                     </p>
-                    <button
-                        onClick={handleApply}
-                        className="w-full bg-white text-stone-900 font-bold py-4 rounded-xl hover:bg-stone-100 transition-colors shadow-lg active:scale-[0.98]"
+                    <button 
+                        onClick={handleOpenKeyDialog}
+                        className="bg-gold-500 text-stone-900 font-bold px-6 py-2 rounded-full hover:bg-gold-400 transition"
                     >
-                        {t.aiApply}
+                        חבר מפתח
                     </button>
+                    <div className="mt-4">
+                        <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="text-[10px] text-stone-500 hover:text-gold-500 underline uppercase tracking-widest">מידע על חיוב (Billing Docs)</a>
+                    </div>
                 </div>
+            ) : (
+                <>
+                    <div className="flex flex-col md:flex-row gap-4 mb-6">
+                        <textarea
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder={t.aiPlaceholder}
+                            className="flex-1 bg-stone-800 border border-stone-700 rounded-2xl p-4 text-white placeholder-stone-500 focus:outline-none focus:border-gold-500 transition-colors h-24 resize-none text-start shadow-inner"
+                        />
+                        <button
+                            onClick={generateRecommendation}
+                            disabled={isGenerating || !prompt.trim()}
+                            className="md:w-32 bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-stone-900 font-bold rounded-2xl transition-all active:scale-95 flex flex-col items-center justify-center p-4 gap-2 shadow-lg"
+                        >
+                            {isGenerating ? <Loader2 className="animate-spin" /> : <Send size={24} />}
+                            <span className="text-xs uppercase tracking-tighter">{isGenerating ? t.aiApplying : t.aiGenerate}</span>
+                        </button>
+                    </div>
+
+                    {recommendation && (
+                        <div className="bg-stone-800/50 rounded-2xl p-6 animate-slide-in-top border border-gold-500/20 text-start">
+                            <h4 className="text-gold-500 font-bold mb-2 flex items-center gap-2">
+                                <CheckCircle2 size={18} />
+                                {t.aiExplanation}
+                            </h4>
+                            <p className="text-stone-300 text-sm mb-6 leading-relaxed">
+                                {recommendation.explanation}
+                            </p>
+                            <button
+                                onClick={handleApply}
+                                className="w-full bg-white text-stone-900 font-bold py-4 rounded-xl hover:bg-stone-100 transition-colors shadow-lg active:scale-[0.98]"
+                            >
+                                {t.aiApply}
+                            </button>
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );

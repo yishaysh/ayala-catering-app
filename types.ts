@@ -68,3 +68,8 @@ export interface AppSettings {
   delivery_fee: number;
   is_shop_open: boolean;
 }
+
+// Global aistudio declaration removed because it conflicts with environment-provided type AIStudio.
+// The environment pre-configures window.aistudio with hasSelectedApiKey and openSelectKey methods.
+
+export {};
