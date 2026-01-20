@@ -10,19 +10,10 @@ import { AdminDashboard } from './components/AdminDashboard';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts'];
 
-// ------------------------------------------------------------------
-// הנחיות להחלפת לוגו:
-// 1. המר את תמונת הלוגו ל-Base64 (למשל באתר base64-image.de)
-// 2. הדבק את המחרוזת הארוכה בתוך הגרשיים למטה במקום ה-Placeholder
-// או פשוט שים נתיב לקובץ בתיקיית public (למשל "/logo.png")
-// ------------------------------------------------------------------
-const LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAAA8CAYAAAAjW/OvAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAQdSURBVHic7ZzbbuMwEIDWl2Tz/3/2pQ2KAm4P0uOZoyhS5CwGCOA8nBEnj3y/3+/Evy/tBfA+tNfA+9BeA+9De43t9fPzQ/7+/i7+u7e3N/n6+ir++9g+Pj7k8/Oz+O/e39/l7e2t+O9j4/mG/qG9Bt6H9hp4H9prbK+0sQy018D70F4D70N7DbwP7TXwPrTXwPvQXmN7pY1loL0G3of2Gngf2mvgeT8/P28jI7SxDNg/l8vF/E1sD+018D6018D70F4D70N7DbwP7TW2V9pYBtrr/8H7+3t7CTzN9koby0B7DbwP7TXwPrTXwPvQXgPvQ3uN7fXz8yN/f3+tv7+3t7f2F5n/PrZP2lgG2mvgfWivgfekvb6+vtrLgPZKG8tAew28D+018D6018D70F4D70N7DbwP7TW2V9pYBtrr/8H2S5a0sQy018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sg1/v/wBAk2rF2gAAAABJRU5ErkJggg==";
-
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading } = useStore();
+  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, logoUrl } = useStore();
   
-  // Admin State
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [pin, setPin] = useState('');
@@ -31,7 +22,6 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const t = translations[language];
 
-  // Fetch Menu on Load
   useEffect(() => {
       fetchMenuItems();
   }, []);
@@ -72,17 +62,18 @@ export default function App() {
       <header className="sticky top-0 z-50 bg-stone-900 text-white shadow-lg border-b border-stone-800">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-4">
-                {/* Logo Container - Increased Size */}
-                <div className="relative h-14 w-auto flex items-center justify-center overflow-hidden">
+                {/* Logo Container - Editable via Admin */}
+                <div className="h-12 w-32 md:w-40 flex items-center justify-center bg-stone-800/50 rounded-lg overflow-hidden border border-stone-700">
                    <img 
-                        src={LOGO_SRC} 
+                        src={logoUrl} 
                         alt="Ayala Logo" 
-                        className="h-full w-auto object-contain"
-                        style={{ minWidth: '120px' }} // Ensure it doesn't shrink too much
+                        className="h-full w-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "https://placehold.co/200x80/1c1917/d4af37?text=AYALA";
+                        }}
                    />
                 </div>
                 
-                {/* Text Title (Hidden on very small screens if logo has text, otherwise keep) */}
                 <div className="hidden sm:block border-r border-stone-700 pr-4 mr-1">
                     <h1 className="text-xl font-serif font-bold tracking-wide text-gold-500 leading-none mb-1">{t.title}</h1>
                     <p className="text-[10px] text-stone-400 tracking-[0.2em] uppercase font-medium">{t.subtitle}</p>
@@ -153,9 +144,7 @@ export default function App() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 -mt-16 relative z-20">
-        
         <HostHelper />
-
         <div className="sticky top-[72px] z-40 bg-stone-50/95 backdrop-blur-md py-4 mb-8 border-b border-stone-200 -mx-4 px-4 overflow-x-auto shadow-sm">
             <nav className="flex gap-2 min-w-max mx-auto md:justify-center">
                 {CATEGORIES.map(cat => (
@@ -183,17 +172,14 @@ export default function App() {
         ) : (
             <MenuGrid items={menuItems} />
         )}
-        
       </main>
 
-      {/* Footer */}
       <footer className="bg-stone-900 text-stone-400 py-8 px-4 text-center mt-auto pb-32">
           <div className="container mx-auto">
               <p className="text-sm font-medium mb-4">© {new Date().getFullYear()} {t.title}</p>
           </div>
       </footer>
 
-      {/* Mobile Sticky Action */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-[0_-5px_20px_rgba(0,0,0,0.1)] md:hidden z-30 pb-safe">
           <div className="flex justify-between items-center gap-4">
               <div className="flex flex-col">
@@ -212,47 +198,27 @@ export default function App() {
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
-      {/* Admin Login Modal */}
       {isLoginOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-zoom-in">
-              <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl relative">
-                  <button 
-                    onClick={() => { setIsLoginOpen(false); setPin(''); setLoginError(false); }}
-                    className="absolute top-4 right-4 text-stone-400 hover:text-stone-900"
-                  >
-                      <X />
-                  </button>
-                  
+              <div className="bg-white rounded-2xl p-8 w-full max-sm shadow-2xl relative">
+                  <button onClick={() => { setIsLoginOpen(false); setPin(''); setLoginError(false); }} className="absolute top-4 right-4 text-stone-400 hover:text-stone-900"><X /></button>
                   <div className="text-center mb-6">
-                      <div className="inline-flex items-center justify-center w-16 h-16 bg-stone-100 rounded-full mb-4 text-stone-900">
-                          <Lock size={32} />
-                      </div>
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-stone-100 rounded-full mb-4 text-stone-900"><Lock size={32} /></div>
                       <h2 className="text-2xl font-serif font-bold text-stone-900">כניסת מנהל</h2>
                       <p className="text-sm text-stone-500">נא להזין קוד גישה</p>
                   </div>
-
                   <form onSubmit={handleAdminLogin}>
                       <input 
                         type="password" 
                         value={pin}
                         onChange={(e) => { setPin(e.target.value); setLoginError(false); }}
-                        className={`
-                            w-full text-center text-3xl tracking-widest font-bold border-b-2 py-2 mb-6 focus:outline-none transition-colors
-                            ${loginError ? 'border-red-500 text-red-500' : 'border-stone-200 focus:border-gold-500 text-stone-900'}
-                        `}
+                        className={`w-full text-center text-3xl tracking-widest font-bold border-b-2 py-2 mb-6 focus:outline-none transition-colors ${loginError ? 'border-red-500 text-red-500' : 'border-stone-200 focus:border-gold-500 text-stone-900'}`}
                         placeholder="••••"
                         maxLength={4}
                         autoFocus
                       />
                       {loginError && <p className="text-red-500 text-xs text-center mb-4 font-bold">קוד שגוי</p>}
-                      
-                      <button 
-                        type="submit"
-                        className="w-full bg-stone-900 text-gold-500 font-bold py-3 rounded-xl hover:bg-stone-800 transition flex items-center justify-center gap-2"
-                      >
-                          <span>כניסה</span>
-                          <ChevronRight size={16} />
-                      </button>
+                      <button type="submit" className="w-full bg-stone-900 text-gold-500 font-bold py-3 rounded-xl hover:bg-stone-800 transition flex items-center justify-center gap-2"><span>כניסה</span><ChevronRight size={16} /></button>
                   </form>
               </div>
           </div>

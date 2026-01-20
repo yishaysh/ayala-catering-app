@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { MenuItem, Category } from '../types';
 import { useStore, getSuggestedQuantity, translations, getLocalizedItem } from '../store';
@@ -88,6 +89,9 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                 const suggestedQty = guestCount > 0 ? getSuggestedQuantity(item, guestCount, calculationSettings) : 1;
                 const localItem = getLocalizedItem(item, language);
                 
+                // Use actual item image or a high quality placeholder
+                const previewUrl = item.image_url || `https://placehold.co/600x400/1c1917/d4af37?text=${encodeURIComponent(localItem.name)}`;
+
                 return (
                   <div 
                       key={item.id} 
@@ -104,11 +108,11 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
 
                     <div className="absolute top-4 left-4 z-10">
                         <button 
-                            onClick={() => setSelectedImage({ name: localItem.name, url: 'https://placehold.co/600x400/1c1917/d4af37?text=' + encodeURIComponent(localItem.name) })}
-                            className="bg-white/90 p-2 rounded-full shadow-md text-stone-600 hover:text-gold-600 transition-colors backdrop-blur-sm border border-stone-100 flex items-center justify-center"
-                            title="הצג תמונה"
+                            onClick={() => setSelectedImage({ name: localItem.name, url: previewUrl })}
+                            className="bg-white/90 px-3 py-1.5 rounded-full shadow-md text-stone-600 hover:text-gold-600 transition-colors backdrop-blur-sm border border-stone-100 flex items-center gap-1.5"
                         >
-                            <Eye size={18} />
+                            <Eye size={16} />
+                            <span className="text-[10px] font-bold uppercase tracking-wider">{language === 'he' ? 'הצג' : 'View'}</span>
                         </button>
                     </div>
 
@@ -182,6 +186,9 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         src={selectedImage.url} 
                         alt={selectedImage.name} 
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                            (e.target as HTMLImageElement).src = `https://placehold.co/600x400/1c1917/d4af37?text=${encodeURIComponent(selectedImage.name)}`;
+                        }}
                      />
                 </div>
                 <div className="p-6 bg-white">
@@ -245,7 +252,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                                             px-3 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-2
                                             ${selectedMods.includes(mod) 
                                                 ? 'bg-stone-900 text-white border-stone-900' 
-                                                : 'bg-white text-stone-600 border-stone-200 hover:border-stone-400'
+                                                : 'bg-white text-stone-600 border border-stone-200 hover:border-stone-400'
                                             }
                                         `}
                                     >
