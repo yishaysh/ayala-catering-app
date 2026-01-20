@@ -38,8 +38,16 @@ export default {
           to: { height: "0" },
         },
         "slide-in-from-bottom": {
-          from: { transform: "translateY(100%)" },
-          to: { transform: "translateY(0)" },
+          from: { transform: "translateY(100%)", opacity: "0" },
+          to: { transform: "translateY(0)", opacity: "1" },
+        },
+        "slide-in-from-top-4": {
+          from: { transform: "translateY(-1rem)", opacity: "0" },
+          to: { transform: "translateY(0)", opacity: "1" },
+        },
+        "zoom-in-95": {
+            from: { transform: "scale(0.95)", opacity: "0" },
+            to: { transform: "scale(1)", opacity: "1" },
         },
         "fade-in": {
             from: { opacity: "0" },
@@ -50,12 +58,12 @@ export default {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "in": "fade-in 0.2s ease-out",
-        "slide-in-from-bottom": "slide-in-from-bottom 0.3s ease-out", 
+        "slide-in-from-bottom": "slide-in-from-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1)", 
+        "slide-in-from-top-4": "slide-in-from-top-4 0.5s ease-out",
+        "zoom-in-95": "zoom-in-95 0.2s ease-out",
+        "fade-in": "fade-in 0.2s ease-out",
       },
     },
   },
-  plugins: [
-      // If you haven't installed tailwindcss-animate, these custom keyframes in theme.extend 
-      // will ensure the basic animations still work without the plugin.
-  ],
+  plugins: [],
 }

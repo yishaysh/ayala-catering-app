@@ -25,9 +25,6 @@ export const HostHelper: React.FC = () => {
     const ratios = advancedSettings.eventRatios[eventType];
 
     // Calculation (Rounded up)
-    // Assumption: Trays serve ~10-12 people. Coverage implies "how many trays per X people".
-    // 1.0 Coverage means "Enough salad for everyone", roughly 1 tray per 10 people.
-    // 0.5 Coverage means "Salad for half the people", roughly 1 tray per 20 people.
     const TRAY_CAPACITY = 10;
     const PLATTER_CAPACITY = 12;
     const DESSERT_CAPACITY = 15;
@@ -35,7 +32,7 @@ export const HostHelper: React.FC = () => {
     return {
         sandwiches: Math.ceil(guestCount * ratios.sandwiches * hungerMult),
         pastries: Math.ceil(guestCount * ratios.pastries * hungerMult),
-        salads: Math.ceil((guestCount * ratios.saladsCoverage * hungerMult) / TRAY_CAPACITY * 10), // Normalized logic: (Guests * Coverage) / UnitSize
+        salads: Math.ceil((guestCount * ratios.saladsCoverage * hungerMult) / TRAY_CAPACITY * 10),
         mains: Math.ceil((guestCount * ratios.mainsCoverage * hungerMult) / TRAY_CAPACITY * 10),
         platters: Math.ceil((guestCount * ratios.plattersCoverage * hungerMult) / PLATTER_CAPACITY * 12),
         desserts: Math.ceil((guestCount * ratios.dessertsCoverage * hungerMult) / DESSERT_CAPACITY * 15),
@@ -123,7 +120,7 @@ export const HostHelper: React.FC = () => {
                   </div>
               </div>
 
-              {/* Hunger Level Selector - Native Input Fix */}
+              {/* Hunger Level Selector */}
               <div className="bg-stone-900 p-6 md:p-8 flex flex-col justify-center">
                   <label className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-8 block">{t.hungerLevel}</label>
                   <div className="space-y-6 relative px-2">
@@ -135,11 +132,12 @@ export const HostHelper: React.FC = () => {
                           step="1"
                           value={sliderValue}
                           onChange={handleSliderChange}
-                          className="w-full h-2 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-gold-500 focus:outline-none z-20 relative"
+                          // Note: The visual styling is handled in index.css
+                          className="w-full appearance-none bg-transparent cursor-pointer z-20 relative focus:outline-none"
                       />
                       
-                      {/* Visual Steps */}
-                      <div className="flex justify-between text-sm font-medium text-stone-400 mt-4 relative z-10">
+                      {/* Visual Labels */}
+                      <div className="flex justify-between text-sm font-medium text-stone-400 mt-2 relative z-10">
                           {(['light', 'medium', 'heavy'] as HungerLevel[]).map((level, idx) => (
                               <button 
                                 key={level}
@@ -148,7 +146,7 @@ export const HostHelper: React.FC = () => {
                                     if(idx === 1) setHungerLevel('medium');
                                     if(idx === 2) setHungerLevel('heavy');
                                 }}
-                                className={`transition-colors text-center w-20 ${hungerLevel === level ? 'text-gold-400 font-bold scale-110' : 'hover:text-stone-300'}`}
+                                className={`transition-all duration-300 transform text-center w-20 ${hungerLevel === level ? 'text-gold-400 font-bold scale-110' : 'hover:text-stone-300'}`}
                               >
                                   {(t as any)[level]}
                               </button>
@@ -160,7 +158,7 @@ export const HostHelper: React.FC = () => {
 
           {/* Results Section */}
           {guestCount > 0 && recommendations && (
-            <div className="bg-stone-950/50 p-6 md:p-8 animate-in slide-in-from-top-4 fade-in duration-500">
+            <div className="bg-stone-950/50 p-6 md:p-8 animate-slide-in-from-top-4">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-gold-500/20 rounded-full text-gold-500">
                         <Sparkles size={20} />
@@ -171,42 +169,42 @@ export const HostHelper: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     {/* Sandwiches */}
                     {recommendations.sandwiches > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors">
+                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-in zoom-in-95 duration-300 delay-0">
                             <span className="block text-3xl font-bold text-gold-500 mb-1">{recommendations.sandwiches}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{t.sandwiches}</span>
                         </div>
                     )}
                     {/* Pastries */}
                     {recommendations.pastries > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors">
+                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-in zoom-in-95 duration-300 delay-75">
                             <span className="block text-3xl font-bold text-white mb-1">{recommendations.pastries}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{(t.categories as any)['Pastries']}</span>
                         </div>
                     )}
                      {/* Salads */}
                      {recommendations.salads > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors">
+                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-in zoom-in-95 duration-300 delay-100">
                             <span className="block text-3xl font-bold text-white mb-1">{recommendations.salads}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{t.trays} {(t.categories as any)['Salads']}</span>
                         </div>
                     )}
                      {/* Mains */}
                      {recommendations.mains > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors">
+                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-in zoom-in-95 duration-300 delay-150">
                             <span className="block text-3xl font-bold text-white mb-1">{recommendations.mains}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{t.trays} {(t.categories as any)['Main Courses']}</span>
                         </div>
                     )}
                      {/* Platters */}
                      {recommendations.platters > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors">
+                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-in zoom-in-95 duration-300 delay-200">
                             <span className="block text-3xl font-bold text-white mb-1">{recommendations.platters}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{(t.categories as any)['Cold Platters']}</span>
                         </div>
                     )}
                      {/* Desserts */}
                      {recommendations.desserts > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors">
+                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-in zoom-in-95 duration-300 delay-300">
                             <span className="block text-3xl font-bold text-gold-500 mb-1">{recommendations.desserts}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{(t.categories as any)['Desserts']}</span>
                         </div>
