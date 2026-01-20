@@ -33,6 +33,12 @@ export interface CartItem extends MenuItem {
   selected_modifications?: string[];
 }
 
+export interface CalculationSettings {
+  sandwichesPerPerson: number; // Default 1.5
+  pastriesPerPerson: number;   // Default 1.0
+  averageTrayCapacity: number; // Default 10 (Used for general estimation)
+}
+
 export interface AppSettings {
   min_order_price: number;
   lead_time_hours: number;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MenuItem, Category, UnitType } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Calculator } from 'lucide-react';
 
 interface AdminDashboardProps {
     onExit: () => void;
@@ -20,7 +20,7 @@ const CATEGORY_OPTIONS: Category[] = [
 const UNIT_OPTIONS: UnitType[] = ['tray', 'unit', 'liter', 'weight'];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
-    const { menuItems, updateMenuItem, addMenuItem, language } = useStore();
+    const { menuItems, updateMenuItem, addMenuItem, calculationSettings, updateCalculationSettings, language } = useStore();
     const t = translations[language].admin;
     const [searchTerm, setSearchTerm] = useState('');
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -141,7 +141,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                  </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-start">
+            {/* Settings Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 text-start">
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.minOrder}</h3>
                     <input type="number" defaultValue={500} className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" />
@@ -150,12 +151,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.prepTime}</h3>
                     <input type="number" defaultValue={48} className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" />
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                    <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.storeStatus}</h3>
-                    <select className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500 bg-transparent">
-                        <option value="open">{t.open}</option>
-                        <option value="closed">{t.closed}</option>
-                    </select>
+                
+                {/* Calculator Logic Settings */}
+                <div className="bg-white p-6 rounded-lg shadow-sm md:col-span-2 relative overflow-hidden">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="p-1.5 bg-gold-100 rounded text-gold-600">
+                             <Calculator size={16} />
+                        </div>
+                        <h3 className="text-sm font-bold text-stone-900 uppercase">{t.calcSettings}</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-6">
+                        <div>
+                             <label className="text-xs text-stone-500 font-bold block mb-1">{t.sandwichesPerPerson}</label>
+                             <input 
+                                type="number" 
+                                step="0.1"
+                                value={calculationSettings.sandwichesPerPerson}
+                                onChange={(e) => updateCalculationSettings({ sandwichesPerPerson: parseFloat(e.target.value) })}
+                                className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500"
+                             />
+                        </div>
+                        <div>
+                             <label className="text-xs text-stone-500 font-bold block mb-1">{t.pastriesPerPerson}</label>
+                             <input 
+                                type="number" 
+                                step="0.1"
+                                value={calculationSettings.pastriesPerPerson}
+                                onChange={(e) => updateCalculationSettings({ pastriesPerPerson: parseFloat(e.target.value) })}
+                                className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500"
+                             />
+                        </div>
+                         <div>
+                             <label className="text-xs text-stone-500 font-bold block mb-1">{t.trayCapacity}</label>
+                             <input 
+                                type="number" 
+                                value={calculationSettings.averageTrayCapacity}
+                                onChange={(e) => updateCalculationSettings({ averageTrayCapacity: parseInt(e.target.value) })}
+                                className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500"
+                             />
+                        </div>
+                    </div>
                 </div>
             </div>
 

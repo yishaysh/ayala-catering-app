@@ -18,7 +18,7 @@ const CATEGORY_ORDER: Category[] = [
 ];
 
 export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
-  const { addToCart, guestCount, language } = useStore();
+  const { addToCart, guestCount, language, calculationSettings } = useStore();
   const t = translations[language];
   
   // State for Image Preview Modal
@@ -40,7 +40,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   }, [items]);
 
   const openAddModal = (item: MenuItem) => {
-    const suggested = guestCount > 0 ? getSuggestedQuantity(item, guestCount) : 1;
+    const suggested = guestCount > 0 ? getSuggestedQuantity(item, guestCount, calculationSettings) : 1;
     setAddQuantity(suggested);
     setNotes('');
     setSelectedMods([]);
@@ -88,7 +88,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {catItems.map((item) => {
-                const suggestedQty = guestCount > 0 ? getSuggestedQuantity(item, guestCount) : 1;
+                const suggestedQty = guestCount > 0 ? getSuggestedQuantity(item, guestCount, calculationSettings) : 1;
                 const localItem = getLocalizedItem(item, language);
                 
                 return (

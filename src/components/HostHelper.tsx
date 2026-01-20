@@ -3,7 +3,7 @@ import { useStore, translations } from '../store';
 import { Users, Sparkles, Minus, Plus } from 'lucide-react';
 
 export const HostHelper: React.FC = () => {
-  const { guestCount, setGuestCount, language } = useStore();
+  const { guestCount, setGuestCount, language, calculationSettings } = useStore();
   const t = translations[language];
 
   return (
@@ -60,10 +60,10 @@ export const HostHelper: React.FC = () => {
             </div>
             <div className="flex flex-wrap justify-center gap-2 text-xs md:text-sm text-stone-300">
                 <span className="bg-stone-800 px-3 py-1.5 rounded-full border border-stone-700 whitespace-nowrap">
-                    <strong>{Math.ceil(guestCount * 1.5)}</strong> {t.sandwiches}
+                    <strong>{Math.ceil(guestCount * calculationSettings.sandwichesPerPerson)}</strong> {t.sandwiches}
                 </span>
                 <span className="bg-stone-800 px-3 py-1.5 rounded-full border border-stone-700 whitespace-nowrap">
-                    <strong>{Math.ceil(guestCount / 10)}</strong> {t.trays} ({t.perCategory})
+                    <strong>{Math.ceil(guestCount / calculationSettings.averageTrayCapacity)}</strong> {t.trays} ({t.perCategory})
                 </span>
             </div>
         </div>

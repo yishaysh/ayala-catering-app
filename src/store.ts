@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem } from './types';
+import { CartItem, MenuItem, CalculationSettings } from './types';
 import { supabase } from './lib/supabase';
 
 // HARDCODED INITIAL MENU (Fallback if DB is empty or not connected)
@@ -298,7 +298,8 @@ interface AppState {
   guestCount: number;
   language: Language;
   isLoading: boolean;
-  
+  calculationSettings: CalculationSettings; // New state
+
   // Actions
   fetchMenuItems: () => Promise<void>;
   setGuestCount: (count: number) => void;
@@ -307,7 +308,8 @@ interface AppState {
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
-  addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>; // New Action
+  addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
+  updateCalculationSettings: (settings: Partial<CalculationSettings>) => void; // New Action
   clearCart: () => void;
   
   // Logic
@@ -318,10 +320,15 @@ export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
       cart: [],
-      menuItems: INITIAL_MENU, // Initialize with hardcoded data
+      menuItems: INITIAL_MENU,
       guestCount: 0,
       language: 'he',
       isLoading: false,
+      calculationSettings: {
+        sandwichesPerPerson: 1.5,
+        pastriesPerPerson: 1.0,
+        averageTrayCapacity: 10
+      },
 
       fetchMenuItems: async () => {
           set({ isLoading: true });
@@ -399,7 +406,6 @@ export const useStore = create<AppState>()(
       },
 
       addMenuItem: async (item) => {
-          // Attempt to insert to DB
           const { data, error } = await supabase
             .from('menu_items')
             .insert([item])
@@ -407,12 +413,17 @@ export const useStore = create<AppState>()(
 
           if (error) {
               console.error("Failed to add item to DB", error);
-              // Optimistic Update fallback (temporary ID)
               const newItem = { ...item, id: Math.random().toString(36).substr(2, 9) };
               set({ menuItems: [...get().menuItems, newItem as MenuItem] });
           } else if (data) {
               set({ menuItems: [...get().menuItems, data[0] as MenuItem] });
           }
+      },
+
+      updateCalculationSettings: (settings) => {
+        set((state) => ({
+            calculationSettings: { ...state.calculationSettings, ...settings }
+        }));
       },
 
       clearCart: () => set({ cart: [] }),
@@ -426,20 +437,31 @@ export const useStore = create<AppState>()(
       partialize: (state) => ({ 
           cart: state.cart, 
           guestCount: state.guestCount, 
-          language: state.language 
+          language: state.language,
+          calculationSettings: state.calculationSettings // Persist settings
       }), 
     }
   )
 );
 
-export const getSuggestedQuantity = (item: MenuItem, guestCount: number): number => {
+// Updated to use settings
+export const getSuggestedQuantity = (item: MenuItem, guestCount: number, settings: CalculationSettings): number => {
     if (guestCount <= 0) return 1;
-    if (item.category === 'Sandwiches' && item.unit_type === 'unit') return Math.ceil(guestCount * 1.5);
-    if (item.category === 'Pastries' && item.unit_type === 'unit') return Math.ceil(guestCount * 1.0);
+    
+    // Use dynamic settings
+    if (item.category === 'Sandwiches' && item.unit_type === 'unit') {
+        return Math.ceil(guestCount * settings.sandwichesPerPerson);
+    }
+    
+    if (item.category === 'Pastries' && item.unit_type === 'unit') {
+        return Math.ceil(guestCount * settings.pastriesPerPerson);
+    }
+
     if (item.unit_type === 'tray' || item.unit_type === 'liter') {
-        const capacity = item.serves_max || 10;
+        const capacity = item.serves_max || settings.averageTrayCapacity;
         return Math.ceil(guestCount / capacity);
     }
+    
     return 1;
 };
 
@@ -531,7 +553,11 @@ export const translations = {
         description: "תיאור המנה",
         unitType: "סוג יחידה",
         create: "צור מנה",
-        premium: "פרימיום"
+        premium: "פרימיום",
+        calcSettings: "הגדרות מחשבון כמויות",
+        sandwichesPerPerson: "כריכים לאדם",
+        pastriesPerPerson: "מאפים לאדם",
+        trayCapacity: "קיבולת מגש ממוצעת"
     }
   },
   en: {
@@ -605,7 +631,11 @@ export const translations = {
         description: "Description",
         unitType: "Unit Type",
         create: "Create Item",
-        premium: "Premium"
+        premium: "Premium",
+        calcSettings: "Smart Calculator Logic",
+        sandwichesPerPerson: "Sandwiches Per Person",
+        pastriesPerPerson: "Pastries Per Person",
+        trayCapacity: "Avg. Tray Capacity"
     }
   }
 };
