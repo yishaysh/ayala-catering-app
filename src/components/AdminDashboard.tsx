@@ -258,19 +258,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 <table className="w-full border-collapse">
                                     <thead>
                                         <tr className="bg-stone-200 text-stone-600 text-xs uppercase">
-                                            <th className="p-3 text-start">Event Type</th>
-                                            <th className="p-3 text-start">Sandwiches<br/>({t.unitsPerPerson})</th>
-                                            <th className="p-3 text-start">Pastries<br/>({t.unitsPerPerson})</th>
-                                            <th className="p-3 text-start">Salads<br/>({t.coverage})</th>
-                                            <th className="p-3 text-start">Mains<br/>({t.coverage})</th>
-                                            <th className="p-3 text-start">Platters<br/>({t.coverage})</th>
-                                            <th className="p-3 text-start">Desserts<br/>({t.coverage})</th>
+                                            <th className="p-3 text-start">{t.tableEventType}</th>
+                                            <th className="p-3 text-start">{t.tableSandwiches}<br/>({t.unitsPerPerson})</th>
+                                            <th className="p-3 text-start">{t.tablePastries}<br/>({t.unitsPerPerson})</th>
+                                            <th className="p-3 text-start">{t.tableSalads}<br/>({t.coverage})</th>
+                                            <th className="p-3 text-start">{t.tableMains}<br/>({t.coverage})</th>
+                                            <th className="p-3 text-start">{t.tablePlatters}<br/>({t.coverage})</th>
+                                            <th className="p-3 text-start">{t.tableDesserts}<br/>({t.coverage})</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {EVENT_TYPES.map(eType => (
                                             <tr key={eType} className="border-b border-stone-200 hover:bg-white">
-                                                <td className="p-3 font-bold text-stone-800 capitalize">{eType}</td>
+                                                <td className="p-3 font-bold text-stone-800 capitalize">{translations[language][eType] || eType}</td>
                                                 <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].sandwiches} onChange={(e) => handleEventRatioChange(eType, 'sandwiches', e.target.value)} /></td>
                                                 <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].pastries} onChange={(e) => handleEventRatioChange(eType, 'pastries', e.target.value)} /></td>
                                                 <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].saladsCoverage} onChange={(e) => handleEventRatioChange(eType, 'saladsCoverage', e.target.value)} /></td>
@@ -315,7 +315,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 return (
                                     <tr key={item.id} className="border-b border-stone-100 hover:bg-stone-50">
                                         <td className="p-4 font-bold text-stone-800">{localItem.name}</td>
-                                        <td className="p-4 text-stone-500">{item.category}</td>
+                                        <td className="p-4 text-stone-500">{(translations[language].categories as Record<string, string>)[item.category]}</td>
                                         <td className="p-4">₪{item.price}</td>
                                         <td className="p-4">
                                             <span 

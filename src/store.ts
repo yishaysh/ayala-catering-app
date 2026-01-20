@@ -423,7 +423,16 @@ export const translations = {
         hungerMult: "מכפילי רעב",
         eventLogic: "לוגיקה לפי סוג אירוע",
         unitsPerPerson: "יח' לאדם",
-        coverage: "כיסוי"
+        coverage: "כיסוי",
+        
+        // Table Headers
+        tableEventType: "סוג אירוע",
+        tableSandwiches: "כריכים",
+        tablePastries: "מאפים",
+        tableSalads: "סלטים",
+        tableMains: "עיקריות",
+        tablePlatters: "מגשים",
+        tableDesserts: "קינוחים"
     }
   },
   en: {
@@ -523,7 +532,16 @@ export const translations = {
         hungerMult: "Hunger Multipliers",
         eventLogic: "Event Logic Matrix",
         unitsPerPerson: "Units/Prsn",
-        coverage: "Coverage"
+        coverage: "Coverage",
+
+        // Table Headers
+        tableEventType: "Event Type",
+        tableSandwiches: "Sandwiches",
+        tablePastries: "Pastries",
+        tableSalads: "Salads",
+        tableMains: "Mains",
+        tablePlatters: "Platters",
+        tableDesserts: "Desserts"
     }
   }
 };
