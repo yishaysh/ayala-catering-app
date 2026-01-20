@@ -1,6 +1,8 @@
+
+// Add React import to fix 'Cannot find namespace React' error for React.FC and React.ReactNode.
 import React, { useMemo } from 'react';
 import { useStore, translations } from '../store';
-import { Minus, Plus, UtensilsCrossed, Wine, Sun, PartyPopper, Sparkles } from 'lucide-react';
+import { Minus, Plus, UtensilsCrossed, Wine, Sun, PartyPopper, Sparkles, Coffee, Pizza, Utensils } from 'lucide-react';
 import { EventType, HungerLevel } from '../types';
 
 export const HostHelper: React.FC = () => {
@@ -34,13 +36,13 @@ export const HostHelper: React.FC = () => {
     };
   }, [guestCount, eventType, hungerLevel, advancedSettings]);
 
-  const sliderValue = hungerLevel === 'light' ? 0 : hungerLevel === 'medium' ? 1 : 2;
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = parseInt(e.target.value);
-      if (val === 0) setHungerLevel('light');
-      if (val === 1) setHungerLevel('medium');
-      if (val === 2) setHungerLevel('heavy');
-  };
+  const hungerOptions: { id: HungerLevel, icon: React.ReactNode }[] = [
+    { id: 'light', icon: <Coffee size={20} /> },
+    { id: 'medium', icon: <Pizza size={20} /> },
+    { id: 'heavy', icon: <Utensils size={20} /> }
+  ];
+
+  const getActiveIndex = () => hungerOptions.findIndex(opt => opt.id === hungerLevel);
 
   return (
     <div className="relative bg-stone-900 text-stone-50 rounded-3xl shadow-2xl mb-12 border border-stone-800 w-full overflow-hidden transition-all duration-500">
@@ -109,34 +111,41 @@ export const HostHelper: React.FC = () => {
                   </div>
               </div>
 
-              <div className="bg-stone-900 p-6 md:p-8 flex flex-col justify-center">
-                  <label className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-8 block">{t.hungerLevel}</label>
-                  <div className="space-y-6 relative px-2">
-                      <input 
-                          type="range" 
-                          min="0" 
-                          max="2" 
-                          step="1"
-                          value={sliderValue}
-                          onChange={handleSliderChange}
-                          className="w-full appearance-none bg-transparent cursor-pointer z-20 relative focus:outline-none"
-                      />
+              <div className="bg-stone-900 p-6 md:p-8 flex flex-col">
+                  <label className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-6 block">{t.hungerLevel}</label>
+                  
+                  <div className="relative bg-stone-800/50 p-1.5 rounded-2xl border border-stone-700/50 flex items-center h-16 w-full max-w-sm">
+                      <div 
+                        className="absolute top-1.5 bottom-1.5 bg-gold-500 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] shadow-lg shadow-gold-500/20"
+                        style={{ 
+                            width: 'calc(33.33% - 8px)',
+                            transform: `translateX(${language === 'he' ? -(getActiveIndex() * 100) : (getActiveIndex() * 100)}%)`,
+                            left: language === 'he' ? 'auto' : '6px',
+                            right: language === 'he' ? '6px' : 'auto'
+                        }}
+                      ></div>
                       
-                      <div className="flex justify-between text-sm font-medium text-stone-400 mt-2 relative z-10">
-                          {(['light', 'medium', 'heavy'] as HungerLevel[]).map((level, idx) => (
-                              <button 
-                                key={level}
-                                onClick={() => {
-                                    if(idx === 0) setHungerLevel('light');
-                                    if(idx === 1) setHungerLevel('medium');
-                                    if(idx === 2) setHungerLevel('heavy');
-                                }}
-                                className={`transition-all duration-300 transform text-center w-20 ${hungerLevel === level ? 'text-gold-400 font-bold scale-110' : 'hover:text-stone-300'}`}
-                              >
-                                  {(t as any)[level]}
-                              </button>
-                          ))}
-                      </div>
+                      {hungerOptions.map((opt) => (
+                          <button
+                            key={opt.id}
+                            onClick={() => setHungerLevel(opt.id)}
+                            className={`
+                                relative z-10 flex-1 flex items-center justify-center gap-2 text-sm font-bold transition-colors duration-300
+                                ${hungerLevel === opt.id ? 'text-stone-900' : 'text-stone-400 hover:text-stone-200'}
+                            `}
+                          >
+                            <span className={`transition-transform duration-300 shrink-0 ${hungerLevel === opt.id ? 'scale-110' : 'scale-100 opacity-60'}`}>
+                                {opt.icon}
+                            </span>
+                            <span className="hidden sm:inline">{(t as any)[opt.id]}</span>
+                          </button>
+                      ))}
+                  </div>
+                  
+                  <div className="mt-4 text-xs text-stone-500 font-medium px-2">
+                    {hungerLevel === 'light' && (language === 'he' ? '* כיבוד קל למפגש חברתי' : '* Light refreshments for social gathering')}
+                    {hungerLevel === 'medium' && (language === 'he' ? '* ארוחה משביעה וסטנדרטית' : '* Satisfying standard meal')}
+                    {hungerLevel === 'heavy' && (language === 'he' ? '* לאורחים רעבים במיוחד!' : '* For extra hungry guests!')}
                   </div>
               </div>
           </div>
