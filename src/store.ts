@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel, AdvancedCalculationSettings } from './types';
 import { supabase } from './lib/supabase';
 
-// HARDCODED INITIAL MENU (Fallback if DB is empty or not connected)
+// HARDCODED INITIAL MENU (Fallback)
 const INITIAL_MENU: MenuItem[] = [
     // Salads
     { 
@@ -303,6 +303,8 @@ interface AppState {
   eventType: EventType;
   hungerLevel: HungerLevel;
   calculationSettings: CalculationSettings;
+  // NEW: Advanced Settings
+  advancedSettings: AdvancedCalculationSettings;
 
   // Actions
   fetchMenuItems: () => Promise<void>;
@@ -316,6 +318,7 @@ interface AppState {
   updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
   addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
   updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
+  updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void; // New Action
   clearCart: () => void;
   
   // Logic
@@ -336,6 +339,15 @@ export const useStore = create<AppState>()(
         sandwichesPerPerson: 1.5,
         pastriesPerPerson: 1.0,
         averageTrayCapacity: 10
+      },
+      advancedSettings: {
+        hungerMultipliers: { light: 0.8, medium: 1.0, heavy: 1.3 },
+        eventRatios: {
+            brunch: { sandwiches: 1.0, pastries: 1.5, saladsCoverage: 0.8, mainsCoverage: 0.5, plattersCoverage: 0.6, dessertsCoverage: 0.4 },
+            dinner: { sandwiches: 0.5, pastries: 0.5, saladsCoverage: 1.0, mainsCoverage: 1.0, plattersCoverage: 0.4, dessertsCoverage: 0.5 },
+            snack: { sandwiches: 2.0, pastries: 0.5, saladsCoverage: 0.3, mainsCoverage: 0.0, plattersCoverage: 0.8, dessertsCoverage: 0.3 },
+            party: { sandwiches: 2.5, pastries: 1.0, saladsCoverage: 0.2, mainsCoverage: 0.2, plattersCoverage: 0.5, dessertsCoverage: 0.5 },
+        }
       },
 
       fetchMenuItems: async () => {
@@ -435,6 +447,12 @@ export const useStore = create<AppState>()(
         }));
       },
 
+      updateAdvancedSettings: (settings) => {
+          set((state) => ({
+              advancedSettings: { ...state.advancedSettings, ...settings }
+          }));
+      },
+
       clearCart: () => set({ cart: [] }),
 
       cartTotal: () => {
@@ -448,6 +466,7 @@ export const useStore = create<AppState>()(
           guestCount: state.guestCount, 
           language: state.language,
           calculationSettings: state.calculationSettings,
+          advancedSettings: state.advancedSettings,
           eventType: state.eventType,
           hungerLevel: state.hungerLevel
       }), 
@@ -581,7 +600,12 @@ export const translations = {
         calcSettings: "הגדרות מחשבון כמויות",
         sandwichesPerPerson: "כריכים לאדם",
         pastriesPerPerson: "מאפים לאדם",
-        trayCapacity: "קיבולת מגש ממוצעת"
+        trayCapacity: "קיבולת מגש ממוצעת",
+        advCalc: "הגדרות מחשבון מתקדמות",
+        hungerMult: "מכפילי רעב",
+        eventLogic: "לוגיקה לפי סוג אירוע",
+        unitsPerPerson: "יח' לאדם",
+        coverage: "כיסוי"
     }
   },
   en: {
@@ -677,7 +701,12 @@ export const translations = {
         calcSettings: "Smart Calculator Logic",
         sandwichesPerPerson: "Sandwiches Per Person",
         pastriesPerPerson: "Pastries Per Person",
-        trayCapacity: "Avg. Tray Capacity"
+        trayCapacity: "Avg. Tray Capacity",
+        advCalc: "Advanced Calculator Config",
+        hungerMult: "Hunger Multipliers",
+        eventLogic: "Event Logic Matrix",
+        unitsPerPerson: "Units/Prsn",
+        coverage: "Coverage"
     }
   }
 };

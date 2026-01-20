@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useStore, translations } from '../store';
-import { Users, Minus, Plus, UtensilsCrossed, Wine, Sun, PartyPopper, ChevronDown, Sparkles } from 'lucide-react';
+import { Minus, Plus, UtensilsCrossed, Wine, Sun, PartyPopper, Sparkles } from 'lucide-react';
 import { EventType, HungerLevel } from '../types';
 
 export const HostHelper: React.FC = () => {
@@ -8,64 +8,48 @@ export const HostHelper: React.FC = () => {
     guestCount, setGuestCount, 
     language, 
     eventType, setEventType, 
-    hungerLevel, setHungerLevel 
+    hungerLevel, setHungerLevel,
+    advancedSettings
   } = useStore();
   
   const t = translations[language];
 
-  // Logic: Calculate recommendations based on inputs
+  // Logic: Calculate recommendations based on inputs and ADVANCED STORE SETTINGS
   const recommendations = useMemo(() => {
     if (guestCount === 0) return null;
 
-    // Hunger Multiplier
-    const hungerMult = hungerLevel === 'light' ? 0.8 : hungerLevel === 'heavy' ? 1.3 : 1.0;
+    // Hunger Multiplier from Store
+    const hungerMult = advancedSettings.hungerMultipliers[hungerLevel];
     
-    // Base Ratios per Event Type (Units per person or Coverage %)
-    // Sandwiches: units/person
-    // Salads: coverage (1 salad tray covers X people)
-    // Mains: coverage
-    let ratios = {
-        sandwiches: 0,
-        pastries: 0,
-        saladsCoverage: 0, 
-        mainsCoverage: 0, 
-        plattersCoverage: 0,
-        dessertsCoverage: 0
-    };
-
-    switch (eventType) {
-        case 'brunch':
-            ratios = { sandwiches: 1.0, pastries: 1.5, saladsCoverage: 0.8, mainsCoverage: 0.5, plattersCoverage: 0.6, dessertsCoverage: 0.4 };
-            break;
-        case 'dinner':
-            ratios = { sandwiches: 0.5, pastries: 0.5, saladsCoverage: 1.0, mainsCoverage: 1.0, plattersCoverage: 0.4, dessertsCoverage: 0.5 };
-            break;
-        case 'snack': // Cocktail
-            ratios = { sandwiches: 2.0, pastries: 0.5, saladsCoverage: 0.3, mainsCoverage: 0.0, plattersCoverage: 0.8, dessertsCoverage: 0.3 };
-            break;
-        case 'party':
-            ratios = { sandwiches: 2.5, pastries: 1.0, saladsCoverage: 0.2, mainsCoverage: 0.2, plattersCoverage: 0.5, dessertsCoverage: 0.5 };
-            break;
-    }
+    // Ratios from Store
+    const ratios = advancedSettings.eventRatios[eventType];
 
     // Calculation (Rounded up)
-    // Assuming: 1 Salad Tray serves 10, 1 Main Tray serves 10, 1 Platter serves 12, 1 Dessert Tray serves 15
+    // Assumption: Trays serve ~10-12 people. Coverage implies "how many trays per X people".
+    // 1.0 Coverage means "Enough salad for everyone", roughly 1 tray per 10 people.
+    // 0.5 Coverage means "Salad for half the people", roughly 1 tray per 20 people.
+    const TRAY_CAPACITY = 10;
+    const PLATTER_CAPACITY = 12;
+    const DESSERT_CAPACITY = 15;
+
     return {
         sandwiches: Math.ceil(guestCount * ratios.sandwiches * hungerMult),
         pastries: Math.ceil(guestCount * ratios.pastries * hungerMult),
-        salads: Math.ceil((guestCount * ratios.saladsCoverage * hungerMult) / 10),
-        mains: Math.ceil((guestCount * ratios.mainsCoverage * hungerMult) / 10),
-        platters: Math.ceil((guestCount * ratios.plattersCoverage * hungerMult) / 12),
-        desserts: Math.ceil((guestCount * ratios.dessertsCoverage * hungerMult) / 15),
+        salads: Math.ceil((guestCount * ratios.saladsCoverage * hungerMult) / TRAY_CAPACITY * 10), // Normalized logic: (Guests * Coverage) / UnitSize
+        mains: Math.ceil((guestCount * ratios.mainsCoverage * hungerMult) / TRAY_CAPACITY * 10),
+        platters: Math.ceil((guestCount * ratios.plattersCoverage * hungerMult) / PLATTER_CAPACITY * 12),
+        desserts: Math.ceil((guestCount * ratios.dessertsCoverage * hungerMult) / DESSERT_CAPACITY * 15),
     };
-  }, [guestCount, eventType, hungerLevel]);
+  }, [guestCount, eventType, hungerLevel, advancedSettings]);
 
-  const EventIcon = {
-      'brunch': Sun,
-      'dinner': UtensilsCrossed,
-      'snack': Wine,
-      'party': PartyPopper
-  }[eventType];
+  // Helper to map slider value 0-2 to hunger level
+  const sliderValue = hungerLevel === 'light' ? 0 : hungerLevel === 'medium' ? 1 : 2;
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = parseInt(e.target.value);
+      if (val === 0) setHungerLevel('light');
+      if (val === 1) setHungerLevel('medium');
+      if (val === 2) setHungerLevel('heavy');
+  };
 
   return (
     <div className="relative bg-stone-900 text-stone-50 rounded-3xl shadow-2xl mb-12 border border-stone-800 w-full overflow-hidden transition-all duration-500">
@@ -139,28 +123,32 @@ export const HostHelper: React.FC = () => {
                   </div>
               </div>
 
-              {/* Hunger Level Selector */}
+              {/* Hunger Level Selector - Native Input Fix */}
               <div className="bg-stone-900 p-6 md:p-8 flex flex-col justify-center">
-                  <label className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-6 block">{t.hungerLevel}</label>
-                  <div className="space-y-6">
-                      <div className="relative h-2 bg-stone-800 rounded-full">
-                          <div 
-                            className="absolute h-full bg-gold-500 rounded-full transition-all duration-300"
-                            style={{ 
-                                width: hungerLevel === 'light' ? '33%' : hungerLevel === 'medium' ? '66%' : '100%' 
-                            }}
-                          ></div>
-                          {/* Slider Thumbs (Visual Only) */}
-                          <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg transition-all duration-300`}
-                               style={{ left: hungerLevel === 'light' ? '33%' : hungerLevel === 'medium' ? '66%' : '100%', transform: 'translate(-50%, -50%)' }}
-                          ></div>
-                      </div>
-                      <div className="flex justify-between text-sm font-medium text-stone-400">
-                          {(['light', 'medium', 'heavy'] as HungerLevel[]).map((level) => (
+                  <label className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-8 block">{t.hungerLevel}</label>
+                  <div className="space-y-6 relative px-2">
+                      {/* Native Range Input for Robust Interaction */}
+                      <input 
+                          type="range" 
+                          min="0" 
+                          max="2" 
+                          step="1"
+                          value={sliderValue}
+                          onChange={handleSliderChange}
+                          className="w-full h-2 bg-stone-800 rounded-lg appearance-none cursor-pointer accent-gold-500 focus:outline-none z-20 relative"
+                      />
+                      
+                      {/* Visual Steps */}
+                      <div className="flex justify-between text-sm font-medium text-stone-400 mt-4 relative z-10">
+                          {(['light', 'medium', 'heavy'] as HungerLevel[]).map((level, idx) => (
                               <button 
                                 key={level}
-                                onClick={() => setHungerLevel(level)}
-                                className={`transition-colors ${hungerLevel === level ? 'text-white font-bold' : 'hover:text-stone-300'}`}
+                                onClick={() => {
+                                    if(idx === 0) setHungerLevel('light');
+                                    if(idx === 1) setHungerLevel('medium');
+                                    if(idx === 2) setHungerLevel('heavy');
+                                }}
+                                className={`transition-colors text-center w-20 ${hungerLevel === level ? 'text-gold-400 font-bold scale-110' : 'hover:text-stone-300'}`}
                               >
                                   {(t as any)[level]}
                               </button>

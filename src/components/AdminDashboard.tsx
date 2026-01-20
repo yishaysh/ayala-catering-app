@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { MenuItem, Category, UnitType } from '../types';
+import { MenuItem, Category, UnitType, EventType, HungerLevel } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Calculator } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface AdminDashboardProps {
     onExit: () => void;
@@ -19,12 +19,22 @@ const CATEGORY_OPTIONS: Category[] = [
 
 const UNIT_OPTIONS: UnitType[] = ['tray', 'unit', 'liter', 'weight'];
 
+const EVENT_TYPES: EventType[] = ['brunch', 'dinner', 'snack', 'party'];
+
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
-    const { menuItems, updateMenuItem, addMenuItem, calculationSettings, updateCalculationSettings, language } = useStore();
+    const { 
+        menuItems, updateMenuItem, addMenuItem, 
+        calculationSettings, updateCalculationSettings, 
+        advancedSettings, updateAdvancedSettings,
+        language 
+    } = useStore();
     const t = translations[language].admin;
     const [searchTerm, setSearchTerm] = useState('');
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    
+    // Toggle Section
+    const [showAdvancedCalc, setShowAdvancedCalc] = useState(false);
 
     // Edit Form states
     const [editPrice, setEditPrice] = useState(0);
@@ -118,6 +128,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         setAddMods('');
     };
 
+    const handleEventRatioChange = (eType: EventType, field: string, value: string) => {
+        const newRatios = { ...advancedSettings.eventRatios };
+        newRatios[eType] = {
+            ...newRatios[eType],
+            [field]: parseFloat(value) || 0
+        };
+        updateAdvancedSettings({ eventRatios: newRatios });
+    };
+
+    const handleHungerMultChange = (level: HungerLevel, value: string) => {
+        const newMults = { ...advancedSettings.hungerMultipliers };
+        newMults[level] = parseFloat(value) || 1.0;
+        updateAdvancedSettings({ hungerMultipliers: newMults });
+    };
+
     return (
         <div className="p-8 bg-stone-100 min-h-screen font-sans" dir={language === 'he' ? 'rtl' : 'ltr'}>
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
@@ -141,7 +166,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                  </div>
             </div>
             
-            {/* Settings Grid */}
+            {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 text-start">
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.minOrder}</h3>
@@ -152,13 +177,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     <input type="number" defaultValue={48} className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" />
                 </div>
                 
-                {/* Calculator Logic Settings */}
+                {/* Basic Calculator Logic Settings */}
                 <div className="bg-white p-6 rounded-lg shadow-sm md:col-span-2 relative overflow-hidden">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="p-1.5 bg-gold-100 rounded text-gold-600">
                              <Calculator size={16} />
                         </div>
-                        <h3 className="text-sm font-bold text-stone-900 uppercase">{t.calcSettings}</h3>
+                        <h3 className="text-sm font-bold text-stone-900 uppercase">{t.calcSettings} (Legacy)</h3>
                     </div>
                     
                     <div className="grid grid-cols-3 gap-6">
@@ -195,6 +220,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
             </div>
 
+            {/* ADVANCED CALCULATOR SETTINGS (Collapsible) */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
+                <button 
+                    onClick={() => setShowAdvancedCalc(!showAdvancedCalc)}
+                    className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition"
+                >
+                    <div className="flex items-center gap-3">
+                        <Settings size={20} className="text-gold-500" />
+                        <span className="font-serif font-bold text-lg">{t.advCalc}</span>
+                    </div>
+                    {showAdvancedCalc ? <ChevronUp /> : <ChevronDown />}
+                </button>
+                
+                {showAdvancedCalc && (
+                    <div className="p-6 bg-stone-50 animate-in slide-in-from-top-4 fade-in">
+                        
+                        {/* 1. Hunger Multipliers */}
+                        <div className="mb-8 border-b border-stone-200 pb-8">
+                            <h4 className="text-stone-900 font-bold mb-4 flex items-center gap-2">
+                                <span className="w-2 h-6 bg-gold-500 rounded-sm"></span>
+                                {t.hungerMult}
+                            </h4>
+                            <div className="grid grid-cols-3 gap-6 max-w-lg">
+                                {(['light', 'medium', 'heavy'] as HungerLevel[]).map(level => (
+                                    <div key={level}>
+                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-1">{level}</label>
+                                        <input 
+                                            type="number"
+                                            step="0.1"
+                                            value={advancedSettings.hungerMultipliers[level]}
+                                            onChange={(e) => handleHungerMultChange(level, e.target.value)}
+                                            className="w-full p-2 border border-stone-300 rounded focus:border-gold-500"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 2. Event Type Logic Matrix */}
+                        <div>
+                            <h4 className="text-stone-900 font-bold mb-4 flex items-center gap-2">
+                                <span className="w-2 h-6 bg-gold-500 rounded-sm"></span>
+                                {t.eventLogic}
+                            </h4>
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                        <tr className="bg-stone-200 text-stone-600 text-xs uppercase">
+                                            <th className="p-3 text-start">Event Type</th>
+                                            <th className="p-3 text-start">Sandwiches<br/>({t.unitsPerPerson})</th>
+                                            <th className="p-3 text-start">Pastries<br/>({t.unitsPerPerson})</th>
+                                            <th className="p-3 text-start">Salads<br/>({t.coverage})</th>
+                                            <th className="p-3 text-start">Mains<br/>({t.coverage})</th>
+                                            <th className="p-3 text-start">Platters<br/>({t.coverage})</th>
+                                            <th className="p-3 text-start">Desserts<br/>({t.coverage})</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {EVENT_TYPES.map(eType => (
+                                            <tr key={eType} className="border-b border-stone-200 hover:bg-white">
+                                                <td className="p-3 font-bold text-stone-800 capitalize">{eType}</td>
+                                                <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].sandwiches} onChange={(e) => handleEventRatioChange(eType, 'sandwiches', e.target.value)} /></td>
+                                                <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].pastries} onChange={(e) => handleEventRatioChange(eType, 'pastries', e.target.value)} /></td>
+                                                <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].saladsCoverage} onChange={(e) => handleEventRatioChange(eType, 'saladsCoverage', e.target.value)} /></td>
+                                                <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].mainsCoverage} onChange={(e) => handleEventRatioChange(eType, 'mainsCoverage', e.target.value)} /></td>
+                                                <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].plattersCoverage} onChange={(e) => handleEventRatioChange(eType, 'plattersCoverage', e.target.value)} /></td>
+                                                <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].dessertsCoverage} onChange={(e) => handleEventRatioChange(eType, 'dessertsCoverage', e.target.value)} /></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                )}
+            </div>
+
+            {/* Menu Management Table */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden text-start">
                 <div className="p-4 border-b border-stone-200">
                     <input 
@@ -250,7 +354,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
             </div>
 
-            {/* Edit Modal - Centered */}
+            {/* Edit Modal */}
             {editingItem && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" 
@@ -330,7 +434,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
             )}
 
-            {/* Add Item Modal - Centered */}
+            {/* Add Item Modal */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" 

@@ -37,9 +37,24 @@ export interface CartItem extends MenuItem {
 }
 
 export interface CalculationSettings {
-  sandwichesPerPerson: number; // Default 1.5
-  pastriesPerPerson: number;   // Default 1.0
-  averageTrayCapacity: number; // Default 10 (Used for general estimation)
+  sandwichesPerPerson: number; // Default 1.5 (Legacy/Fallback)
+  pastriesPerPerson: number;   // Default 1.0 (Legacy/Fallback)
+  averageTrayCapacity: number; // Default 10
+}
+
+// New: Advanced Configuration for "Wow" Calculator
+export interface EventRatioConfig {
+    sandwiches: number;       // Units per person
+    pastries: number;         // Units per person
+    saladsCoverage: number;   // 0.0 - 2.0 (1.0 = 100% guests covered)
+    mainsCoverage: number;    // 0.0 - 2.0
+    plattersCoverage: number; // 0.0 - 2.0
+    dessertsCoverage: number; // 0.0 - 2.0
+}
+
+export interface AdvancedCalculationSettings {
+    hungerMultipliers: Record<HungerLevel, number>;
+    eventRatios: Record<EventType, EventRatioConfig>;
 }
 
 export interface AppSettings {
