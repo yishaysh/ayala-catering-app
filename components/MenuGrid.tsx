@@ -20,7 +20,7 @@ const CATEGORY_ORDER: Category[] = [
 
 export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   const { addToCart, guestCount, language, calculationSettings } = useStore();
-  const t = translations[language];
+  const t = translations[language] || translations['he'];
   
   const [selectedImage, setSelectedImage] = useState<{name: string, url: string} | null>(null);
   const [itemToAdd, setItemToAdd] = useState<MenuItem | null>(null);
@@ -28,7 +28,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   const [notes, setNotes] = useState('');
   const [selectedMods, setSelectedMods] = useState<string[]>([]);
   
-  // Track which items are showing sparkles
   const [sparkleItems, setSparkleItems] = useState<Record<string, boolean>>({});
 
   const groupedItems = useMemo(() => {
@@ -51,13 +50,10 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   const handleConfirmAdd = () => {
       if (itemToAdd) {
           addToCart(itemToAdd, addQuantity, notes, selectedMods);
-          
-          // Trigger sparkle effect
           setSparkleItems(prev => ({ ...prev, [itemToAdd.id]: true }));
           setTimeout(() => {
               setSparkleItems(prev => ({ ...prev, [itemToAdd.id]: false }));
           }, 1000);
-
           setItemToAdd(null);
       }
   };
@@ -66,7 +62,16 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
       setSelectedMods(prev => prev.includes(mod) ? prev.filter(m => m !== mod) : [...prev, mod]);
   };
 
-  const getUnitName = (type: string) => t[type as keyof typeof t] || type;
+  // Fix: Explicit string mapping to avoid ReactNode type errors
+  const getUnitName = (type: string): string => {
+    const units: Record<string, string> = {
+      tray: t.tray as string,
+      liter: t.liter as string,
+      unit: t.unit as string,
+      weight: t.weight as string
+    };
+    return units[type] || type;
+  };
 
   return (
     <>
@@ -77,9 +82,9 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
 
         return (
           <section key={cat} id={cat} className="scroll-mt-48">
-            <h3 className="text-3xl font-serif font-bold text-stone-900 mb-8 relative inline-block">
+            <h3 className="text-3xl font-serif font-bold text-stone-900 mb-8 relative inline-block text-start w-full">
                 {(t.categories as Record<string, string>)[cat]}
-                <span className="absolute -bottom-2 right-0 w-1/2 h-1 bg-gold-500 rounded-full"></span>
+                <span className="absolute -bottom-2 right-0 w-24 h-1 bg-gold-500 rounded-full"></span>
             </h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -99,7 +104,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         <span className="text-[10px] font-bold uppercase tracking-wider">{language === 'he' ? 'צפה' : 'View'}</span>
                     </button>
 
-                    <div className="p-6 pt-16 flex-1">
+                    <div className="p-6 pt-16 flex-1 text-start">
                       <div className="flex justify-between items-start mb-2">
                           <h4 className="text-xl font-bold text-stone-900">{localItem.name}</h4>
                           <span className="text-xl font-bold text-stone-900 ml-2">₪{item.price}</span>
@@ -115,8 +120,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         {sparkleItems[item.id] && (
                             <div className="absolute inset-0 z-20 pointer-events-none flex items-center justify-center">
                                 <Sparkle className="text-gold-500 animate-zoom-in fill-gold-500" size={32} />
-                                <Sparkle className="text-gold-400 animate-zoom-in fill-gold-400 absolute translate-x-4 -translate-y-4" size={16} />
-                                <Sparkle className="text-gold-600 animate-zoom-in fill-gold-600 absolute -translate-x-4 translate-y-4" size={20} />
                             </div>
                         )}
                         <button
@@ -151,8 +154,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
              <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" onClick={() => setItemToAdd(null)}></div>
              <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-3xl flex flex-col shadow-2xl animate-zoom-in overflow-hidden">
-                <div className="bg-stone-900 p-6 text-white flex justify-between items-start shrink-0">
-                    <div> 
+                <div className="bg-stone-900 p-6 text-white flex justify-between items-start shrink-0 rounded-t-3xl">
+                    <div className="text-start"> 
                         <h3 className="text-2xl font-serif font-bold mb-1">{getLocalizedItem(itemToAdd, language).name}</h3>
                         <p className="text-gold-500 text-sm font-bold">₪{itemToAdd.price} / {getUnitName(itemToAdd.unit_type)}</p>
                     </div>
@@ -170,7 +173,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                     </div>
 
                     {getLocalizedItem(itemToAdd, language).modifications.length > 0 && (
-                        <div>
+                        <div className="text-start">
                             <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">{t.modifications}</label>
                             <div className="flex flex-wrap gap-2">
                                 {getLocalizedItem(itemToAdd, language).modifications.map(mod => (
@@ -186,7 +189,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         </div>
                     )}
 
-                    <div>
+                    <div className="text-start">
                         <label className="block text-xs font-bold text-stone-400 uppercase tracking-widest mb-3">{t.notesPlaceholder}</label>
                         <textarea
                             value={notes}
@@ -198,7 +201,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                 </div>
 
                 <div className="p-6 border-t border-stone-100 bg-white flex gap-6 shrink-0 items-center">
-                    <div className="flex-1">
+                    <div className="flex-1 text-start">
                         <div className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{t.total}</div>
                         <div className="text-3xl font-bold font-serif text-stone-900 leading-none">₪{itemToAdd.price * addQuantity}</div>
                     </div>

@@ -10,7 +10,7 @@ interface CartDrawerProps {
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const { cart, updateQuantity, cartTotal, language, clearCart } = useStore();
-    const t = translations[language];
+    const t = translations[language] || translations['he'];
     const total = cartTotal();
     
     const MIN_ORDER = 500;
@@ -53,7 +53,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         window.open(`https://wa.me/972547474764?text=${encodeURIComponent(message)}`, '_blank');
     };
 
-    const getUnitName = (type: string) => t[type as keyof typeof t] || type;
+    // Fix: Explicit string mapping to avoid ReactNode type errors
+    const getUnitName = (type: string): string => {
+      const units: Record<string, string> = {
+        tray: t.tray as string,
+        liter: t.liter as string,
+        unit: t.unit as string,
+        weight: t.weight as string
+      };
+      return units[type] || type;
+    };
 
     const progress = Math.min((total / VIP_THRESHOLD) * 100, 100);
 
@@ -73,7 +82,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     </div>
                 </div>
 
-                {/* Progress Bar */}
                 <div className="bg-stone-800 px-6 py-4 shadow-inner">
                     <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">
                         <span>{t.freeDeliveryAt}</span>
@@ -104,7 +112,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             const localItem = getLocalizedItem(item, language);
                             return (
                                 <div key={item.id + (item.notes || '')} className="flex gap-4 border-b border-stone-200 pb-4 last:border-0">
-                                    <div className="flex-1">
+                                    <div className="flex-1 text-start">
                                         <h4 className="font-bold text-stone-800">{localItem.name}</h4>
                                         <p className="text-xs text-stone-500">₪{item.price} / {getUnitName(item.unit_type)}</p>
                                     </div>

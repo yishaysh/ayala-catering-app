@@ -68,7 +68,3 @@ export interface AppSettings {
   delivery_fee: number;
   is_shop_open: boolean;
 }
-
-export interface GuestCalculationResult {
-  [itemId: string]: number;
-}
