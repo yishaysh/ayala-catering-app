@@ -113,18 +113,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-4">{t.featureMgmt}</h3>
                     <div className="space-y-3">
                         <button 
-                            onClick={() => updateFeatureFlags({ showCalculator: !featureFlags.showCalculator })}
-                            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags.showCalculator ? 'bg-gold-50 border-gold-200 text-gold-900' : 'bg-stone-50 border-stone-200 text-stone-400'}`}
+                            onClick={() => updateFeatureFlags({ showCalculator: !featureFlags?.showCalculator })}
+                            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags?.showCalculator ? 'bg-gold-50 border-gold-200 text-gold-900' : 'bg-stone-50 border-stone-200 text-stone-400'}`}
                         >
                             <span className="text-xs font-bold">{t.showCalc}</span>
-                            {featureFlags.showCalculator ? <ToggleRight className="text-gold-500" /> : <ToggleLeft />}
+                            {featureFlags?.showCalculator ? <ToggleRight className="text-gold-500" /> : <ToggleLeft />}
                         </button>
                         <button 
-                            onClick={() => updateFeatureFlags({ showAI: !featureFlags.showAI })}
-                            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags.showAI ? 'bg-gold-50 border-gold-200 text-gold-900' : 'bg-stone-50 border-stone-200 text-stone-400'}`}
+                            onClick={() => updateFeatureFlags({ showAI: !featureFlags?.showAI })}
+                            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags?.showAI ? 'bg-gold-50 border-gold-200 text-gold-900' : 'bg-stone-50 border-stone-200 text-stone-400'}`}
                         >
                             <span className="text-xs font-bold">{t.showAI}</span>
-                            {featureFlags.showAI ? <ToggleRight className="text-gold-500" /> : <ToggleLeft />}
+                            {featureFlags?.showAI ? <ToggleRight className="text-gold-500" /> : <ToggleLeft />}
                         </button>
                     </div>
                 </div>
@@ -137,15 +137,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     <div className="grid grid-cols-3 gap-3 md:gap-6 items-end">
                         <div className="flex flex-col">
                              <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.sandwichesPerPerson}</label>
-                             <input type="number" step="0.1" value={calculationSettings.sandwichesPerPerson} onChange={(e) => updateCalculationSettings({ sandwichesPerPerson: parseFloat(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
+                             <input type="number" step="0.1" value={calculationSettings?.sandwichesPerPerson || 1.5} onChange={(e) => updateCalculationSettings({ sandwichesPerPerson: parseFloat(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
                         </div>
                         <div className="flex flex-col">
                              <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.pastriesPerPerson}</label>
-                             <input type="number" step="0.1" value={calculationSettings.pastriesPerPerson} onChange={(e) => updateCalculationSettings({ pastriesPerPerson: parseFloat(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
+                             <input type="number" step="0.1" value={calculationSettings?.pastriesPerPerson || 1.0} onChange={(e) => updateCalculationSettings({ pastriesPerPerson: parseFloat(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
                         </div>
                          <div className="flex flex-col">
                              <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.trayCapacity}</label>
-                             <input type="number" value={calculationSettings.averageTrayCapacity} onChange={(e) => updateCalculationSettings({ averageTrayCapacity: parseInt(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
+                             <input type="number" value={calculationSettings?.averageTrayCapacity || 10} onChange={(e) => updateCalculationSettings({ averageTrayCapacity: parseInt(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
                         </div>
                     </div>
                 </div>
@@ -222,7 +222,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredItems.map(item => {
+                            {(filteredItems || []).map(item => {
                                 const localItem = getLocalizedItem(item, language);
                                 return (
                                     <tr key={item.id} className="border-b border-stone-100 hover:bg-stone-50">

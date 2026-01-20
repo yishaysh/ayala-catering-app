@@ -20,7 +20,7 @@ export default function App() {
   const [pin, setPin] = useState('');
   const [loginError, setLoginError] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
-  const t = translations[language];
+  const t = translations[language] || translations['he'];
 
   useEffect(() => { 
       fetchMenuItems(); 
@@ -60,7 +60,7 @@ export default function App() {
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-3">
                 <img src={LOGO_SRC} alt="Ayala Logo" className="h-12 w-auto object-contain" />
-                <div className="hidden sm:block">
+                <div className="hidden sm:block text-start">
                     <h1 className="text-xl font-serif font-bold tracking-wide text-gold-500 leading-none mb-1">{t.title}</h1>
                     <p className="text-[10px] text-stone-400 tracking-[0.2em] uppercase font-medium">{t.subtitle}</p>
                 </div>
@@ -88,8 +88,8 @@ export default function App() {
       </div>
 
       <main className="container mx-auto px-4 -mt-16 relative z-20">
-        {featureFlags.showCalculator && <HostHelper />}
-        {featureFlags.showAI && <AIConcierge />}
+        {featureFlags?.showCalculator && <HostHelper />}
+        {featureFlags?.showAI && <AIConcierge />}
 
         <div className="sticky top-[72px] z-40 bg-stone-50/95 backdrop-blur-md py-4 mb-8 border-b border-stone-200 -mx-4 px-4 overflow-x-auto shadow-sm">
             <nav className="flex gap-2 min-w-max mx-auto md:justify-center">
@@ -125,11 +125,15 @@ export default function App() {
 
       {isLoginOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-zoom-in">
-              <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl relative">
-                  <button onClick={() => setIsLoginOpen(false)} className="absolute top-4 right-4 text-stone-400 hover:text-stone-900"><X /></button>
-                  <div className="text-center mb-6"><div className="inline-flex items-center justify-center w-16 h-16 bg-stone-100 rounded-full mb-4 text-stone-900"><Lock size={32} /></div><h2 className="text-2xl font-serif font-bold text-stone-900">כניסת מנהל</h2></div>
+              <div className="bg-white rounded-2xl p-8 w-full max-sm:w-[90vw] max-w-sm shadow-2xl relative">
+                  <button onClick={() => {setIsLoginOpen(false); setPin(''); setLoginError(false);}} className="absolute top-4 right-4 text-stone-400 hover:text-stone-900"><X /></button>
+                  <div className="text-center mb-6">
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-stone-100 rounded-full mb-4 text-stone-900"><Lock size={32} /></div>
+                      <h2 className="text-2xl font-serif font-bold text-stone-900">כניסת מנהל</h2>
+                  </div>
                   <form onSubmit={handleAdminLogin}>
                       <input type="password" value={pin} onChange={(e) => { setPin(e.target.value); setLoginError(false); }} className={`w-full text-center text-3xl tracking-widest font-bold border-b-2 py-2 mb-6 focus:outline-none ${loginError ? 'border-red-500 text-red-500' : 'border-stone-200 focus:border-gold-500 text-stone-900'}`} placeholder="••••" maxLength={4} autoFocus />
+                      {loginError && <p className="text-red-500 text-xs text-center mb-4 font-bold">קוד שגוי</p>}
                       <button type="submit" className="w-full bg-stone-900 text-gold-500 font-bold py-3 rounded-xl hover:bg-stone-800 transition flex items-center justify-center gap-2">כניסה</button>
                   </form>
               </div>
@@ -138,4 +142,3 @@ export default function App() {
     </div>
   );
 }
-
