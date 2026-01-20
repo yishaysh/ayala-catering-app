@@ -33,15 +33,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     
-    // Toggle Section
     const [showAdvancedCalc, setShowAdvancedCalc] = useState(false);
 
-    // Edit Form states
     const [editPrice, setEditPrice] = useState(0);
     const [editStatus, setEditStatus] = useState(true);
     const [editMods, setEditMods] = useState('');
 
-    // Add Form States
     const [newItem, setNewItem] = useState<Partial<MenuItem>>({
         name: '',
         category: 'Salads',
@@ -105,14 +102,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             is_premium: newItem.is_premium || false,
             availability_status: true,
             tags: [],
-            // Assign mods to both lang fields for now to ensure visibility
             allowed_modifications: modsArray,
             allowed_modifications_en: modsArray
         };
 
         await addMenuItem(itemToSave);
         setIsAddModalOpen(false);
-        // Reset form
         setNewItem({
             name: '',
             category: 'Salads',
@@ -166,7 +161,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                  </div>
             </div>
             
-            {/* Quick Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 text-start">
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.minOrder}</h3>
@@ -177,7 +171,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     <input type="number" defaultValue={48} className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" />
                 </div>
                 
-                {/* Basic Calculator Logic Settings */}
                 <div className="bg-white p-6 rounded-lg shadow-sm md:col-span-2 relative overflow-hidden">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="p-1.5 bg-gold-100 rounded text-gold-600">
@@ -220,7 +213,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
             </div>
 
-            {/* ADVANCED CALCULATOR SETTINGS (Collapsible) */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
                 <button 
                     onClick={() => setShowAdvancedCalc(!showAdvancedCalc)}
@@ -234,9 +226,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </button>
                 
                 {showAdvancedCalc && (
-                    <div className="p-6 bg-stone-50 animate-in slide-in-from-top-4 fade-in">
+                    <div className="p-6 bg-stone-50 animate-slide-in-top">
                         
-                        {/* 1. Hunger Multipliers */}
                         <div className="mb-8 border-b border-stone-200 pb-8">
                             <h4 className="text-stone-900 font-bold mb-4 flex items-center gap-2">
                                 <span className="w-2 h-6 bg-gold-500 rounded-sm"></span>
@@ -258,7 +249,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             </div>
                         </div>
 
-                        {/* 2. Event Type Logic Matrix */}
                         <div>
                             <h4 className="text-stone-900 font-bold mb-4 flex items-center gap-2">
                                 <span className="w-2 h-6 bg-gold-500 rounded-sm"></span>
@@ -298,7 +288,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 )}
             </div>
 
-            {/* Menu Management Table */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden text-start">
                 <div className="p-4 border-b border-stone-200">
                     <input 
@@ -354,13 +343,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
             </div>
 
-            {/* Edit Modal */}
             {editingItem && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" 
-                        // Removed onClick to prevent close on backdrop
-                    ></div>
-                    <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 text-start flex flex-col">
+                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" onClick={() => setEditingItem(null)}></div>
+                    <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl animate-zoom-in text-start flex flex-col">
                         <div className="flex justify-between items-center mb-6 shrink-0">
                             <h2 className="text-2xl font-serif font-bold text-stone-900">{t.editItemTitle}: {getLocalizedItem(editingItem, language).name}</h2>
                             <button onClick={() => setEditingItem(null)} className="text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full">
@@ -434,13 +420,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
             )}
 
-            {/* Add Item Modal */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" 
-                        // Removed onClick to prevent close on backdrop
-                    ></div>
-                    <div className="relative bg-white w-full max-h-[90vh] md:h-auto md:max-w-2xl rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 text-start flex flex-col">
+                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
+                    <div className="relative bg-white w-full max-h-[90vh] md:h-auto md:max-w-2xl rounded-2xl p-6 shadow-2xl animate-zoom-in text-start flex flex-col">
                         <div className="flex justify-between items-center mb-6 shrink-0">
                             <h2 className="text-2xl font-serif font-bold text-stone-900">{t.createItemTitle}</h2>
                             <button onClick={() => setIsAddModalOpen(false)} className="text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full">

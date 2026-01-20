@@ -64,10 +64,6 @@ export default function App() {
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-3">
                 <div className="relative h-10 md:h-12 w-auto flex items-center justify-center overflow-hidden">
-                   {/* 
-                       INSTRUCTIONS: 
-                       Place your logo file named 'logo.png' inside the 'public' folder of your project.
-                   */}
                    <img 
                         src="/logo.png" 
                         alt="Ayala" 
@@ -125,18 +121,17 @@ export default function App() {
 
       {/* Hero */}
       <div className="relative bg-stone-900 text-white pt-16 pb-24 overflow-hidden mb-8">
-         {/* Background Logo - Centered with controlled size */}
          <div className="absolute inset-0 bg-[url('/logo.png')] bg-no-repeat bg-center bg-[length:70%_auto] md:bg-[length:40%_auto] opacity-10"></div>
          <div className="absolute inset-0 bg-gradient-to-t from-stone-50 via-transparent to-transparent"></div>
          
          <div className="container mx-auto text-center px-4 relative z-10">
-            <div className="inline-block border border-gold-500/30 bg-gold-500/10 backdrop-blur-sm px-4 py-1 rounded-full text-gold-400 text-xs font-bold tracking-widest uppercase mb-6 animate-in fade-in slide-in-from-bottom-4">
+            <div className="inline-block border border-gold-500/30 bg-gold-500/10 backdrop-blur-sm px-4 py-1 rounded-full text-gold-400 text-xs font-bold tracking-widest uppercase mb-6 animate-fade-in">
                 {t.subtitle}
             </div>
-            <h2 className="text-4xl md:text-6xl font-serif font-bold text-white mb-6 leading-tight drop-shadow-xl animate-in fade-in slide-in-from-bottom-6 duration-700">
+            <h2 className="text-4xl md:text-6xl font-serif font-bold text-white mb-6 leading-tight drop-shadow-xl animate-slide-in-bottom">
                 {language === 'he' ? 'איילה פשוט טעים' : 'Simply Delicious'}
             </h2>
-            <div className="flex justify-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100">
+            <div className="flex justify-center animate-slide-in-bottom" style={{ animationDelay: '200ms' }}>
                  <button 
                     onClick={() => scrollToCategory('Salads')}
                     className="bg-gold-500 text-stone-900 px-8 py-3 rounded-full font-bold text-lg hover:bg-gold-400 transition transform hover:scale-105 shadow-lg shadow-gold-500/20"
@@ -210,7 +205,7 @@ export default function App() {
 
       {/* Admin Login Modal */}
       {isLoginOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-in fade-in">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-zoom-in">
               <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl relative">
                   <button 
                     onClick={() => { setIsLoginOpen(false); setPin(''); setLoginError(false); }}
@@ -253,19 +248,6 @@ export default function App() {
               </div>
           </div>
       )}
-      
-      <style>{`
-        .pb-safe {
-            padding-bottom: env(safe-area-inset-bottom, 20px);
-        }
-        nav::-webkit-scrollbar {
-            display: none;
-        }
-        nav {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-      `}</style>
     </div>
   );
 }

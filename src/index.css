@@ -7,11 +7,6 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 20px);
   }
-  .animate-in {
-    animation-duration: 0.3s;
-    animation-fill-mode: both;
-    animation-timing-function: ease-out;
-  }
 }
 
 nav::-webkit-scrollbar {
@@ -24,11 +19,10 @@ nav {
 }
 
 /* Custom Range Slider Styling */
-/* Reset */
 input[type=range] {
-  -webkit-appearance: none; /* Hides the slider so that custom slider can be made */
-  width: 100%; /* Specific width is required for Firefox. */
-  background: transparent; /* Otherwise white in Chrome */
+  -webkit-appearance: none; 
+  width: 100%; 
+  background: transparent; 
 }
 
 input[type=range]::-webkit-slider-thumb {
@@ -36,7 +30,7 @@ input[type=range]::-webkit-slider-thumb {
 }
 
 input[type=range]:focus {
-  outline: none; /* Removes the blue border. You should probably do some kind of focus styling for accessibility reasons though. */
+  outline: none; 
 }
 
 /* Chrome & Safari */
@@ -47,7 +41,7 @@ input[type=range]::-webkit-slider-thumb {
   border-radius: 50%;
   background: #d4af37; /* Gold 500 */
   cursor: pointer;
-  margin-top: -10px; /* You need to specify a margin in Chrome, but in Firefox and IE it is automatic */
+  margin-top: -10px; 
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   border: 2px solid white;
   transition: transform 0.1s;

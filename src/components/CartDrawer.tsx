@@ -17,10 +17,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     const handleWhatsAppCheckout = () => {
-        // WhatsApp Formatting:
-        // *Text* = Bold
-        // _Text_ = Italic
-        
         const line = "━━━━━━━━━━━━━━━━";
         let message = "";
 
@@ -32,17 +28,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         
         cart.forEach(item => {
             const displayItem = getLocalizedItem(item, language);
-            // Item Header: Quantity x Name (Price)
             message += `🔹 *${item.quantity}x ${displayItem.name}*\n`;
             
-            // Sub-details
             if (item.selected_modifications && item.selected_modifications.length > 0) {
                  message += `   🔸 שינויים: ${item.selected_modifications.join(', ')}\n`;
             }
             if (item.notes) {
                 message += `   ✏️ הערות: ${item.notes}\n`;
             }
-            message += `\n`; // Spacing between items
+            message += `\n`; 
         });
 
         message += `${line}\n`;
@@ -63,13 +57,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         <div className="fixed inset-0 z-50 flex justify-end font-sans">
             <div 
                 className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm transition-opacity" 
-                // Removed onClick={onClose} to prevent closing on backdrop click
+                onClick={onClose}
             ></div>
 
             <div className={`
                 relative w-full max-w-md bg-stone-50 h-full shadow-2xl flex flex-col 
-                ${language === 'he' ? 'animate-in slide-in-from-left' : 'animate-in slide-in-from-right'}
-                duration-300
+                ${language === 'he' ? 'animate-slide-in-left' : 'animate-slide-in-right'}
             `}>
                 <div className="p-6 bg-stone-900 text-white flex items-center justify-between shadow-md z-10 shrink-0">
                     <div className="flex items-center gap-3">
@@ -93,7 +86,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         cart.map((item) => {
                             const localItem = getLocalizedItem(item, language);
                             return (
-                                <div key={item.id + (item.notes || '') + (item.selected_modifications?.join('') || '')} className="flex gap-4 border-b border-stone-200 pb-4 last:border-0 animate-in fade-in slide-in-from-bottom-2">
+                                <div key={item.id + (item.notes || '') + (item.selected_modifications?.join('') || '')} className="flex gap-4 border-b border-stone-200 pb-4 last:border-0 animate-fade-in">
                                     <div className="flex-1">
                                         <h4 className="font-bold text-stone-800 text-lg">{localItem.name}</h4>
                                         <p className="text-sm text-stone-500 font-medium">₪{item.price} / {getUnitName(item.unit_type)}</p>

@@ -21,10 +21,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   const { addToCart, guestCount, language, calculationSettings } = useStore();
   const t = translations[language];
   
-  // State for Image Preview Modal
   const [selectedImage, setSelectedImage] = useState<{name: string, url: string} | null>(null);
   
-  // State for Add to Cart Modal
   const [itemToAdd, setItemToAdd] = useState<MenuItem | null>(null);
   const [addQuantity, setAddQuantity] = useState(1);
   const [notes, setNotes] = useState('');
@@ -62,7 +60,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
       }
   };
 
-  // Helper for unit translation
   const getUnitName = (type: string) => {
       if (type === 'tray') return t.tray;
       if (type === 'liter') return t.liter;
@@ -171,9 +168,9 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
     {selectedImage && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-stone-900/90 backdrop-blur-sm transition-opacity" 
-                // Removed onClick to prevent close on backdrop
+                onClick={() => setSelectedImage(null)}
             ></div>
-            <div className="relative bg-white rounded-2xl overflow-hidden shadow-2xl max-w-2xl w-full animate-in zoom-in-95 duration-200">
+            <div className="relative bg-white rounded-2xl overflow-hidden shadow-2xl max-w-2xl w-full animate-zoom-in">
                 <button 
                     onClick={() => setSelectedImage(null)}
                     className="absolute top-4 right-4 z-10 bg-white/50 hover:bg-white text-stone-900 p-2 rounded-full transition-all flex items-center justify-center"
@@ -194,18 +191,15 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
         </div>
     )}
 
-    {/* Add to Cart Customization Modal - CENTERED ON ALL SCREENS */}
+    {/* Add to Cart Customization Modal */}
     {itemToAdd && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 font-sans">
-             {/* Backdrop */}
              <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" 
-                // Removed onClick to prevent close on backdrop
+                onClick={() => setItemToAdd(null)}
              ></div>
              
-             {/* Modal Container */}
-             <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+             <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl flex flex-col shadow-2xl animate-zoom-in">
                 
-                {/* Header (Fixed) */}
                 <div className="bg-stone-900 p-5 text-white flex justify-between items-start shrink-0 rounded-t-2xl">
                     <div className="pr-4"> 
                         <h3 className="text-xl md:text-2xl font-serif font-bold mb-1 leading-tight">{getLocalizedItem(itemToAdd, language).name}</h3>
@@ -219,9 +213,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                     </button>
                 </div>
 
-                {/* Scrollable Content */}
                 <div className="flex-1 overflow-y-auto p-5 space-y-6">
-                    {/* Quantity Selector */}
                     <div className="flex items-center justify-between bg-stone-50 p-4 rounded-xl border border-stone-200">
                         <span className="font-bold text-stone-700">{t.customizeTitle}</span>
                         <div className="flex items-center gap-3">
@@ -241,7 +233,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         </div>
                     </div>
 
-                    {/* Modifications Options */}
                     {getLocalizedItem(itemToAdd, language).modifications.length > 0 && (
                         <div>
                             <label className="block text-sm font-bold text-stone-700 mb-2">{t.modifications}</label>
@@ -266,7 +257,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         </div>
                     )}
 
-                    {/* Notes */}
                     <div>
                         <label className="block text-sm font-bold text-stone-700 mb-2">{t.notesPlaceholder}</label>
                         <textarea
@@ -278,7 +268,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                     </div>
                 </div>
 
-                {/* Footer Actions (Fixed at bottom of modal) */}
                 <div className="p-5 border-t border-stone-200 bg-stone-50 flex gap-4 shrink-0 rounded-b-2xl">
                     <div className="flex-1">
                         <div className="text-xs text-stone-500 mb-1">{t.total}</div>

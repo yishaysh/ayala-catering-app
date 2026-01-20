@@ -29,39 +29,38 @@ export default {
         serif: ['David Libre', 'Georgia', 'serif'],
       },
       keyframes: {
-        "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
-        },
-        "slide-in-from-bottom": {
-          from: { transform: "translateY(100%)", opacity: "0" },
-          to: { transform: "translateY(0)", opacity: "1" },
-        },
-        "slide-in-from-top-4": {
-          from: { transform: "translateY(-1rem)", opacity: "0" },
-          to: { transform: "translateY(0)", opacity: "1" },
-        },
-        "zoom-in-95": {
-            from: { transform: "scale(0.95)", opacity: "0" },
-            to: { transform: "scale(1)", opacity: "1" },
-        },
         "fade-in": {
             from: { opacity: "0" },
             to: { opacity: "1" },
+        },
+        "zoom-in": {
+            from: { transform: "scale(0.95)", opacity: "0" },
+            to: { transform: "scale(1)", opacity: "1" },
+        },
+        "slide-in-bottom": {
+            from: { transform: "translateY(20px)", opacity: "0" },
+            to: { transform: "translateY(0)", opacity: "1" },
+        },
+        "slide-in-top": {
+            from: { transform: "translateY(-20px)", opacity: "0" },
+            to: { transform: "translateY(0)", opacity: "1" },
+        },
+        "slide-in-right": {
+            from: { transform: "translateX(100%)" },
+            to: { transform: "translateX(0)" },
+        },
+        "slide-in-left": {
+            from: { transform: "translateX(-100%)" },
+            to: { transform: "translateX(0)" },
         }
       },
       animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
-        "in": "fade-in 0.2s ease-out",
-        "slide-in-from-bottom": "slide-in-from-bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1)", 
-        "slide-in-from-top-4": "slide-in-from-top-4 0.5s ease-out",
-        "zoom-in-95": "zoom-in-95 0.2s ease-out",
-        "fade-in": "fade-in 0.2s ease-out",
+        "fade-in": "fade-in 0.3s ease-out forwards",
+        "zoom-in": "zoom-in 0.2s ease-out forwards",
+        "slide-in-bottom": "slide-in-bottom 0.5s ease-out forwards",
+        "slide-in-top": "slide-in-top 0.5s ease-out forwards",
+        "slide-in-right": "slide-in-right 0.3s ease-out forwards",
+        "slide-in-left": "slide-in-left 0.3s ease-out forwards",
       },
     },
   },
