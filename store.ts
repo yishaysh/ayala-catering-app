@@ -4,6 +4,19 @@ import { persist } from 'zustand/middleware';
 import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel, AdvancedCalculationSettings, FeatureFlags } from './types';
 import { supabase } from './lib/supabase';
 
+const INITIAL_MENU: MenuItem[] = [
+    { 
+        id: 's1', category: 'Salads', 
+        name: 'סלט הבית', name_en: 'House Salad',
+        description: 'חסה, מלפפונים, עגבניות, בטטה מקורמלת, פטריות חיות, בצל סגול, נבטי חמניה + ויניגרט', price: 145, unit_type: 'tray', serves_min: 8, serves_max: 10, is_premium: false, tags: [], availability_status: true 
+    },
+    { 
+        id: 'p1', category: 'Pastries', 
+        name: 'קיש משפחתי', name_en: 'Family Quiche',
+        description: 'בטטה ועיזים / פטריות / בצל', price: 151, unit_type: 'unit', serves_min: 10, serves_max: 12, is_premium: true, tags: [], availability_status: true 
+    }
+];
+
 type Language = 'he' | 'en';
 
 interface AppState {
@@ -276,7 +289,7 @@ export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
       cart: [],
-      menuItems: [],
+      menuItems: INITIAL_MENU,
       guestCount: 0,
       language: 'he',
       isLoading: false,
@@ -427,7 +440,16 @@ export const useStore = create<AppState>()(
       cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
     }),
     {
-      name: 'ayala-catering-storage-v4',
+      name: 'ayala-catering-storage-v5',
+      partialize: (state) => ({
+          guestCount: state.guestCount,
+          language: state.language,
+          calculationSettings: state.calculationSettings,
+          advancedSettings: state.advancedSettings,
+          eventType: state.eventType,
+          hungerLevel: state.hungerLevel,
+          featureFlags: state.featureFlags
+      })
     }
   )
 );

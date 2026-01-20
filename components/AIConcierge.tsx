@@ -16,14 +16,15 @@ export const AIConcierge: React.FC = () => {
         if (!prompt.trim()) return;
         setIsGenerating(true);
         try {
+            // Correct initialization as per Google GenAI SDK rules
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             
-            // Minimal menu context to keep tokens low
-            const menuSummary = menuItems.map(m => ({ id: m.id, name: m.name, price: m.price, cat: m.category })).slice(0, 30);
+            // Minimal menu context to keep tokens low and relevant
+            const menuSummary = (menuItems || []).map(m => ({ id: m.id, name: m.name, price: m.price, cat: m.category })).slice(0, 40);
 
             const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
-                contents: `User event description: "${prompt}". Based on this menu: ${JSON.stringify(menuSummary)}, recommend a balanced selection. Return ONLY JSON matching schema.`,
+                contents: `User event description: "${prompt}". Based on this catering menu: ${JSON.stringify(menuSummary)}, recommend a balanced selection of dishes and their quantities for this specific event. Return ONLY a valid JSON object matching the provided schema.`,
                 config: {
                     responseMimeType: "application/json",
                     responseSchema: {
@@ -34,30 +35,33 @@ export const AIConcierge: React.FC = () => {
                                 items: {
                                     type: Type.OBJECT,
                                     properties: {
-                                        id: { type: Type.STRING },
-                                        quantity: { type: Type.NUMBER }
+                                        id: { type: Type.STRING, description: "The ID of the menu item" },
+                                        quantity: { type: Type.NUMBER, description: "Suggested quantity for this item" }
                                     },
                                     required: ["id", "quantity"]
                                 }
                             },
-                            explanation: { type: Type.STRING }
+                            explanation: { type: Type.STRING, description: "Brief explanation of why these items were chosen based on the user's description" }
                         },
                         required: ["items", "explanation"]
                     }
                 }
             });
 
-            const data = JSON.parse(response.text || '{}');
-            setRecommendation(data);
+            if (response.text) {
+                const data = JSON.parse(response.text.trim());
+                setRecommendation(data);
+            }
         } catch (error) {
             console.error("AI Error:", error);
+            alert(language === 'he' ? "שגיאה בתקשורת עם ה-AI. אנא נסו שוב מאוחר יותר." : "Error communicating with AI. Please try again later.");
         } finally {
             setIsGenerating(false);
         }
     };
 
     const handleApply = () => {
-        if (!recommendation) return;
+        if (!recommendation || !recommendation.items) return;
         const validItems = recommendation.items
             .map(rec => {
                 const item = menuItems.find(m => m.id === rec.id);
@@ -65,9 +69,11 @@ export const AIConcierge: React.FC = () => {
             })
             .filter(x => x !== null) as { item: MenuItem, quantity: number }[];
         
-        bulkAddToCart(validItems);
-        setRecommendation(null);
-        setPrompt('');
+        if (validItems.length > 0) {
+            bulkAddToCart(validItems);
+            setRecommendation(null);
+            setPrompt('');
+        }
     };
 
     return (

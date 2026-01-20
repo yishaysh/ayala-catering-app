@@ -30,8 +30,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         language 
     } = useStore();
     
-    const t = translations[language].admin;
-    const rootT = translations[language] as any;
+    const t = translations[language]?.admin || translations['he'].admin;
+    const rootT = translations[language] as any || translations['he'] as any;
 
     const [searchTerm, setSearchTerm] = useState('');
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -47,9 +47,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     });
     const [addMods, setAddMods] = useState('');
 
-    const filteredItems = menuItems.filter(i => 
-        i.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        (i.name_en && i.name_en.toLowerCase().includes(searchTerm.toLowerCase()))
+    const filteredItems = (menuItems || []).filter(i => 
+        (i.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+        (i.name_en?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
 
     const handleEditClick = (item: MenuItem) => {
@@ -74,7 +74,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         if (!newItem.name || !newItem.price) return;
         const modsArray = addMods.split(',').map(s => s.trim()).filter(s => s.length > 0);
         const itemToSave: Omit<MenuItem, 'id'> = {
-            name: newItem.name || '', category: newItem.category as Category, price: Number(newItem.price), unit_type: newItem.unit_type as UnitType, description: newItem.description, serves_min: Number(newItem.serves_min), serves_max: Number(newItem.serves_max), is_premium: newItem.is_premium || false, availability_status: true, tags: [], allowed_modifications: modsArray, allowed_modifications_en: modsArray
+            name: newItem.name || '', category: (newItem.category as Category) || 'Salads', price: Number(newItem.price), unit_type: (newItem.unit_type as UnitType) || 'tray', description: newItem.description || '', serves_min: Number(newItem.serves_min) || 1, serves_max: Number(newItem.serves_max) || 1, is_premium: newItem.is_premium || false, availability_status: true, tags: [], allowed_modifications: modsArray, allowed_modifications_en: modsArray
         };
         await addMenuItem(itemToSave);
         setIsAddModalOpen(false);
@@ -164,7 +164,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 {(['light', 'medium', 'heavy'] as HungerLevel[]).map(level => (
                                     <div key={level}>
                                         <label className="block text-xs font-bold text-stone-500 uppercase mb-1">{rootT[level] || level}</label>
-                                        <input type="number" step="0.1" value={advancedSettings.hungerMultipliers[level]} onChange={(e) => handleHungerMultChange(level, e.target.value)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500" />
+                                        <input type="number" step="0.1" value={advancedSettings?.hungerMultipliers?.[level] || 1} onChange={(e) => handleHungerMultChange(level, e.target.value)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500" />
                                     </div>
                                 ))}
                             </div>
@@ -189,12 +189,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                         {EVENT_TYPES.map(eType => (
                                             <tr key={eType} className="border-b border-stone-200 hover:bg-white transition-colors">
                                                 <td className="p-2 font-bold text-stone-800 text-sm capitalize">{rootT[eType] || eType}</td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].sandwiches} onChange={(e) => handleEventRatioChange(eType, 'sandwiches', e.target.value)} /></td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].pastries} onChange={(e) => handleEventRatioChange(eType, 'pastries', e.target.value)} /></td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].saladsCoverage} onChange={(e) => handleEventRatioChange(eType, 'saladsCoverage', e.target.value)} /></td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].mainsCoverage} onChange={(e) => handleEventRatioChange(eType, 'mainsCoverage', e.target.value)} /></td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].plattersCoverage} onChange={(e) => handleEventRatioChange(eType, 'plattersCoverage', e.target.value)} /></td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].dessertsCoverage} onChange={(e) => handleEventRatioChange(eType, 'dessertsCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.sandwiches || 0} onChange={(e) => handleEventRatioChange(eType, 'sandwiches', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.pastries || 0} onChange={(e) => handleEventRatioChange(eType, 'pastries', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.saladsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'saladsCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.mainsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'mainsCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.plattersCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'plattersCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.dessertsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'dessertsCoverage', e.target.value)} /></td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -227,7 +227,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 return (
                                     <tr key={item.id} className="border-b border-stone-100 hover:bg-stone-50">
                                         <td className="p-4 font-bold text-stone-800">{localItem.name}</td>
-                                        <td className="p-4 text-stone-500">{(translations[language].categories as Record<string, string>)[item.category]}</td>
+                                        <td className="p-4 text-stone-500">{(rootT.categories as Record<string, string>)?.[item.category] || item.category}</td>
                                         <td className="p-4">₪{item.price}</td>
                                         <td className="p-4">
                                             <span className={`px-3 py-1 rounded text-xs font-bold ${item.availability_status ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
