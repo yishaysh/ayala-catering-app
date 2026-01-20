@@ -4,57 +4,118 @@ import { persist } from 'zustand/middleware';
 import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel, AdvancedCalculationSettings, FeatureFlags } from './types';
 import { supabase } from './lib/supabase';
 
-// INITIAL MENU FALLBACK
-const INITIAL_MENU: MenuItem[] = [
-    { 
-        id: 's1', category: 'Salads', 
-        name: 'סלט הבית', name_en: 'House Salad',
-        description: 'חסה, מלפפונים, עגבניות, בטטה מקורמלת, פטריות חיות, בצל סגול, נבטי חמניה + ויניגרט', description_en: 'Lettuce, cucumbers, tomatoes, caramelized sweet potato, fresh mushrooms, purple onion, sunflower sprouts + Vinaigrette',
-        price: 145, unit_type: 'tray', serves_min: 8, serves_max: 10, is_premium: false, tags: [], availability_status: true, 
-        allowed_modifications: ['בלי בצל', 'רוטב בצד', 'בלי פטריות'],
-        allowed_modifications_en: ['No Onion', 'Sauce on side', 'No Mushrooms'],
-        image_url: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=800&q=80'
-    }
-];
-
 type Language = 'he' | 'en';
 
-interface AppState {
-  cart: CartItem[];
-  menuItems: MenuItem[];
-  guestCount: number;
-  language: Language;
-  isLoading: boolean;
-  featureFlags: FeatureFlags;
-  
-  // Calculator State
-  eventType: EventType;
-  hungerLevel: HungerLevel;
-  calculationSettings: CalculationSettings;
-  advancedSettings: AdvancedCalculationSettings;
-
-  // Actions
-  fetchMenuItems: () => Promise<void>;
-  fetchSettings: () => Promise<void>;
-  setGuestCount: (count: number) => void;
-  setEventType: (type: EventType) => void;
-  setHungerLevel: (level: HungerLevel) => void;
-  setLanguage: (lang: Language) => void;
-  addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
-  bulkAddToCart: (items: { item: MenuItem, quantity: number }[]) => void;
-  removeFromCart: (itemId: string) => void;
-  updateQuantity: (itemId: string, quantity: number) => void;
-  updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
-  addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
-  updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
-  updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
-  updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
-  clearCart: () => void;
-  
-  cartTotal: () => number;
+export interface Translations {
+  title: string;
+  subtitle: string;
+  guestsQuestion: string;
+  guestsSub: string;
+  autoRecommend: string;
+  sandwiches: string;
+  trays: string;
+  perCategory: string;
+  addToCart: string;
+  add: string;
+  added: string;
+  outOfStock: string;
+  premium: string;
+  serves: string;
+  people: string;
+  myOrder: string;
+  emptyCart: string;
+  total: string;
+  minOrder: string;
+  checkout: string;
+  shareDraft: string;
+  freeDeliveryAt: string;
+  vipDelivery: string;
+  justMore: string;
+  forVip: string;
+  checkoutSub: string;
+  search: string;
+  customizeTitle: string;
+  notesPlaceholder: string;
+  modifications: string;
+  cancel: string;
+  confirmAdd: string;
+  tray: string;
+  liter: string;
+  unit: string;
+  weight: string;
+  clearCart: string;
+  clearCartConfirm: string;
+  planEvent: string;
+  eventType: string;
+  hungerLevel: string;
+  calcResults: string;
+  aiTitle: string;
+  aiPlaceholder: string;
+  aiGenerate: string;
+  aiApplying: string;
+  aiApply: string;
+  aiExplanation: string;
+  brunch: string;
+  dinner: string;
+  snack: string;
+  party: string;
+  light: string;
+  medium: string;
+  heavy: string;
+  categories: Record<string, string>;
+  admin: {
+    title: string;
+    exit: string;
+    minOrder: string;
+    prepTime: string;
+    storeStatus: string;
+    open: string;
+    closed: string;
+    searchPlaceholder: string;
+    productName: string;
+    category: string;
+    price: string;
+    status: string;
+    modifications: string;
+    edit: string;
+    active: string;
+    outOfStock: string;
+    editItemTitle: string;
+    inStock: string;
+    outOfStockLabel: string;
+    modsHint: string;
+    modsPlaceholder: string;
+    save: string;
+    cancelBtn: string;
+    addItem: string;
+    createItemTitle: string;
+    description: string;
+    unitType: string;
+    create: string;
+    premium: string;
+    calcSettings: string;
+    sandwichesPerPerson: string;
+    pastriesPerPerson: string;
+    trayCapacity: string;
+    advCalc: string;
+    hungerMult: string;
+    eventLogic: string;
+    unitsPerPerson: string;
+    coverage: string;
+    tableEventType: string;
+    tableSandwiches: string;
+    tablePastries: string;
+    tableSalads: string;
+    tableMains: string;
+    tablePlatters: string;
+    tableDesserts: string;
+    featureMgmt: string;
+    showCalc: string;
+    showAI: string;
+  };
 }
 
-export const translations = {
+export const translations: Record<Language, Translations> = {
   he: {
     title: "איילה פשוט טעים",
     subtitle: "קייטרינג חלבי פרימיום",
@@ -76,6 +137,11 @@ export const translations = {
     total: "סה\"כ לתשלום",
     minOrder: "מינימום הזמנה",
     checkout: "סיום הזמנה ב-WhatsApp",
+    shareDraft: "שתף טיוטה לאישור",
+    freeDeliveryAt: "משלוח חינם ב-1,500 ₪",
+    vipDelivery: "הובלת VIP עלינו!",
+    justMore: "רק עוד",
+    forVip: "בשביל VIP",
     checkoutSub: "ההזמנה תשלח לאישור סופי מול איילה",
     search: "חיפוש בתפריט...",
     customizeTitle: "התאמה אישית",
@@ -89,7 +155,6 @@ export const translations = {
     weight: 'משקל',
     clearCart: "רוקן עגלה",
     clearCartConfirm: "האם לרוקן את העגלה?",
-    
     planEvent: "בואו נתכנן את האירוע המושלם",
     eventType: "סוג האירוע",
     hungerLevel: "רמת רעב",
@@ -100,16 +165,13 @@ export const translations = {
     aiApplying: "מנתח...",
     aiApply: "החל המלצה על העגלה",
     aiExplanation: "למה בחרתי את זה?",
-    
-    'brunch': "בראנץ'",
-    'dinner': "ארוחת ערב",
-    'snack': "אירוח קליל",
-    'party': "מסיבה",
-    
-    'light': "נשנוש",
-    'medium': "רגיל",
-    'heavy': "רעבים מאוד",
-
+    brunch: "בראנץ'",
+    dinner: "ארוחת ערב",
+    snack: "אירוח קליל",
+    party: "מסיבה",
+    light: "נשנוש",
+    medium: "רגיל",
+    heavy: "רעבים מאוד",
     categories: {
       'Salads': 'סלטים טריים',
       'Cold Platters': 'מגשי אירוח',
@@ -158,17 +220,16 @@ export const translations = {
         eventLogic: "לוגיקה לפי סוג אירוע",
         unitsPerPerson: "יח' לאדם",
         coverage: "כיסוי",
-        featureMgmt: "ניהול פיצ'רים",
-        showCalc: "הצג מחשבון אירוח",
-        showAI: "הצג קונסיירז' AI",
-        
         tableEventType: "סוג אירוע",
         tableSandwiches: "כריכים",
         tablePastries: "מאפים",
         tableSalads: "סלטים",
         tableMains: "עיקריות",
         tablePlatters: "מגשים",
-        tableDesserts: "קינוחים"
+        tableDesserts: "קינוחים",
+        featureMgmt: "ניהול פיצ'רים",
+        showCalc: "הצג מחשבון אירוח",
+        showAI: "הצג קונסיירז' AI"
     }
   },
   en: {
@@ -192,6 +253,11 @@ export const translations = {
     total: "Total",
     minOrder: "Minimum Order",
     checkout: "Checkout via WhatsApp",
+    shareDraft: "Share Draft for Approval",
+    freeDeliveryAt: "Free Delivery at 1,500 ₪",
+    vipDelivery: "VIP Delivery included!",
+    justMore: "Just",
+    forVip: "more for VIP",
     checkoutSub: "Order will be sent for final approval",
     search: "Search menu...",
     customizeTitle: "Customize Item",
@@ -205,7 +271,6 @@ export const translations = {
     weight: 'Weight',
     clearCart: "Clear Cart",
     clearCartConfirm: "Clear the cart?",
-    
     planEvent: "Let's plan the perfect event",
     eventType: "Event Type",
     hungerLevel: "Hunger Level",
@@ -216,7 +281,13 @@ export const translations = {
     aiApplying: "Analyzing...",
     aiApply: "Apply Recommendation",
     aiExplanation: "Why this choice?",
-
+    brunch: "Brunch",
+    dinner: "Dinner",
+    snack: "Light / Cocktail",
+    party: "Party",
+    light: "Light",
+    medium: "Regular",
+    heavy: "Starving",
     categories: {
       'Salads': 'Fresh Salads',
       'Cold Platters': 'Cold Platters',
@@ -268,7 +339,6 @@ export const translations = {
         featureMgmt: "Feature Management",
         showCalc: "Show Event Calculator",
         showAI: "Show AI Concierge",
-
         tableEventType: "Event Type",
         tableSandwiches: "Sandwiches",
         tablePastries: "Pastries",
@@ -280,25 +350,49 @@ export const translations = {
   }
 };
 
+interface AppState {
+  cart: CartItem[];
+  menuItems: MenuItem[];
+  guestCount: number;
+  language: Language;
+  isLoading: boolean;
+  featureFlags: FeatureFlags;
+  eventType: EventType;
+  hungerLevel: HungerLevel;
+  calculationSettings: CalculationSettings;
+  advancedSettings: AdvancedCalculationSettings;
+
+  fetchMenuItems: () => Promise<void>;
+  fetchSettings: () => Promise<void>;
+  setGuestCount: (count: number) => void;
+  setEventType: (type: EventType) => void;
+  setHungerLevel: (level: HungerLevel) => void;
+  setLanguage: (lang: Language) => void;
+  addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
+  bulkAddToCart: (items: { item: MenuItem, quantity: number }[]) => void;
+  removeFromCart: (itemId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
+  updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
+  addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
+  updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
+  updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
+  updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
+  clearCart: () => void;
+  cartTotal: () => number;
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
       cart: [],
-      menuItems: INITIAL_MENU,
+      menuItems: [],
       guestCount: 0,
       language: 'he',
       isLoading: false,
       eventType: 'snack',
       hungerLevel: 'medium',
-      featureFlags: {
-        showCalculator: true,
-        showAI: true
-      },
-      calculationSettings: {
-        sandwichesPerPerson: 1.5,
-        pastriesPerPerson: 1.0,
-        averageTrayCapacity: 10
-      },
+      featureFlags: { showCalculator: true, showAI: true },
+      calculationSettings: { sandwichesPerPerson: 1.5, pastriesPerPerson: 1.0, averageTrayCapacity: 10 },
       advancedSettings: {
         hungerMultipliers: { light: 0.8, medium: 1.0, heavy: 1.3 },
         eventRatios: {
@@ -311,29 +405,14 @@ export const useStore = create<AppState>()(
 
       fetchMenuItems: async () => {
           set({ isLoading: true });
-          const { data, error } = await supabase
-            .from('menu_items')
-            .select('*')
-            .order('category', { ascending: true });
-          
-          if (error) {
-              console.error('Error fetching menu (Using Fallback):', error);
-          } else if (data && data.length > 0) {
-              set({ menuItems: data as MenuItem[] });
-          }
+          const { data } = await supabase.from('menu_items').select('*').order('category', { ascending: true });
+          if (data) set({ menuItems: data as MenuItem[] });
           set({ isLoading: false });
       },
 
       fetchSettings: async () => {
-        const { data, error } = await supabase
-            .from('app_settings')
-            .select('*')
-            .eq('key', 'features')
-            .single();
-
-        if (data && data.value) {
-            set({ featureFlags: data.value as FeatureFlags });
-        }
+        const { data } = await supabase.from('app_settings').select('*').eq('key', 'features').single();
+        if (data && data.value) set({ featureFlags: data.value as FeatureFlags });
       },
 
       setLanguage: (lang) => set({ language: lang }),
@@ -344,9 +423,7 @@ export const useStore = create<AppState>()(
       addToCart: (item, quantity = 1, notes = '', modifications = []) => {
         const currentCart = get().cart;
         const existingItemIndex = currentCart.findIndex((i) => 
-            i.id === item.id && 
-            i.notes === notes && 
-            JSON.stringify(i.selected_modifications) === JSON.stringify(modifications)
+            i.id === item.id && i.notes === notes && JSON.stringify(i.selected_modifications) === JSON.stringify(modifications)
         );
 
         if (existingItemIndex > -1) {
@@ -354,14 +431,7 @@ export const useStore = create<AppState>()(
           newCart[existingItemIndex].quantity += quantity;
           set({ cart: newCart });
         } else {
-          set({ 
-              cart: [...currentCart, { 
-                  ...item, 
-                  quantity, 
-                  notes, 
-                  selected_modifications: modifications 
-              }] 
-          });
+          set({ cart: [...currentCart, { ...item, quantity, notes, selected_modifications: modifications }] });
         }
       },
 
@@ -375,78 +445,32 @@ export const useStore = create<AppState>()(
           set({ cart: [...get().cart, ...newItems] });
       },
 
-      removeFromCart: (itemId) => {
-        set({ cart: get().cart.filter((i) => i.id !== itemId) });
-      },
+      removeFromCart: (itemId) => set({ cart: get().cart.filter((i) => i.id !== itemId) }),
 
       updateQuantity: (itemId, quantity) => {
-        if (quantity <= 0) {
-          get().removeFromCart(itemId);
-          return;
-        }
-        set({
-          cart: get().cart.map((i) => (i.id === itemId ? { ...i, quantity } : i)),
-        });
+        if (quantity <= 0) { get().removeFromCart(itemId); return; }
+        set({ cart: get().cart.map((i) => (i.id === itemId ? { ...i, quantity } : i)) });
       },
 
       updateMenuItem: async (id, updates) => {
-          set({
-              menuItems: get().menuItems.map(item => 
-                item.id === id ? { ...item, ...updates } : item
-              )
-          });
-
-          const { error } = await supabase
-            .from('menu_items')
-            .update(updates)
-            .eq('id', id);
-
-          if (error) console.error("Failed to update item in DB", error);
+          set({ menuItems: get().menuItems.map(item => item.id === id ? { ...item, ...updates } : item) });
+          await supabase.from('menu_items').update(updates).eq('id', id);
       },
 
       addMenuItem: async (item) => {
-          const { data, error } = await supabase
-            .from('menu_items')
-            .insert([item])
-            .select();
-
-          if (error) {
-              console.error("Failed to add item to DB", error);
-              const newItem = { ...item, id: Math.random().toString(36).substr(2, 9) };
-              set({ menuItems: [...get().menuItems, newItem as MenuItem] });
-          } else if (data) {
-              set({ menuItems: [...get().menuItems, data[0] as MenuItem] });
-          }
+          const { data } = await supabase.from('menu_items').insert([item]).select();
+          if (data) set({ menuItems: [...get().menuItems, data[0] as MenuItem] });
       },
 
-      updateCalculationSettings: (settings) => {
-        set((state) => ({
-            calculationSettings: { ...state.calculationSettings, ...settings }
-        }));
-      },
-
-      updateAdvancedSettings: (settings) => {
-          set((state) => ({
-              advancedSettings: { ...state.advancedSettings, ...settings }
-          }));
-      },
-
+      updateCalculationSettings: (settings) => set((state) => ({ calculationSettings: { ...state.calculationSettings, ...settings } })),
+      updateAdvancedSettings: (settings) => set((state) => ({ advancedSettings: { ...state.advancedSettings, ...settings } })),
       updateFeatureFlags: async (flags) => {
         const newFlags = { ...get().featureFlags, ...flags };
         set({ featureFlags: newFlags });
-        
-        const { error } = await supabase
-            .from('app_settings')
-            .upsert({ key: 'features', value: newFlags });
-        
-        if (error) console.error("Failed to save feature flags", error);
+        await supabase.from('app_settings').upsert({ key: 'features', value: newFlags });
       },
-
       clearCart: () => set({ cart: [] }),
-
-      cartTotal: () => {
-        return get().cart.reduce((total, item) => total + item.price * item.quantity, 0);
-      },
+      cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
     }),
     {
       name: 'ayala-catering-storage-v5',
