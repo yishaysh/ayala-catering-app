@@ -3,15 +3,18 @@ import { MenuGrid } from './components/MenuGrid';
 import { HostHelper } from './components/HostHelper';
 import { CartDrawer } from './components/CartDrawer';
 import { Category } from './types';
-import { ShoppingBag, Phone, Globe, Lock, UtensilsCrossed, X, ChevronRight } from 'lucide-react';
+import { ShoppingBag, Phone, Globe, Lock, X, ChevronRight, Loader2 } from 'lucide-react';
 import { useStore, translations } from './store';
 import { AdminDashboard } from './components/AdminDashboard';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts'];
 
+// Inline Base64 Logo
+const LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAAA8CAYAAAAjW/OvAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAQdSURBVHic7ZzbbuMwEIDWl2Tz/3/2pQ2KAm4P0uOZoyhS5CwGCOA8nBEnj3y/3+/Evy/tBfA+tNfA+9BeA+9De43t9fPzQ/7+/i7+u7e3N/n6+ir++9g+Pj7k8/Oz+O/e39/l7e2t+O9j4/mG/qG9Bt6H9hp4H9prbK+0sQy018D70F4D70N7DbwP7TXwPrTXwPvQXmN7pY1loL0G3of2Gngf2mvgeT8/P28jI7SxDNg/l8vF/E1sD+018D6018D70F4D70N7DbwP7TW2V9pYBtrr/8H7+3t7CTzN9koby0B7DbwP7TXwPrTXwPvQXgPvQ3uN7fXz8yN/f3+tv7+3t7f2F5n/PrZP2lgG2mvgfWivgfekvb6+vtrLgPZKG8tAew28D+018D6018D70F4D70N7DbwP7TW2V9pYBtrr/8H2S5a0sQy018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sg1/v/wBAk2rF2gAAAABJRU5ErkJggg==";
+
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const { cartTotal, cart, language, setLanguage, menuItems } = useStore(); // Using menuItems from store
+  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading } = useStore();
   
   // Admin State
   const [isAdmin, setIsAdmin] = useState(false);
@@ -22,10 +25,13 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const t = translations[language];
 
-  // Handle PIN Login
+  // Fetch Menu on Load
+  useEffect(() => {
+      fetchMenuItems();
+  }, []);
+
   const handleAdminLogin = (e: React.FormEvent) => {
       e.preventDefault();
-      // Simple hardcoded PIN for demo
       if (pin === '2024') {
           setIsAdmin(true);
           setIsLoginOpen(false);
@@ -36,9 +42,7 @@ export default function App() {
       }
   };
 
-  // Simple toggle for demo purposes
   useEffect(() => {
-    // Set Direction based on language
     document.documentElement.dir = language === 'he' ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
   }, [language]);
@@ -46,36 +50,28 @@ export default function App() {
   const scrollToCategory = (cat: Category) => {
     const element = document.getElementById(cat);
     if (element) {
-        // Safe scrolling with offset
         element.scrollIntoView({ behavior: 'smooth', block: 'start' });
         setActiveCategory(cat);
     }
   };
 
-  // Admin View
   if (isAdmin) {
       return <AdminDashboard onExit={() => setIsAdmin(false)} />;
   }
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pb-24">
+    <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pb-48 overflow-x-hidden">
       
       {/* Header */}
       <header className="sticky top-0 z-50 bg-stone-900 text-white shadow-lg border-b border-stone-800">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-            {/* Logo Area */}
             <div className="flex items-center gap-3">
                 <div className="relative h-12 w-auto flex items-center justify-center overflow-hidden">
-                   {/* Logo Image with Placeholder Fallback */}
+                   {/* Logo */}
                    <img 
-                        src="/logo.png" 
-                        alt="Ayala" 
-                        className="h-full w-auto object-contain" 
-                        onError={(e) => {
-                            // If local file fails (in dev/preview), use this elegant placeholder
-                            e.currentTarget.src = "https://placehold.co/150x60/1c1917/d4af37?text=Ayala+Logo";
-                            e.currentTarget.onerror = null; // Prevent loop
-                        }} 
+                        src={LOGO_SRC} 
+                        alt="Ayala Logo" 
+                        className="h-full w-auto object-contain"
                    />
                 </div>
                 <div className="hidden sm:block">
@@ -84,10 +80,7 @@ export default function App() {
                 </div>
             </div>
 
-            {/* Actions */}
             <div className="flex items-center gap-3 md:gap-6">
-                 
-                 {/* Admin Lock - Opens Login Modal */}
                  <button 
                     onClick={() => setIsLoginOpen(true)}
                     className="p-2 text-stone-400 hover:text-gold-500 transition-colors"
@@ -96,7 +89,6 @@ export default function App() {
                     <Lock size={18} />
                 </button>
 
-                 {/* Language Toggle */}
                  <button 
                     onClick={() => setLanguage(language === 'he' ? 'en' : 'he')}
                     className="flex items-center gap-1.5 text-xs font-bold bg-stone-800 px-3 py-1.5 rounded-full border border-stone-700 hover:border-gold-500 transition-colors"
@@ -129,17 +121,17 @@ export default function App() {
 
       {/* Hero */}
       <div className="relative bg-stone-900 text-white pt-16 pb-24 overflow-hidden mb-8">
-         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center opacity-20"></div>
+         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center opacity-10 grayscale"></div>
          <div className="absolute inset-0 bg-gradient-to-t from-stone-50 via-transparent to-transparent"></div>
          
          <div className="container mx-auto text-center px-4 relative z-10">
-            <div className="inline-block border border-gold-500/30 bg-gold-500/10 backdrop-blur-sm px-4 py-1 rounded-full text-gold-400 text-xs font-bold tracking-widest uppercase mb-6 animate-in fade-in slide-in-from-bottom-4">
+            <div className="inline-block border border-gold-500/30 bg-gold-500/10 backdrop-blur-sm px-4 py-1 rounded-full text-gold-400 text-xs font-bold tracking-widest uppercase mb-6 animate-fade-in">
                 {t.subtitle}
             </div>
-            <h2 className="text-4xl md:text-6xl font-serif font-bold text-white mb-6 leading-tight drop-shadow-xl animate-in fade-in slide-in-from-bottom-6 duration-700">
+            <h2 className="text-4xl md:text-6xl font-serif font-bold text-white mb-6 leading-tight drop-shadow-xl animate-slide-in-bottom">
                 {language === 'he' ? 'איילה פשוט טעים' : 'Simply Delicious'}
             </h2>
-            <div className="flex justify-center animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-100">
+            <div className="flex justify-center animate-slide-in-bottom" style={{ animationDelay: '200ms' }}>
                  <button 
                     onClick={() => scrollToCategory('Salads')}
                     className="bg-gold-500 text-stone-900 px-8 py-3 rounded-full font-bold text-lg hover:bg-gold-400 transition transform hover:scale-105 shadow-lg shadow-gold-500/20"
@@ -153,10 +145,8 @@ export default function App() {
       {/* Main Content */}
       <main className="container mx-auto px-4 -mt-16 relative z-20">
         
-        {/* Smart Calculator */}
         <HostHelper />
 
-        {/* Sticky Category Nav */}
         <div className="sticky top-[72px] z-40 bg-stone-50/95 backdrop-blur-md py-4 mb-8 border-b border-stone-200 -mx-4 px-4 overflow-x-auto shadow-sm">
             <nav className="flex gap-2 min-w-max mx-auto md:justify-center">
                 {CATEGORIES.map(cat => (
@@ -171,14 +161,20 @@ export default function App() {
                             }
                         `}
                     >
-                        {t.categories[cat]}
+                        {(t.categories as Record<string, string>)[cat]}
                     </button>
                 ))}
             </nav>
         </div>
 
-        {/* Menu (Passed menuItems from Store) */}
-        <MenuGrid items={menuItems} />
+        {isLoading ? (
+            <div className="flex justify-center py-20">
+                <Loader2 className="animate-spin text-gold-500" size={48} />
+            </div>
+        ) : (
+            <MenuGrid items={menuItems} />
+        )}
+        
       </main>
 
       {/* Footer */}
@@ -209,7 +205,7 @@ export default function App() {
 
       {/* Admin Login Modal */}
       {isLoginOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-in fade-in">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-zoom-in">
               <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl relative">
                   <button 
                     onClick={() => { setIsLoginOpen(false); setPin(''); setLoginError(false); }}
@@ -252,19 +248,6 @@ export default function App() {
               </div>
           </div>
       )}
-      
-      <style>{`
-        .pb-safe {
-            padding-bottom: env(safe-area-inset-bottom, 20px);
-        }
-        nav::-webkit-scrollbar {
-            display: none;
-        }
-        nav {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-      `}</style>
     </div>
   );
 }

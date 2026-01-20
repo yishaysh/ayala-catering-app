@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel, AdvancedCalculationSettings } from './types';
+import { supabase } from './src/lib/supabase'; // Fixed path to src
 
-// Initial Data with Translations
+// INITIAL MENU
 const INITIAL_MENU: MenuItem[] = [
     // Salads
     { 
@@ -293,17 +294,31 @@ type Language = 'he' | 'en';
 
 interface AppState {
   cart: CartItem[];
-  menuItems: MenuItem[]; // New: Menu items in store
+  menuItems: MenuItem[];
   guestCount: number;
   language: Language;
+  isLoading: boolean;
   
+  // Calculator State
+  eventType: EventType;
+  hungerLevel: HungerLevel;
+  calculationSettings: CalculationSettings;
+  // Advanced Settings
+  advancedSettings: AdvancedCalculationSettings;
+
   // Actions
+  fetchMenuItems: () => Promise<void>;
   setGuestCount: (count: number) => void;
+  setEventType: (type: EventType) => void;
+  setHungerLevel: (level: HungerLevel) => void;
   setLanguage: (lang: Language) => void;
   addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
-  updateMenuItem: (id: string, updates: Partial<MenuItem>) => void; // New action
+  updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
+  addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
+  updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
+  updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
   clearCart: () => void;
   
   // Logic
@@ -315,8 +330,8 @@ export const translations = {
     title: "איילה פשוט טעים",
     subtitle: "קייטרינג חלבי פרימיום",
     guestsQuestion: "כמה אורחים מגיעים?",
-    guestsSub: "הזינו את כמות האורחים ונעזור לכם לחשב כמויות",
-    autoRecommend: "המלצה אוטומטית:",
+    guestsSub: "תכנון אירוע מעולם לא היה פשוט יותר",
+    autoRecommend: "התמהיל המומלץ עבורך:",
     sandwiches: "סנדוויצ'ים",
     trays: "מגשי אירוח",
     perCategory: "לכל קטגוריה",
@@ -342,6 +357,24 @@ export const translations = {
     tray: 'מגש',
     liter: 'ליטר',
     unit: 'יחידה',
+    
+    // Host Helper / Smart Calc
+    planEvent: "בואו נתכנן את האירוע המושלם",
+    eventType: "סוג האירוע",
+    hungerLevel: "רמת רעב",
+    calcResults: "המלצות להרכב האירוע",
+    
+    // Event Types
+    'brunch': "בראנץ'",
+    'dinner': "ארוחת ערב",
+    'snack': "אירוח קליל",
+    'party': "מסיבה",
+    
+    // Hunger Levels
+    'light': "נשנוש",
+    'medium': "רגיל",
+    'heavy': "רעבים מאוד",
+
     categories: {
       'Salads': 'סלטים טריים',
       'Cold Platters': 'מגשי אירוח',
@@ -375,15 +408,39 @@ export const translations = {
         modsHint: "אלו האפשרויות שיוצגו ללקוח לבחירה מהירה.",
         modsPlaceholder: "לדוגמה: בלי בצל, רוטב בצד",
         save: "שמור שינויים",
-        cancelBtn: "ביטול"
+        cancelBtn: "ביטול",
+        addItem: "הוסף מנה חדשה",
+        createItemTitle: "יצירת מנה חדשה",
+        description: "תיאור המנה",
+        unitType: "סוג יחידה",
+        create: "צור מנה",
+        premium: "פרימיום",
+        calcSettings: "הגדרות מחשבון כמויות",
+        sandwichesPerPerson: "כריכים לאדם",
+        pastriesPerPerson: "מאפים לאדם",
+        trayCapacity: "קיבולת מגש ממוצעת",
+        advCalc: "הגדרות מחשבון מתקדמות",
+        hungerMult: "מכפילי רעב",
+        eventLogic: "לוגיקה לפי סוג אירוע",
+        unitsPerPerson: "יח' לאדם",
+        coverage: "כיסוי",
+        
+        // Table Headers
+        tableEventType: "סוג אירוע",
+        tableSandwiches: "כריכים",
+        tablePastries: "מאפים",
+        tableSalads: "סלטים",
+        tableMains: "עיקריות",
+        tablePlatters: "מגשים",
+        tableDesserts: "קינוחים"
     }
   },
   en: {
     title: "Ayala Simply Delicious",
     subtitle: "Premium Dairy Catering",
     guestsQuestion: "How many guests?",
-    guestsSub: "Enter guest count for smart quantity suggestions",
-    autoRecommend: "Auto Recommendation:",
+    guestsSub: "Planning your event made simple",
+    autoRecommend: "Your recommended mix:",
     sandwiches: "Sandwiches",
     trays: "Trays",
     perCategory: "per category",
@@ -409,6 +466,24 @@ export const translations = {
     tray: 'Tray',
     liter: 'Liter',
     unit: 'Unit',
+    
+    // Host Helper
+    planEvent: "Let's plan the perfect event",
+    eventType: "Event Type",
+    hungerLevel: "Hunger Level",
+    calcResults: "Recommended Menu Composition",
+
+    // Event Types
+    'brunch': "Brunch",
+    'dinner': "Dinner",
+    'snack': "Light / Cocktail",
+    'party': "Party",
+    
+    // Hunger Levels
+    'light': "Light",
+    'medium': "Regular",
+    'heavy': "Starving",
+
     categories: {
       'Salads': 'Fresh Salads',
       'Cold Platters': 'Cold Platters',
@@ -442,7 +517,31 @@ export const translations = {
         modsHint: "Options displayed to customer for quick selection.",
         modsPlaceholder: "e.g.: No Onion, Sauce on side",
         save: "Save Changes",
-        cancelBtn: "Cancel"
+        cancelBtn: "Cancel",
+        addItem: "Add New Item",
+        createItemTitle: "Create New Item",
+        description: "Description",
+        unitType: "Unit Type",
+        create: "Create Item",
+        premium: "Premium",
+        calcSettings: "Smart Calculator Logic",
+        sandwichesPerPerson: "Sandwiches Per Person",
+        pastriesPerPerson: "Pastries Per Person",
+        trayCapacity: "Avg. Tray Capacity",
+        advCalc: "Advanced Calculator Config",
+        hungerMult: "Hunger Multipliers",
+        eventLogic: "Event Logic Matrix",
+        unitsPerPerson: "Units/Prsn",
+        coverage: "Coverage",
+
+        // Table Headers
+        tableEventType: "Event Type",
+        tableSandwiches: "Sandwiches",
+        tablePastries: "Pastries",
+        tableSalads: "Salads",
+        tableMains: "Mains",
+        tablePlatters: "Platters",
+        tableDesserts: "Desserts"
     }
   }
 };
@@ -454,15 +553,46 @@ export const useStore = create<AppState>()(
       menuItems: INITIAL_MENU,
       guestCount: 0,
       language: 'he',
+      isLoading: false,
+      eventType: 'snack',
+      hungerLevel: 'medium',
+      calculationSettings: {
+        sandwichesPerPerson: 1.5,
+        pastriesPerPerson: 1.0,
+        averageTrayCapacity: 10
+      },
+      advancedSettings: {
+        hungerMultipliers: { light: 0.8, medium: 1.0, heavy: 1.3 },
+        eventRatios: {
+            brunch: { sandwiches: 1.0, pastries: 1.5, saladsCoverage: 0.8, mainsCoverage: 0.5, plattersCoverage: 0.6, dessertsCoverage: 0.4 },
+            dinner: { sandwiches: 0.5, pastries: 0.5, saladsCoverage: 1.0, mainsCoverage: 1.0, plattersCoverage: 0.4, dessertsCoverage: 0.5 },
+            snack: { sandwiches: 2.0, pastries: 0.5, saladsCoverage: 0.3, mainsCoverage: 0.0, plattersCoverage: 0.8, dessertsCoverage: 0.3 },
+            party: { sandwiches: 2.5, pastries: 1.0, saladsCoverage: 0.2, mainsCoverage: 0.2, plattersCoverage: 0.5, dessertsCoverage: 0.5 },
+        }
+      },
+
+      fetchMenuItems: async () => {
+          set({ isLoading: true });
+          const { data, error } = await supabase
+            .from('menu_items')
+            .select('*')
+            .order('category', { ascending: true });
+          
+          if (error) {
+              console.error('Error fetching menu (Using Fallback):', error);
+          } else if (data && data.length > 0) {
+              set({ menuItems: data as MenuItem[] });
+          }
+          set({ isLoading: false });
+      },
 
       setLanguage: (lang) => set({ language: lang }),
-
       setGuestCount: (count) => set({ guestCount: count }),
+      setEventType: (type) => set({ eventType: type }),
+      setHungerLevel: (level) => set({ hungerLevel: level }),
 
       addToCart: (item, quantity = 1, notes = '', modifications = []) => {
         const currentCart = get().cart;
-        
-        // Check for existing item with SAME notes and modifications
         const existingItemIndex = currentCart.findIndex((i) => 
             i.id === item.id && 
             i.notes === notes && 
@@ -499,12 +629,49 @@ export const useStore = create<AppState>()(
         });
       },
 
-      updateMenuItem: (id, updates) => {
+      updateMenuItem: async (id, updates) => {
           set({
               menuItems: get().menuItems.map(item => 
                 item.id === id ? { ...item, ...updates } : item
               )
           });
+
+          // Attempt to update DB if connected
+          const { error } = await supabase
+            .from('menu_items')
+            .update(updates)
+            .eq('id', id);
+
+          if (error) {
+              console.error("Failed to update item in DB", error);
+          }
+      },
+
+      addMenuItem: async (item) => {
+          const { data, error } = await supabase
+            .from('menu_items')
+            .insert([item])
+            .select();
+
+          if (error) {
+              console.error("Failed to add item to DB", error);
+              const newItem = { ...item, id: Math.random().toString(36).substr(2, 9) };
+              set({ menuItems: [...get().menuItems, newItem as MenuItem] });
+          } else if (data) {
+              set({ menuItems: [...get().menuItems, data[0] as MenuItem] });
+          }
+      },
+
+      updateCalculationSettings: (settings) => {
+        set((state) => ({
+            calculationSettings: { ...state.calculationSettings, ...settings }
+        }));
+      },
+
+      updateAdvancedSettings: (settings) => {
+          set((state) => ({
+              advancedSettings: { ...state.advancedSettings, ...settings }
+          }));
       },
 
       clearCart: () => set({ cart: [] }),
@@ -515,32 +682,35 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'ayala-catering-storage',
+      partialize: (state) => ({ 
+          cart: state.cart, 
+          guestCount: state.guestCount, 
+          language: state.language,
+          calculationSettings: state.calculationSettings,
+          advancedSettings: state.advancedSettings,
+          eventType: state.eventType,
+          hungerLevel: state.hungerLevel
+      }), 
     }
   )
 );
 
-// Helper function to get a suggested quantity number for a specific item
-export const getSuggestedQuantity = (item: MenuItem, guestCount: number): number => {
+export const getSuggestedQuantity = (item: MenuItem, guestCount: number, settings: CalculationSettings): number => {
     if (guestCount <= 0) return 1;
-
-    if (item.category === 'Sandwiches' && item.unit_type === 'unit') {
-        return Math.ceil(guestCount * 1.5);
-    }
     
-    if (item.category === 'Pastries' && item.unit_type === 'unit') {
-        return Math.ceil(guestCount * 1.0);
+    if (item.category === 'Sandwiches' && item.unit_type === 'unit') {
+        return Math.ceil(guestCount * settings.sandwichesPerPerson);
     }
-
+    if (item.category === 'Pastries' && item.unit_type === 'unit') {
+        return Math.ceil(guestCount * settings.pastriesPerPerson);
+    }
     if (item.unit_type === 'tray' || item.unit_type === 'liter') {
-        const capacity = item.serves_max || 10;
+        const capacity = item.serves_max || settings.averageTrayCapacity;
         return Math.ceil(guestCount / capacity);
     }
-    
-    // Default fallback
     return 1;
 };
 
-// New Helper: Get Localized Item Data
 export const getLocalizedItem = (item: MenuItem, lang: Language) => {
     if (lang === 'he') {
         return {

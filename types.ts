@@ -8,13 +8,16 @@ export type Category =
   | 'Pastries' 
   | 'Desserts';
 
+export type EventType = 'brunch' | 'dinner' | 'snack' | 'party';
+export type HungerLevel = 'light' | 'medium' | 'heavy';
+
 export interface MenuItem {
   id: string;
   category: Category;
   name: string;
-  name_en?: string; // English Name
+  name_en?: string;
   description?: string;
-  description_en?: string; // English Description
+  description_en?: string;
   price: number;
   unit_type: UnitType;
   serves_min: number;
@@ -24,13 +27,33 @@ export interface MenuItem {
   availability_status: boolean;
   image_url?: string;
   allowed_modifications?: string[];
-  allowed_modifications_en?: string[]; // English Modifications
+  allowed_modifications_en?: string[];
 }
 
 export interface CartItem extends MenuItem {
   quantity: number;
   notes?: string;
   selected_modifications?: string[];
+}
+
+export interface CalculationSettings {
+  sandwichesPerPerson: number;
+  pastriesPerPerson: number;
+  averageTrayCapacity: number;
+}
+
+export interface EventRatioConfig {
+    sandwiches: number;       // Units per person
+    pastries: number;         // Units per person
+    saladsCoverage: number;   // 0.0 - 2.0 (1.0 = 100% guests covered)
+    mainsCoverage: number;    // 0.0 - 2.0
+    plattersCoverage: number; // 0.0 - 2.0
+    dessertsCoverage: number; // 0.0 - 2.0
+}
+
+export interface AdvancedCalculationSettings {
+    hungerMultipliers: Record<HungerLevel, number>;
+    eventRatios: Record<EventType, EventRatioConfig>;
 }
 
 export interface AppSettings {

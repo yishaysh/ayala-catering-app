@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { X, Minus, Plus, ShoppingBag, ArrowLeft, Send } from 'lucide-react';
+import { X, ShoppingBag, Send, Minus, Plus } from 'lucide-react';
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -17,22 +17,30 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     const handleWhatsAppCheckout = () => {
-        // Simple message formatting for demo
-        let message = language === 'he' ? `היי איילה, אשמח לבצע הזמנה:\n\n` : `Hi Ayala, I'd like to place an order:\n\n`;
+        const line = "━━━━━━━━━━━━━━━━";
+        let message = "";
+
+        if (language === 'he') {
+            message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
+        } else {
+            message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
+        }
         
         cart.forEach(item => {
-            // Always send Hebrew name to owner, or English if preferred. 
-            // For now, sending the displayed name to avoid confusion.
             const displayItem = getLocalizedItem(item, language);
-            message += `• ${item.quantity}x ${displayItem.name} (₪${item.price * item.quantity})\n`;
+            message += `🔹 *${item.quantity}x ${displayItem.name}*\n`;
+            
             if (item.selected_modifications && item.selected_modifications.length > 0) {
-                 message += `  [${item.selected_modifications.join(', ')}]\n`;
+                 message += `   🔸 שינויים: ${item.selected_modifications.join(', ')}\n`;
             }
             if (item.notes) {
-                message += `  (${item.notes})\n`;
+                message += `   ✏️ הערות: ${item.notes}\n`;
             }
+            message += `\n`; 
         });
-        message += `\n${t.total}: ₪${total}`;
+
+        message += `${line}\n`;
+        message += `*${t.total}: ₪${total}* 💰`;
         
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/972547474764?text=${encoded}`, '_blank');
@@ -47,19 +55,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end font-sans">
-            {/* Backdrop */}
             <div 
                 className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm transition-opacity" 
                 onClick={onClose}
             ></div>
 
-            {/* Panel */}
             <div className={`
                 relative w-full max-w-md bg-stone-50 h-full shadow-2xl flex flex-col 
-                ${language === 'he' ? 'animate-in slide-in-from-left' : 'animate-in slide-in-from-right'}
-                duration-300
+                ${language === 'he' ? 'animate-slide-in-left' : 'animate-slide-in-right'}
             `}>
-                <div className="p-6 bg-stone-900 text-white flex items-center justify-between shadow-md z-10">
+                <div className="p-6 bg-stone-900 text-white flex items-center justify-between shadow-md z-10 shrink-0">
                     <div className="flex items-center gap-3">
                         <ShoppingBag className="text-gold-500" />
                         <h2 className="text-xl font-serif font-bold tracking-wide">{t.myOrder}</h2>
@@ -81,12 +86,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         cart.map((item) => {
                             const localItem = getLocalizedItem(item, language);
                             return (
-                                <div key={item.id + (item.notes || '') + (item.selected_modifications?.join('') || '')} className="flex gap-4 border-b border-stone-200 pb-4 last:border-0 animate-in fade-in slide-in-from-bottom-2">
+                                <div key={item.id + (item.notes || '') + (item.selected_modifications?.join('') || '')} className="flex gap-4 border-b border-stone-200 pb-4 last:border-0 animate-fade-in">
                                     <div className="flex-1">
                                         <h4 className="font-bold text-stone-800 text-lg">{localItem.name}</h4>
                                         <p className="text-sm text-stone-500 font-medium">₪{item.price} / {getUnitName(item.unit_type)}</p>
                                         
-                                        {/* Display mods and notes */}
                                         {(item.selected_modifications && item.selected_modifications.length > 0) && (
                                             <div className="text-xs text-stone-500 mt-1">
                                                 {item.selected_modifications.join(', ')}
@@ -104,14 +108,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                         <div className="flex items-center gap-1 bg-white border border-stone-200 rounded-lg p-1 shadow-sm">
                                             <button 
                                                 onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                                className="w-7 h-7 flex items-center justify-center hover:bg-stone-100 rounded text-stone-600 transition"
+                                                className="w-8 h-8 grid place-items-center hover:bg-stone-100 rounded text-stone-600 transition"
                                             >
                                                 <Minus size={14} />
                                             </button>
                                             <span className="text-sm font-bold w-6 text-center">{item.quantity}</span>
                                             <button 
                                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                                className="w-7 h-7 flex items-center justify-center hover:bg-stone-100 rounded text-stone-600 transition"
+                                                className="w-8 h-8 grid place-items-center hover:bg-stone-100 rounded text-stone-600 transition"
                                             >
                                                 <Plus size={14} />
                                             </button>
@@ -123,7 +127,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     )}
                 </div>
 
-                <div className="p-6 bg-white border-t border-stone-200 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-10">
+                <div className="p-6 bg-white border-t border-stone-200 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-10 shrink-0 pb-safe">
                     <div className="flex justify-between items-center mb-6">
                         <span className="text-lg text-stone-600">{t.total}:</span>
                         <span className="text-3xl font-bold font-serif text-stone-900">₪{total}</span>
