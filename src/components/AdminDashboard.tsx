@@ -29,6 +29,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         language 
     } = useStore();
     const t = translations[language].admin;
+    const fullT = translations[language]; // Access full translations for hunger levels
+
     const [searchTerm, setSearchTerm] = useState('');
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -236,7 +238,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             <div className="grid grid-cols-3 gap-6 max-w-lg">
                                 {(['light', 'medium', 'heavy'] as HungerLevel[]).map(level => (
                                     <div key={level}>
-                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-1">{level}</label>
+                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-1">{(fullT as any)[level]}</label>
                                         <input 
                                             type="number"
                                             step="0.1"
@@ -270,7 +272,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     <tbody>
                                         {EVENT_TYPES.map(eType => (
                                             <tr key={eType} className="border-b border-stone-200 hover:bg-white">
-                                                <td className="p-3 font-bold text-stone-800 capitalize">{translations[language][eType] || eType}</td>
+                                                <td className="p-3 font-bold text-stone-800 capitalize">{fullT[eType] || eType}</td>
                                                 <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].sandwiches} onChange={(e) => handleEventRatioChange(eType, 'sandwiches', e.target.value)} /></td>
                                                 <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].pastries} onChange={(e) => handleEventRatioChange(eType, 'pastries', e.target.value)} /></td>
                                                 <td className="p-3"><input type="number" step="0.1" className="w-16 p-1 border rounded" value={advancedSettings.eventRatios[eType].saladsCoverage} onChange={(e) => handleEventRatioChange(eType, 'saladsCoverage', e.target.value)} /></td>
