@@ -4,53 +4,9 @@ import { persist } from 'zustand/middleware';
 import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel, AdvancedCalculationSettings, FeatureFlags } from './types';
 import { supabase } from './lib/supabase';
 
-const INITIAL_MENU: MenuItem[] = [
-    { 
-        id: 's1', category: 'Salads', 
-        name: 'סלט הבית', name_en: 'House Salad',
-        description: 'חסה, מלפפונים, עגבניות, בטטה מקורמלת, פטריות חיות, בצל סגול, נבטי חמניה + ויניגרט', price: 145, unit_type: 'tray', serves_min: 8, serves_max: 10, is_premium: false, tags: [], availability_status: true 
-    },
-    { 
-        id: 'p1', category: 'Pastries', 
-        name: 'קיש משפחתי', name_en: 'Family Quiche',
-        description: 'בטטה ועיזים / פטריות / בצל', price: 151, unit_type: 'unit', serves_min: 10, serves_max: 12, is_premium: true, tags: [], availability_status: true 
-    }
-];
-
 type Language = 'he' | 'en';
 
-interface AppState {
-  cart: CartItem[];
-  menuItems: MenuItem[];
-  guestCount: number;
-  language: Language;
-  isLoading: boolean;
-  eventType: EventType;
-  hungerLevel: HungerLevel;
-  calculationSettings: CalculationSettings;
-  advancedSettings: AdvancedCalculationSettings;
-  featureFlags: FeatureFlags;
-
-  fetchMenuItems: () => Promise<void>;
-  fetchSettings: () => Promise<void>;
-  setGuestCount: (count: number) => void;
-  setEventType: (type: EventType) => void;
-  setHungerLevel: (level: HungerLevel) => void;
-  setLanguage: (lang: Language) => void;
-  addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
-  bulkAddToCart: (items: { item: MenuItem, quantity: number }[]) => void;
-  removeFromCart: (itemId: string) => void;
-  updateQuantity: (itemId: string, quantity: number) => void;
-  updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
-  addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
-  updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
-  updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
-  updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
-  clearCart: () => void;
-  cartTotal: () => number;
-}
-
-export const translations = {
+export const translations: Record<Language, any> = {
   he: {
     title: "איילה פשוט טעים",
     subtitle: "קייטרינג חלבי פרימיום",
@@ -271,35 +227,63 @@ export const translations = {
         eventLogic: "Event Logic Matrix",
         unitsPerPerson: "Units/Prsn",
         coverage: "Coverage",
+        featureMgmt: "Feature Management",
+        showCalc: "Show Event Calculator",
+        showAI: "Show AI Concierge",
         tableEventType: "Event Type",
         tableSandwiches: "Sandwiches",
         tablePastries: "Pastries",
         tableSalads: "Salads",
         tableMains: "Mains",
         tablePlatters: "Platters",
-        tableDesserts: "Desserts",
-        featureMgmt: "Feature Management",
-        showCalc: "Show Event Calculator",
-        showAI: "Show AI Concierge"
+        tableDesserts: "Desserts"
     }
   }
 };
+
+interface AppState {
+  cart: CartItem[];
+  menuItems: MenuItem[];
+  guestCount: number;
+  language: Language;
+  isLoading: boolean;
+  featureFlags: FeatureFlags;
+  eventType: EventType;
+  hungerLevel: HungerLevel;
+  calculationSettings: CalculationSettings;
+  advancedSettings: AdvancedCalculationSettings;
+
+  fetchMenuItems: () => Promise<void>;
+  fetchSettings: () => Promise<void>;
+  setGuestCount: (count: number) => void;
+  setEventType: (type: EventType) => void;
+  setHungerLevel: (level: HungerLevel) => void;
+  setLanguage: (lang: Language) => void;
+  addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
+  bulkAddToCart: (items: { item: MenuItem, quantity: number }[]) => void;
+  removeFromCart: (itemId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
+  updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
+  addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
+  updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
+  updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
+  updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
+  clearCart: () => void;
+  cartTotal: () => number;
+}
 
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
       cart: [],
-      menuItems: INITIAL_MENU,
+      menuItems: [],
       guestCount: 0,
       language: 'he',
       isLoading: false,
       eventType: 'snack',
       hungerLevel: 'medium',
-      calculationSettings: {
-        sandwichesPerPerson: 1.5,
-        pastriesPerPerson: 1.0,
-        averageTrayCapacity: 10
-      },
+      featureFlags: { showCalculator: true, showAI: true },
+      calculationSettings: { sandwichesPerPerson: 1.5, pastriesPerPerson: 1.0, averageTrayCapacity: 10 },
       advancedSettings: {
         hungerMultipliers: { light: 0.8, medium: 1.0, heavy: 1.3 },
         eventRatios: {
@@ -309,36 +293,17 @@ export const useStore = create<AppState>()(
             party: { sandwiches: 2.5, pastries: 1.0, saladsCoverage: 0.2, mainsCoverage: 0.2, plattersCoverage: 0.5, dessertsCoverage: 0.5 },
         }
       },
-      featureFlags: {
-        showCalculator: true,
-        showAI: true
-      },
 
       fetchMenuItems: async () => {
           set({ isLoading: true });
-          const { data, error } = await supabase
-            .from('menu_items')
-            .select('*')
-            .order('category', { ascending: true });
-          
-          if (error) {
-              console.error('Error fetching menu:', error);
-          } else if (data && data.length > 0) {
-              set({ menuItems: data as MenuItem[] });
-          }
+          const { data, error } = await supabase.from('menu_items').select('*').order('category', { ascending: true });
+          if (data) set({ menuItems: data as MenuItem[] });
           set({ isLoading: false });
       },
 
       fetchSettings: async () => {
-        const { data, error } = await supabase
-            .from('app_settings')
-            .select('*')
-            .eq('key', 'features')
-            .single();
-
-        if (data && data.value) {
-            set({ featureFlags: data.value as FeatureFlags });
-        }
+        const { data } = await supabase.from('app_settings').select('*').eq('key', 'features').single();
+        if (data && data.value) set({ featureFlags: data.value as FeatureFlags });
       },
 
       setLanguage: (lang) => set({ language: lang }),
@@ -349,9 +314,7 @@ export const useStore = create<AppState>()(
       addToCart: (item, quantity = 1, notes = '', modifications = []) => {
         const currentCart = get().cart;
         const existingItemIndex = currentCart.findIndex((i) => 
-            i.id === item.id && 
-            i.notes === notes && 
-            JSON.stringify(i.selected_modifications) === JSON.stringify(modifications)
+            i.id === item.id && i.notes === notes && JSON.stringify(i.selected_modifications) === JSON.stringify(modifications)
         );
 
         if (existingItemIndex > -1) {
@@ -359,14 +322,7 @@ export const useStore = create<AppState>()(
           newCart[existingItemIndex].quantity += quantity;
           set({ cart: newCart });
         } else {
-          set({ 
-              cart: [...currentCart, { 
-                  ...item, 
-                  quantity, 
-                  notes, 
-                  selected_modifications: modifications 
-              }] 
-          });
+          set({ cart: [...currentCart, { ...item, quantity, notes, selected_modifications: modifications }] });
         }
       },
 
@@ -380,76 +336,45 @@ export const useStore = create<AppState>()(
           set({ cart: [...get().cart, ...newItems] });
       },
 
-      removeFromCart: (itemId) => {
-        set({ cart: get().cart.filter((i) => i.id !== itemId) });
-      },
+      removeFromCart: (itemId) => set({ cart: get().cart.filter((i) => i.id !== itemId) }),
 
       updateQuantity: (itemId, quantity) => {
-        if (quantity <= 0) {
-          get().removeFromCart(itemId);
-          return;
-        }
-        set({
-          cart: get().cart.map((i) => (i.id === itemId ? { ...i, quantity } : i)),
-        });
+        if (quantity <= 0) { get().removeFromCart(itemId); return; }
+        set({ cart: get().cart.map((i) => (i.id === itemId ? { ...i, quantity } : i)) });
       },
 
       updateMenuItem: async (id, updates) => {
-          set({
-              menuItems: get().menuItems.map(item => 
-                item.id === id ? { ...item, ...updates } : item
-              )
-          });
-          const { error } = await supabase.from('menu_items').update(updates).eq('id', id);
-          if (error) console.error("Failed to update item in DB", error);
+          set({ menuItems: get().menuItems.map(item => item.id === id ? { ...item, ...updates } : item) });
+          await supabase.from('menu_items').update(updates).eq('id', id);
       },
 
       addMenuItem: async (item) => {
-          const { data, error } = await supabase.from('menu_items').insert([item]).select();
-          if (error) {
-              console.error("Failed to add item to DB", error);
-          } else if (data) {
-              set({ menuItems: [...get().menuItems, data[0] as MenuItem] });
-          }
+          const { data } = await supabase.from('menu_items').insert([item]).select();
+          if (data) set({ menuItems: [...get().menuItems, data[0] as MenuItem] });
       },
 
-      updateCalculationSettings: (settings) => {
-        set((state) => ({
-            calculationSettings: { ...state.calculationSettings, ...settings }
-        }));
-      },
-
-      updateAdvancedSettings: (settings) => {
-          set((state) => ({
-              advancedSettings: { ...state.advancedSettings, ...settings }
-          }));
-      },
-
+      updateCalculationSettings: (settings) => set((state) => ({ calculationSettings: { ...state.calculationSettings, ...settings } })),
+      updateAdvancedSettings: (settings) => set((state) => ({ advancedSettings: { ...state.advancedSettings, ...settings } })),
       updateFeatureFlags: async (flags) => {
         const newFlags = { ...get().featureFlags, ...flags };
         set({ featureFlags: newFlags });
-        
-        const { error } = await supabase
-            .from('app_settings')
-            .upsert({ key: 'features', value: newFlags });
-        
-        if (error) console.error("Failed to save feature flags", error);
+        await supabase.from('app_settings').upsert({ key: 'features', value: newFlags });
       },
-
       clearCart: () => set({ cart: [] }),
       cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
     }),
     {
       name: 'ayala-catering-storage-v5',
-      partialize: (state) => ({
-          guestCount: state.guestCount,
+      partialize: (state) => ({ 
+          cart: state.cart, 
+          guestCount: state.guestCount, 
           language: state.language,
           calculationSettings: state.calculationSettings,
           advancedSettings: state.advancedSettings,
           eventType: state.eventType,
           hungerLevel: state.hungerLevel,
           featureFlags: state.featureFlags
-      })
+      }), 
     }
   )
 );

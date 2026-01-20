@@ -69,16 +69,9 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-3 md:gap-6">
-                 <button onClick={() => setIsLoginOpen(true)} className="p-2 text-stone-400 hover:text-gold-500 transition-colors" title="Admin Access">
-                    <Lock size={18} />
-                </button>
-                 <button onClick={() => setLanguage(language === 'he' ? 'en' : 'he')} className="flex items-center gap-1.5 text-xs font-bold bg-stone-800 px-3 py-1.5 rounded-full border border-stone-700 hover:border-gold-500 transition-colors">
-                    <Globe size={14} className="text-gold-500" />
-                    <span>{language === 'he' ? 'EN' : 'עב'}</span>
-                </button>
-                <a href="tel:0547474764" className="hidden md:flex items-center gap-2 text-stone-300 hover:text-white transition-colors">
-                    <Phone size={16} /><span className="text-sm font-medium">054-747-4764</span>
-                </a>
+                 <button onClick={() => setIsLoginOpen(true)} className="p-2 text-stone-400 hover:text-gold-500 transition-colors" title="Admin Access"><Lock size={18} /></button>
+                 <button onClick={() => setLanguage(language === 'he' ? 'en' : 'he')} className="flex items-center gap-1.5 text-xs font-bold bg-stone-800 px-3 py-1.5 rounded-full border border-stone-700 hover:border-gold-500 transition-colors"><Globe size={14} className="text-gold-500" /><span>{language === 'he' ? 'EN' : 'עב'}</span></button>
+                <a href="tel:0547474764" className="hidden md:flex items-center gap-2 text-stone-300 hover:text-white transition-colors"><Phone size={16} /><span className="text-sm font-medium">054-747-4764</span></a>
                 <button onClick={() => setIsCartOpen(true)} className="relative group p-2 hover:bg-stone-800 rounded-full transition-colors">
                     <ShoppingBag size={24} className="text-stone-300 group-hover:text-gold-500 transition-colors" />
                     {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-gold-600 text-stone-900 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full animate-bounce">{cart.length}</span>}
