@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel, AdvancedCalculationSettings } from './types';
 import { supabase } from './lib/supabase';
 
-// HARDCODED INITIAL MENU (Fallback)
+// INITIAL MENU
 const INITIAL_MENU: MenuItem[] = [
     // Salads
     { 
@@ -303,7 +303,7 @@ interface AppState {
   eventType: EventType;
   hungerLevel: HungerLevel;
   calculationSettings: CalculationSettings;
-  // NEW: Advanced Settings
+  // Advanced Settings
   advancedSettings: AdvancedCalculationSettings;
 
   // Actions
@@ -318,12 +318,215 @@ interface AppState {
   updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
   addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
   updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
-  updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void; // New Action
+  updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
   clearCart: () => void;
   
   // Logic
   cartTotal: () => number;
 }
+
+export const translations = {
+  he: {
+    title: "איילה פשוט טעים",
+    subtitle: "קייטרינג חלבי פרימיום",
+    guestsQuestion: "כמה אורחים מגיעים?",
+    guestsSub: "תכנון אירוע מעולם לא היה פשוט יותר",
+    autoRecommend: "התמהיל המומלץ עבורך:",
+    sandwiches: "סנדוויצ'ים",
+    trays: "מגשי אירוח",
+    perCategory: "לכל קטגוריה",
+    addToCart: "הוסף להזמנה",
+    add: "הוסף",
+    added: "נוסף",
+    outOfStock: "אזל מהמלאי",
+    premium: "מומלץ",
+    serves: "מספיק ל-",
+    people: "סועדים",
+    myOrder: "ההזמנה שלי",
+    emptyCart: "העגלה ריקה, זה הזמן להוסיף דברים טובים",
+    total: "סה\"כ לתשלום",
+    minOrder: "מינימום הזמנה",
+    checkout: "סיום הזמנה ב-WhatsApp",
+    checkoutSub: "ההזמנה תשלח לאישור סופי מול איילה",
+    search: "חיפוש בתפריט...",
+    customizeTitle: "התאמה אישית",
+    notesPlaceholder: "הערות מיוחדות למנה...",
+    modifications: "שינויים:",
+    cancel: "ביטול",
+    confirmAdd: "הוסף לעגלה",
+    tray: 'מגש',
+    liter: 'ליטר',
+    unit: 'יחידה',
+    
+    // Host Helper / Smart Calc
+    planEvent: "בואו נתכנן את האירוע המושלם",
+    eventType: "סוג האירוע",
+    hungerLevel: "רמת רעב",
+    calcResults: "המלצות להרכב האירוע",
+    
+    // Event Types
+    'brunch': "בראנץ'",
+    'dinner': "ארוחת ערב",
+    'snack': "אירוח קליל",
+    'party': "מסיבה",
+    
+    // Hunger Levels
+    'light': "נשנוש",
+    'medium': "רגיל",
+    'heavy': "רעבים מאוד",
+
+    categories: {
+      'Salads': 'סלטים טריים',
+      'Cold Platters': 'מגשי אירוח',
+      'Sandwiches': 'כריכים וביסים',
+      'Dips': 'מטבלים',
+      'Main Courses': 'עיקריות',
+      'Pastries': 'מאפים',
+      'Desserts': 'קינוחים'
+    },
+    // Admin translations
+    admin: {
+        title: "ניהול תפריט ומלאי",
+        exit: "יציאה למערכת",
+        minOrder: "מינימום הזמנה",
+        prepTime: "זמן הכנה (שעות)",
+        storeStatus: "סטטוס חנות",
+        open: "פתוח להזמנות",
+        closed: "סגור זמנית",
+        searchPlaceholder: "חיפוש מוצר...",
+        productName: "שם המוצר",
+        category: "קטגוריה",
+        price: "מחיר",
+        status: "סטטוס",
+        modifications: "שינויים אפשריים",
+        edit: "עריכה",
+        active: "פעיל",
+        outOfStock: "חסר",
+        editItemTitle: "עריכת מנה",
+        inStock: "פעיל במלאי",
+        outOfStockLabel: "חסר במלאי",
+        modsHint: "אלו האפשרויות שיוצגו ללקוח לבחירה מהירה.",
+        modsPlaceholder: "לדוגמה: בלי בצל, רוטב בצד",
+        save: "שמור שינויים",
+        cancelBtn: "ביטול",
+        addItem: "הוסף מנה חדשה",
+        createItemTitle: "יצירת מנה חדשה",
+        description: "תיאור המנה",
+        unitType: "סוג יחידה",
+        create: "צור מנה",
+        premium: "פרימיום",
+        calcSettings: "הגדרות מחשבון כמויות",
+        sandwichesPerPerson: "כריכים לאדם",
+        pastriesPerPerson: "מאפים לאדם",
+        trayCapacity: "קיבולת מגש ממוצעת",
+        advCalc: "הגדרות מחשבון מתקדמות",
+        hungerMult: "מכפילי רעב",
+        eventLogic: "לוגיקה לפי סוג אירוע",
+        unitsPerPerson: "יח' לאדם",
+        coverage: "כיסוי"
+    }
+  },
+  en: {
+    title: "Ayala Simply Delicious",
+    subtitle: "Premium Dairy Catering",
+    guestsQuestion: "How many guests?",
+    guestsSub: "Planning your event made simple",
+    autoRecommend: "Your recommended mix:",
+    sandwiches: "Sandwiches",
+    trays: "Trays",
+    perCategory: "per category",
+    addToCart: "Add to Order",
+    add: "Add",
+    added: "Added",
+    outOfStock: "Out of Stock",
+    premium: "Premium",
+    serves: "Serves",
+    people: "people",
+    myOrder: "My Order",
+    emptyCart: "Cart is empty, time to add some goodies",
+    total: "Total",
+    minOrder: "Minimum Order",
+    checkout: "Checkout via WhatsApp",
+    checkoutSub: "Order will be sent for final approval",
+    search: "Search menu...",
+    customizeTitle: "Customize Item",
+    notesPlaceholder: "Special requests...",
+    modifications: "Modifications:",
+    cancel: "Cancel",
+    confirmAdd: "Add to Cart",
+    tray: 'Tray',
+    liter: 'Liter',
+    unit: 'Unit',
+    
+    // Host Helper
+    planEvent: "Let's plan the perfect event",
+    eventType: "Event Type",
+    hungerLevel: "Hunger Level",
+    calcResults: "Recommended Menu Composition",
+
+    // Event Types
+    'brunch': "Brunch",
+    'dinner': "Dinner",
+    'snack': "Light / Cocktail",
+    'party': "Party",
+    
+    // Hunger Levels
+    'light': "Light",
+    'medium': "Regular",
+    'heavy': "Starving",
+
+    categories: {
+      'Salads': 'Fresh Salads',
+      'Cold Platters': 'Cold Platters',
+      'Sandwiches': 'Sandwiches',
+      'Dips': 'Dips & Spreads',
+      'Main Courses': 'Main Courses',
+      'Pastries': 'Pastries',
+      'Desserts': 'Desserts'
+    },
+    // Admin translations
+    admin: {
+        title: "Menu & Inventory Management",
+        exit: "Exit Admin",
+        minOrder: "Minimum Order",
+        prepTime: "Prep Time (Hours)",
+        storeStatus: "Store Status",
+        open: "Open for Orders",
+        closed: "Temporarily Closed",
+        searchPlaceholder: "Search item...",
+        productName: "Product Name",
+        category: "Category",
+        price: "Price",
+        status: "Status",
+        modifications: "Allowed Modifications",
+        edit: "Edit",
+        active: "Active",
+        outOfStock: "OOS",
+        editItemTitle: "Edit Item",
+        inStock: "In Stock",
+        outOfStockLabel: "Out of Stock",
+        modsHint: "Options displayed to customer for quick selection.",
+        modsPlaceholder: "e.g.: No Onion, Sauce on side",
+        save: "Save Changes",
+        cancelBtn: "Cancel",
+        addItem: "Add New Item",
+        createItemTitle: "Create New Item",
+        description: "Description",
+        unitType: "Unit Type",
+        create: "Create Item",
+        premium: "Premium",
+        calcSettings: "Smart Calculator Logic",
+        sandwichesPerPerson: "Sandwiches Per Person",
+        pastriesPerPerson: "Pastries Per Person",
+        trayCapacity: "Avg. Tray Capacity",
+        advCalc: "Advanced Calculator Config",
+        hungerMult: "Hunger Multipliers",
+        eventLogic: "Event Logic Matrix",
+        unitsPerPerson: "Units/Prsn",
+        coverage: "Coverage"
+    }
+  }
+};
 
 export const useStore = create<AppState>()(
   persist(
@@ -504,209 +707,4 @@ export const getLocalizedItem = (item: MenuItem, lang: Language) => {
             modifications: item.allowed_modifications_en || item.allowed_modifications || []
         };
     }
-};
-
-export const translations = {
-  he: {
-    // ... existing ...
-    title: "איילה פשוט טעים",
-    subtitle: "קייטרינג חלבי פרימיום",
-    guestsQuestion: "כמה אורחים מגיעים?",
-    guestsSub: "תכנון אירוע מעולם לא היה פשוט יותר",
-    autoRecommend: "התמהיל המומלץ עבורך:",
-    sandwiches: "סנדוויצ'ים",
-    trays: "מגשי אירוח",
-    perCategory: "לכל קטגוריה",
-    addToCart: "הוסף להזמנה",
-    add: "הוסף",
-    added: "נוסף",
-    outOfStock: "אזל מהמלאי",
-    premium: "מומלץ",
-    serves: "מספיק ל-",
-    people: "סועדים",
-    myOrder: "ההזמנה שלי",
-    emptyCart: "העגלה ריקה, זה הזמן להוסיף דברים טובים",
-    total: "סה\"כ לתשלום",
-    minOrder: "מינימום הזמנה",
-    checkout: "סיום הזמנה ב-WhatsApp",
-    checkoutSub: "ההזמנה תשלח לאישור סופי מול איילה",
-    search: "חיפוש בתפריט...",
-    customizeTitle: "התאמה אישית",
-    notesPlaceholder: "הערות מיוחדות למנה...",
-    modifications: "שינויים:",
-    cancel: "ביטול",
-    confirmAdd: "הוסף לעגלה",
-    tray: 'מגש',
-    liter: 'ליטר',
-    unit: 'יחידה',
-    
-    // Host Helper / Smart Calc
-    planEvent: "בואו נתכנן את האירוע המושלם",
-    eventType: "סוג האירוע",
-    hungerLevel: "רמת רעב",
-    calcResults: "המלצות להרכב האירוע",
-    
-    // Event Types
-    'brunch': "בראנץ'",
-    'dinner': "ארוחת ערב",
-    'snack': "אירוח קליל",
-    'party': "מסיבה",
-    
-    // Hunger Levels
-    'light': "נשנוש",
-    'medium': "רגיל",
-    'heavy': "רעבים מאוד",
-
-    categories: {
-      'Salads': 'סלטים טריים',
-      'Cold Platters': 'מגשי אירוח',
-      'Sandwiches': 'כריכים וביסים',
-      'Dips': 'מטבלים',
-      'Main Courses': 'עיקריות',
-      'Pastries': 'מאפים',
-      'Desserts': 'קינוחים'
-    },
-    // Admin translations
-    admin: {
-        title: "ניהול תפריט ומלאי",
-        exit: "יציאה למערכת",
-        minOrder: "מינימום הזמנה",
-        prepTime: "זמן הכנה (שעות)",
-        storeStatus: "סטטוס חנות",
-        open: "פתוח להזמנות",
-        closed: "סגור זמנית",
-        searchPlaceholder: "חיפוש מוצר...",
-        productName: "שם המוצר",
-        category: "קטגוריה",
-        price: "מחיר",
-        status: "סטטוס",
-        modifications: "שינויים אפשריים",
-        edit: "עריכה",
-        active: "פעיל",
-        outOfStock: "חסר",
-        editItemTitle: "עריכת מנה",
-        inStock: "פעיל במלאי",
-        outOfStockLabel: "חסר במלאי",
-        modsHint: "אלו האפשרויות שיוצגו ללקוח לבחירה מהירה.",
-        modsPlaceholder: "לדוגמה: בלי בצל, רוטב בצד",
-        save: "שמור שינויים",
-        cancelBtn: "ביטול",
-        addItem: "הוסף מנה חדשה",
-        createItemTitle: "יצירת מנה חדשה",
-        description: "תיאור המנה",
-        unitType: "סוג יחידה",
-        create: "צור מנה",
-        premium: "פרימיום",
-        calcSettings: "הגדרות מחשבון כמויות",
-        sandwichesPerPerson: "כריכים לאדם",
-        pastriesPerPerson: "מאפים לאדם",
-        trayCapacity: "קיבולת מגש ממוצעת",
-        advCalc: "הגדרות מחשבון מתקדמות",
-        hungerMult: "מכפילי רעב",
-        eventLogic: "לוגיקה לפי סוג אירוע",
-        unitsPerPerson: "יח' לאדם",
-        coverage: "כיסוי"
-    }
-  },
-  en: {
-    // ... existing ...
-    title: "Ayala Simply Delicious",
-    subtitle: "Premium Dairy Catering",
-    guestsQuestion: "How many guests?",
-    guestsSub: "Planning your event made simple",
-    autoRecommend: "Your recommended mix:",
-    sandwiches: "Sandwiches",
-    trays: "Trays",
-    perCategory: "per category",
-    addToCart: "Add to Order",
-    add: "Add",
-    added: "Added",
-    outOfStock: "Out of Stock",
-    premium: "Premium",
-    serves: "Serves",
-    people: "people",
-    myOrder: "My Order",
-    emptyCart: "Cart is empty, time to add some goodies",
-    total: "Total",
-    minOrder: "Minimum Order",
-    checkout: "Checkout via WhatsApp",
-    checkoutSub: "Order will be sent for final approval",
-    search: "Search menu...",
-    customizeTitle: "Customize Item",
-    notesPlaceholder: "Special requests...",
-    modifications: "Modifications:",
-    cancel: "Cancel",
-    confirmAdd: "Add to Cart",
-    tray: 'Tray',
-    liter: 'Liter',
-    unit: 'Unit',
-    
-    // Host Helper
-    planEvent: "Let's plan the perfect event",
-    eventType: "Event Type",
-    hungerLevel: "Hunger Level",
-    calcResults: "Recommended Menu Composition",
-
-    // Event Types
-    'brunch': "Brunch",
-    'dinner': "Dinner",
-    'snack': "Light / Cocktail",
-    'party': "Party",
-    
-    // Hunger Levels
-    'light': "Light",
-    'medium': "Regular",
-    'heavy': "Starving",
-
-    categories: {
-      'Salads': 'Fresh Salads',
-      'Cold Platters': 'Cold Platters',
-      'Sandwiches': 'Sandwiches',
-      'Dips': 'Dips & Spreads',
-      'Main Courses': 'Main Courses',
-      'Pastries': 'Pastries',
-      'Desserts': 'Desserts'
-    },
-    // Admin translations
-    admin: {
-        title: "Menu & Inventory Management",
-        exit: "Exit Admin",
-        minOrder: "Minimum Order",
-        prepTime: "Prep Time (Hours)",
-        storeStatus: "Store Status",
-        open: "Open for Orders",
-        closed: "Temporarily Closed",
-        searchPlaceholder: "Search item...",
-        productName: "Product Name",
-        category: "Category",
-        price: "Price",
-        status: "Status",
-        modifications: "Allowed Modifications",
-        edit: "Edit",
-        active: "Active",
-        outOfStock: "OOS",
-        editItemTitle: "Edit Item",
-        inStock: "In Stock",
-        outOfStockLabel: "Out of Stock",
-        modsHint: "Options displayed to customer for quick selection.",
-        modsPlaceholder: "e.g.: No Onion, Sauce on side",
-        save: "Save Changes",
-        cancelBtn: "Cancel",
-        addItem: "Add New Item",
-        createItemTitle: "Create New Item",
-        description: "Description",
-        unitType: "Unit Type",
-        create: "Create Item",
-        premium: "Premium",
-        calcSettings: "Smart Calculator Logic",
-        sandwichesPerPerson: "Sandwiches Per Person",
-        pastriesPerPerson: "Pastries Per Person",
-        trayCapacity: "Avg. Tray Capacity",
-        advCalc: "Advanced Calculator Config",
-        hungerMult: "Hunger Multipliers",
-        eventLogic: "Event Logic Matrix",
-        unitsPerPerson: "Units/Prsn",
-        coverage: "Coverage"
-    }
-  }
 };

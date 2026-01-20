@@ -37,12 +37,11 @@ export interface CartItem extends MenuItem {
 }
 
 export interface CalculationSettings {
-  sandwichesPerPerson: number; // Default 1.5 (Legacy/Fallback)
-  pastriesPerPerson: number;   // Default 1.0 (Legacy/Fallback)
-  averageTrayCapacity: number; // Default 10
+  sandwichesPerPerson: number;
+  pastriesPerPerson: number;
+  averageTrayCapacity: number;
 }
 
-// New: Advanced Configuration for "Wow" Calculator
 export interface EventRatioConfig {
     sandwiches: number;       // Units per person
     pastries: number;         // Units per person
