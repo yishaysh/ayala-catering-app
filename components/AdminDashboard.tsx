@@ -81,11 +81,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         setNewItem({ name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [] });
     };
 
-    // Add handleHungerMultChange function to fix 'Cannot find name' error.
     const handleHungerMultChange = (level: HungerLevel, value: string) => {
         const newMults = { ...advancedSettings.hungerMultipliers };
         newMults[level] = parseFloat(value) || 1.0;
         updateAdvancedSettings({ hungerMultipliers: newMults });
+    };
+
+    const handleEventRatioChange = (eType: EventType, field: string, value: string) => {
+        const newRatios = { ...advancedSettings.eventRatios };
+        newRatios[eType] = { ...newRatios[eType], [field]: parseFloat(value) || 0 };
+        updateAdvancedSettings({ eventRatios: newRatios });
     };
 
     return (
@@ -164,16 +169,57 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 ))}
                             </div>
                         </div>
+
+                        <div>
+                            <h4 className="text-stone-900 font-bold mb-4 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.eventLogic}</h4>
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse">
+                                    <thead>
+                                        <tr className="bg-stone-200 text-stone-600 text-[10px] uppercase">
+                                            <th className="p-2 text-start">{t.tableEventType}</th>
+                                            <th className="p-2 text-start">{t.tableSandwiches}</th>
+                                            <th className="p-2 text-start">{t.tablePastries}</th>
+                                            <th className="p-2 text-start">{t.tableSalads}</th>
+                                            <th className="p-2 text-start">{t.tableMains}</th>
+                                            <th className="p-2 text-start">{t.tablePlatters}</th>
+                                            <th className="p-2 text-start">{t.tableDesserts}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {EVENT_TYPES.map(eType => (
+                                            <tr key={eType} className="border-b border-stone-200 hover:bg-white transition-colors">
+                                                <td className="p-2 font-bold text-stone-800 text-sm capitalize">{rootT[eType] || eType}</td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].sandwiches} onChange={(e) => handleEventRatioChange(eType, 'sandwiches', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].pastries} onChange={(e) => handleEventRatioChange(eType, 'pastries', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].saladsCoverage} onChange={(e) => handleEventRatioChange(eType, 'saladsCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].mainsCoverage} onChange={(e) => handleEventRatioChange(eType, 'mainsCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].plattersCoverage} onChange={(e) => handleEventRatioChange(eType, 'plattersCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings.eventRatios[eType].dessertsCoverage} onChange={(e) => handleEventRatioChange(eType, 'dessertsCoverage', e.target.value)} /></td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
 
             <div className="bg-white rounded-lg shadow-sm overflow-hidden text-start">
-                <div className="p-4 border-b border-stone-200"><input type="text" placeholder={t.searchPlaceholder} className="w-full p-2 border border-stone-200 rounded" onChange={(e) => setSearchTerm(e.target.value)} /></div>
+                <div className="p-4 border-b border-stone-200">
+                    <input type="text" placeholder={t.searchPlaceholder} className="w-full p-2 border border-stone-200 rounded" onChange={(e) => setSearchTerm(e.target.value)} />
+                </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-start">
                         <thead className="bg-stone-50 text-stone-500 text-sm">
-                            <tr><th className="p-4 text-start">{t.productName}</th><th className="p-4 text-start">{t.category}</th><th className="p-4 text-start">{t.price}</th><th className="p-4 text-start">{t.status}</th><th className="p-4 text-start">{t.modifications}</th><th className="p-4 text-start">{t.edit}</th></tr>
+                            <tr>
+                                <th className="p-4 text-start">{t.productName}</th>
+                                <th className="p-4 text-start">{t.category}</th>
+                                <th className="p-4 text-start">{t.price}</th>
+                                <th className="p-4 text-start">{t.status}</th>
+                                <th className="p-4 text-start">{t.modifications}</th>
+                                <th className="p-4 text-start">{t.edit}</th>
+                            </tr>
                         </thead>
                         <tbody>
                             {filteredItems.map(item => {
@@ -183,9 +229,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                         <td className="p-4 font-bold text-stone-800">{localItem.name}</td>
                                         <td className="p-4 text-stone-500">{(translations[language].categories as Record<string, string>)[item.category]}</td>
                                         <td className="p-4">₪{item.price}</td>
-                                        <td className="p-4"><span className={`px-3 py-1 rounded text-xs font-bold ${item.availability_status ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{item.availability_status ? t.active : t.outOfStock}</span></td>
+                                        <td className="p-4">
+                                            <span className={`px-3 py-1 rounded text-xs font-bold ${item.availability_status ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {item.availability_status ? t.active : t.outOfStock}
+                                            </span>
+                                        </td>
                                         <td className="p-4 text-sm text-stone-400 max-w-xs truncate">{localItem.modifications?.join(', ') || '-'}</td>
-                                        <td className="p-4"><button onClick={() => handleEditClick(item)} className="p-2 text-stone-400 hover:text-gold-500 transition-colors"><Pencil size={18} /></button></td>
+                                        <td className="p-4">
+                                            <button onClick={() => handleEditClick(item)} className="p-2 text-stone-400 hover:text-gold-500 transition-colors">
+                                                <Pencil size={18} />
+                                            </button>
+                                        </td>
                                     </tr>
                                 );
                             })}
