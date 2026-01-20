@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MenuItem, Category, UnitType, EventType, HungerLevel } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
 import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft } from 'lucide-react';
@@ -30,6 +30,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         language 
     } = useStore();
     
+    // Ensure the view starts at the top when entering admin mode
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, []);
+
     const t = translations[language]?.admin || translations['he'].admin;
     const rootT = translations[language] as any || translations['he'] as any;
 
@@ -94,7 +99,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     };
 
     return (
-        <div className="p-8 bg-stone-100 min-h-screen font-sans" dir={language === 'he' ? 'rtl' : 'ltr'}>
+        <div className="p-8 bg-stone-100 min-h-screen font-sans animate-fade-in" dir={language === 'he' ? 'rtl' : 'ltr'}>
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 text-start">
                  <h1 className="text-3xl font-serif font-bold text-stone-900">{t.title}</h1>
                  <div className="flex gap-4">
