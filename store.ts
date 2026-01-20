@@ -100,6 +100,7 @@ export interface Translations {
     advCalc: string;
     hungerMult: string;
     eventLogic: string;
+    eventLogicExpl: string;
     unitsPerPerson: string;
     coverage: string;
     tableEventType: string;
@@ -218,6 +219,7 @@ export const translations: Record<Language, Translations> = {
         advCalc: "הגדרות מחשבון מתקדמות",
         hungerMult: "מכפילי רעב",
         eventLogic: "לוגיקה לפי סוג אירוע",
+        eventLogicExpl: "* המספרים מייצגים יחידות לאדם (כריכים/מאפים) או אחוז כיסוי מהאורחים (שאר הקטגוריות). 1.0 = יחידה לכל אורח.",
         unitsPerPerson: "יח' לאדם",
         coverage: "כיסוי",
         tableEventType: "סוג אירוע",
@@ -334,6 +336,7 @@ export const translations: Record<Language, Translations> = {
         advCalc: "Advanced Calculator Config",
         hungerMult: "Hunger Multipliers",
         eventLogic: "Event Logic Matrix",
+        eventLogicExpl: "* Values represent units per person (Sandwiches/Pastries) or coverage ratio (other categories). 1.0 = one unit per guest.",
         unitsPerPerson: "Units/Prsn",
         coverage: "Coverage",
         featureMgmt: "Feature Management",

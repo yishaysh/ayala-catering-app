@@ -76,8 +76,8 @@ declare global {
   }
 
   interface Window {
-    // Match the modifier of other declarations of 'aistudio' in the global scope.
-    aistudio: AIStudio;
+    // Add readonly modifier to aistudio property in Window interface to match existing global declarations.
+    readonly aistudio: AIStudio;
   }
 }
 

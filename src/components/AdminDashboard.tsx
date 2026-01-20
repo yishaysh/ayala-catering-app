@@ -176,7 +176,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         </div>
 
                         <div>
-                            <h4 className="text-stone-900 font-bold mb-4 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.eventLogic}</h4>
+                            <h4 className="text-stone-900 font-bold mb-2 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.eventLogic}</h4>
+                            <p className="text-[11px] text-stone-500 italic mb-4 px-2">{t.eventLogicExpl}</p>
                             <div className="overflow-x-auto">
                                 <table className="w-full border-collapse">
                                     <thead>
