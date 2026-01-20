@@ -1,3 +1,4 @@
+
 {
   "name": "ayala-catering",
   "private": true,
@@ -11,6 +12,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
+    "@google/genai": "^1.37.0",
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
