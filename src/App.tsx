@@ -122,8 +122,15 @@ export default function App() {
 
       {/* Hero */}
       <div className="relative bg-stone-900 text-white pt-16 pb-24 overflow-hidden mb-8">
-         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center opacity-10 grayscale"></div>
-         <div className="absolute inset-0 bg-gradient-to-t from-stone-50 via-transparent to-transparent"></div>
+         <div 
+            className="absolute inset-0 bg-no-repeat opacity-15"
+            style={{ 
+                backgroundImage: `url(${LOGO_SRC})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center 30%'
+            }}
+         ></div>
+         <div className="absolute inset-0 bg-gradient-to-t from-stone-50 via-transparent to-stone-900/50"></div>
          
          <div className="container mx-auto text-center px-4 relative z-10">
             <div className="inline-block border border-gold-500/30 bg-gold-500/10 backdrop-blur-sm px-4 py-1 rounded-full text-gold-400 text-xs font-bold tracking-widest uppercase mb-6 animate-fade-in">

@@ -82,6 +82,8 @@ export const translations = {
     tray: 'מגש',
     liter: 'ליטר',
     unit: 'יחידה',
+    clearCart: "רוקן עגלה",
+    clearCartConfirm: "האם לרוקן את העגלה?",
     
     planEvent: "בואו נתכנן את האירוע המושלם",
     eventType: "סוג האירוע",
@@ -145,7 +147,6 @@ export const translations = {
         eventLogic: "לוגיקה לפי סוג אירוע",
         unitsPerPerson: "יח' לאדם",
         coverage: "כיסוי",
-        // Image URL strings removed from admin translation as they are no longer used
         
         tableEventType: "סוג אירוע",
         tableSandwiches: "כריכים",
@@ -187,6 +188,8 @@ export const translations = {
     tray: 'Tray',
     liter: 'Liter',
     unit: 'Unit',
+    clearCart: "Clear Cart",
+    clearCartConfirm: "Clear the cart?",
     
     planEvent: "Let's plan the perfect event",
     eventType: "Event Type",
@@ -261,7 +264,6 @@ export const useStore = create<AppState>()(
       guestCount: 0,
       language: 'he',
       isLoading: false,
-      // logoUrl removed from state
       eventType: 'snack',
       hungerLevel: 'medium',
       calculationSettings: {
@@ -295,7 +297,6 @@ export const useStore = create<AppState>()(
       },
 
       setLanguage: (lang) => set({ language: lang }),
-      // setLogoUrl removed
       setGuestCount: (count) => set({ guestCount: count }),
       setEventType: (type) => set({ eventType: type }),
       setHungerLevel: (level) => set({ hungerLevel: level }),
@@ -392,7 +393,6 @@ export const useStore = create<AppState>()(
           cart: state.cart, 
           guestCount: state.guestCount, 
           language: state.language,
-          // logoUrl removed
           calculationSettings: state.calculationSettings,
           advancedSettings: state.advancedSettings,
           eventType: state.eventType,

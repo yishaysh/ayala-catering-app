@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { MenuGrid } from './components/MenuGrid';
 import { HostHelper } from './components/HostHelper';
@@ -9,8 +10,8 @@ import { AdminDashboard } from './components/AdminDashboard';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts'];
 
-// Inline Base64 Logo
-const LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMgAAAA8CAYAAAAjW/OvAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNui8sowAAAQdSURBVHic7ZzbbuMwEIDWl2Tz/3/2pQ2KAm4P0uOZoyhS5CwGCOA8nBEnj3y/3+/Evy/tBfA+tNfA+9BeA+9De43t9fPzQ/7+/i7+u7e3N/n6+ir++9g+Pj7k8/Oz+O/e39/l7e2t+O9j4/mG/qG9Bt6H9hp4H9prbK+0sQy018D70F4D70N7DbwP7TXwPrTXwPvQXmN7pY1loL0G3of2Gngf2mvgeT8/P28jI7SxDNg/l8vF/E1sD+018D6018D70F4D70N7DbwP7TW2V9pYBtrr/8H7+3t7CTzN9koby0B7DbwP7TXwPrTXwPvQXgPvQ3uN7fXz8yN/f3+tv7+3t7f2F5n/PrZP2lgG2mvgfWivgfekvb6+vtrLgPZKG8tAew28D+018D6018D70F4D70N7DbwP7TW2V9pYBtrr/8H2S5a0sQy018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sA+018D6018D70F4D70N7DbwP7TXwPrTX2F5pYxlor4H3ob0G3of2Gngf2mvgfWivsb3SxjLQXgPvQ3sNvA/tNfA+tNfA+9BeA+9De43tlTaWgfYaeB/aa+B9aK+B96G9Bt6H9hrbK20sg1/v/wBAk2rF2gAAAABJRU5ErkJggg==";
+// LINK TO LOGO - Managed in code only
+const LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png";
 
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -121,8 +122,14 @@ export default function App() {
 
       {/* Hero */}
       <div className="relative bg-stone-900 text-white pt-16 pb-24 overflow-hidden mb-8">
-         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center opacity-10 grayscale"></div>
-         <div className="absolute inset-0 bg-gradient-to-t from-stone-50 via-transparent to-transparent"></div>
+         <div 
+            className="absolute inset-0 bg-center bg-no-repeat opacity-15"
+            style={{ 
+                backgroundImage: `url(${LOGO_SRC})`,
+                backgroundSize: 'cover'
+            }}
+         ></div>
+         <div className="absolute inset-0 bg-gradient-to-t from-stone-50 via-transparent to-stone-900/50"></div>
          
          <div className="container mx-auto text-center px-4 relative z-10">
             <div className="inline-block border border-gold-500/30 bg-gold-500/10 backdrop-blur-sm px-4 py-1 rounded-full text-gold-400 text-xs font-bold tracking-widest uppercase mb-6 animate-fade-in">
@@ -251,3 +258,4 @@ export default function App() {
     </div>
   );
 }
+    

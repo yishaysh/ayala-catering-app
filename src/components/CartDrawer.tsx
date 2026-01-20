@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { X, ShoppingBag, Send, Minus, Plus } from 'lucide-react';
+import { X, ShoppingBag, Send, Minus, Plus, Trash2 } from 'lucide-react';
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -8,13 +9,19 @@ interface CartDrawerProps {
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
-    const { cart, updateQuantity, cartTotal, language } = useStore();
+    const { cart, updateQuantity, cartTotal, language, clearCart } = useStore();
     const t = translations[language];
     const total = cartTotal();
     
     const MIN_ORDER = 500;
 
     if (!isOpen) return null;
+
+    const handleClearCart = () => {
+        if (window.confirm(t.clearCartConfirm)) {
+            clearCart();
+        }
+    };
 
     const handleWhatsAppCheckout = () => {
         const line = "━━━━━━━━━━━━━━━━";
@@ -69,9 +76,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         <ShoppingBag className="text-gold-500" />
                         <h2 className="text-xl font-serif font-bold tracking-wide">{t.myOrder}</h2>
                     </div>
-                    <button onClick={onClose} className="hover:text-gold-500 transition hover:rotate-90 duration-200">
-                        <X />
-                    </button>
+                    
+                    <div className="flex items-center gap-3">
+                        {cart.length > 0 && (
+                            <button 
+                                onClick={handleClearCart}
+                                className="text-stone-400 hover:text-red-400 transition-colors p-1"
+                                title={t.clearCart}
+                            >
+                                <Trash2 size={20} />
+                            </button>
+                        )}
+                        <button onClick={onClose} className="hover:text-gold-500 transition hover:rotate-90 duration-200">
+                            <X />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
