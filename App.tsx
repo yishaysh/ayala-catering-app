@@ -5,7 +5,7 @@ import { HostHelper } from './components/HostHelper';
 import { AIConcierge } from './components/AIConcierge';
 import { CartDrawer } from './components/CartDrawer';
 import { Category } from './types';
-import { ShoppingBag, Phone, Globe, Lock, X, ChevronRight, Loader2 } from 'lucide-react';
+import { ShoppingBag, Phone, Globe, Lock, X, Loader2 } from 'lucide-react';
 import { useStore, translations } from './store';
 import { AdminDashboard } from './components/AdminDashboard';
 
@@ -130,7 +130,7 @@ export default function App() {
                   <div className="text-center mb-6"><div className="inline-flex items-center justify-center w-16 h-16 bg-stone-100 rounded-full mb-4 text-stone-900"><Lock size={32} /></div><h2 className="text-2xl font-serif font-bold text-stone-900">כניסת מנהל</h2></div>
                   <form onSubmit={handleAdminLogin}>
                       <input type="password" value={pin} onChange={(e) => { setPin(e.target.value); setLoginError(false); }} className={`w-full text-center text-3xl tracking-widest font-bold border-b-2 py-2 mb-6 focus:outline-none ${loginError ? 'border-red-500 text-red-500' : 'border-stone-200 focus:border-gold-500 text-stone-900'}`} placeholder="••••" maxLength={4} autoFocus />
-                      <button type="submit" className="w-full bg-stone-900 text-gold-500 font-bold py-3 rounded-xl hover:bg-stone-800 transition flex items-center justify-center gap-2">כניסה <ChevronRight size={16} /></button>
+                      <button type="submit" className="w-full bg-stone-900 text-gold-500 font-bold py-3 rounded-xl hover:bg-stone-800 transition flex items-center justify-center gap-2">כניסה</button>
                   </form>
               </div>
           </div>
@@ -138,3 +138,4 @@ export default function App() {
     </div>
   );
 }
+
