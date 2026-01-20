@@ -20,8 +20,8 @@ export default function App() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [loginError, setLoginError] = useState(false);
-
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+
   const t = translations[language] || translations['he'];
 
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-3 md:gap-6">
-                 <button onClick={() => setIsLoginOpen(true)} className="p-2 text-stone-400 hover:text-gold-500 transition-colors" title="Admin Access"><Lock size={18} /></button>
+                 <button onClick={() => setIsLoginOpen(true)} className="p-2 text-stone-400 hover:text-gold-500 transition-colors"><Lock size={18} /></button>
                  <button onClick={() => setLanguage(language === 'he' ? 'en' : 'he')} className="flex items-center gap-1.5 text-xs font-bold bg-stone-800 px-3 py-1.5 rounded-full border border-stone-700 hover:border-gold-500 transition-colors"><Globe size={14} className="text-gold-500" /><span>{language === 'he' ? 'EN' : 'עב'}</span></button>
                 <a href="tel:0547474764" className="hidden md:flex items-center gap-2 text-stone-300 hover:text-white transition-colors"><Phone size={16} /><span className="text-sm font-medium">054-747-4764</span></a>
                 <button onClick={() => setIsCartOpen(true)} className="relative group p-2 hover:bg-stone-800 rounded-full transition-colors">
@@ -97,7 +97,7 @@ export default function App() {
         <div className="sticky top-[72px] z-40 bg-stone-50/95 backdrop-blur-md py-4 mb-8 border-b border-stone-200 -mx-4 px-4 overflow-x-auto shadow-sm">
             <nav className="flex gap-2 min-w-max mx-auto md:justify-center">
                 {CATEGORIES.map(cat => (
-                    <button key={cat} onClick={() => scrollToCategory(cat)} className={`whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full transition-all duration-300 ${activeCategory === cat ? 'bg-stone-900 text-gold-500 shadow-md scale-105' : 'bg-white text-stone-600 border border-stone-200 hover:border-gold-500'}`}>{(t.categories as Record<string, string>)[cat]}</button>
+                    <button key={cat} onClick={() => scrollToCategory(cat)} className={`whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full transition-all duration-300 ${activeCategory === cat ? 'bg-stone-900 text-gold-500 shadow-md transform scale-105' : 'bg-white text-stone-600 border border-stone-200 hover:border-gold-500 hover:text-stone-900'}`}>{(t.categories as Record<string, string>)[cat]}</button>
                 ))}
             </nav>
         </div>
@@ -122,7 +122,7 @@ export default function App() {
                       <h2 className="text-2xl font-serif font-bold text-stone-900">כניסת מנהל</h2>
                   </div>
                   <form onSubmit={handleAdminLogin}>
-                      <input type="password" value={pin} onChange={(e) => { setPin(e.target.value); setLoginError(false); }} className={`w-full text-center text-3xl tracking-widest font-bold border-b-2 py-2 mb-6 focus:outline-none ${loginError ? 'border-red-500 text-red-500' : 'border-stone-200 focus:border-gold-500 text-stone-900'}`} placeholder="••••" maxLength={4} autoFocus />
+                      <input type="password" value={pin} onChange={(e) => { setPin(e.target.value); setLoginError(false); }} className={`w-full text-center text-3xl tracking-widest font-bold border-b-2 py-2 mb-6 focus:outline-none transition-colors ${loginError ? 'border-red-500 text-red-500' : 'border-stone-200 focus:border-gold-500 text-stone-900'}`} placeholder="••••" maxLength={4} autoFocus />
                       {loginError && <p className="text-red-500 text-xs text-center mb-4 font-bold">קוד שגוי</p>}
                       <button type="submit" className="w-full bg-stone-900 text-gold-500 font-bold py-3 rounded-xl hover:bg-stone-800 transition flex items-center justify-center gap-2">כניסה</button>
                   </form>

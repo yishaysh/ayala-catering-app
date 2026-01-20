@@ -92,8 +92,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
             <div className="absolute inset-0 bg-stone-900/90 backdrop-blur-sm" onClick={() => setSelectedImage(null)}></div>
             <div className="relative bg-white rounded-3xl overflow-hidden shadow-2xl max-w-2xl w-full animate-zoom-in">
                 <button onClick={() => setSelectedImage(null)} className="absolute top-4 right-4 z-10 bg-white/80 text-stone-900 p-2 rounded-full"><X size={24} /></button>
-                <img src={selectedImage.url} alt={selectedImage.name} className="w-full h-auto" />
-                <div className="p-6 bg-white"><h3 className="text-2xl font-serif font-bold">{selectedImage.name}</h3></div>
+                <img src={selectedImage.url} alt={selectedImage.name} className="w-full h-auto aspect-video object-cover" />
+                <div className="p-6 bg-white"><h3 className="text-2xl font-serif font-bold text-stone-900">{selectedImage.name}</h3></div>
             </div>
         </div>
       )}

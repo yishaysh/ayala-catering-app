@@ -32,7 +32,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             const displayItem = getLocalizedItem(item, language);
             message += `🔹 *${item.quantity}x ${displayItem.name}*\n\n`;
         });
-        message += `*${t.total}: ₪${total}*`;
+        message += `*${t.total as string}: ₪${total}*`;
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/?text=${encoded}`, '_blank');
     };
@@ -49,7 +49,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             message += `\n`; 
         });
 
-        message += `${line}\n*${t.total}: ₪${total}* 💰`;
+        message += `${line}\n*${t.total as string}: ₪${total}* 💰`;
         window.open(`https://wa.me/972547474764?text=${encodeURIComponent(message)}`, '_blank');
     };
 
@@ -123,7 +123,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     )}
                 </div>
 
-                <div className="p-6 bg-white border-t border-stone-200 shadow-2xl z-10 pb-safe">
+                <div className="p-6 bg-white border-t border-stone-200 shadow-2xl z-10 pb-safe text-start">
                     <div className="flex justify-between items-center mb-6">
                         <span className="text-stone-500">{t.total as string}:</span>
                         <span className="text-3xl font-bold font-serif">₪{total}</span>
@@ -133,7 +133,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             ⚠️ {t.minOrder as string}: ₪{MIN_ORDER}
                         </div>
                     )}
-                    <button onClick={handleWhatsAppCheckout} disabled={total < MIN_ORDER || cart.length === 0} className="w-full bg-green-600 text-white font-bold py-4 rounded-xl disabled:opacity-50 hover:bg-green-700 transition flex items-center justify-center gap-2"><Send size={18} /> {t.checkout as string}</button>
+                    <button onClick={handleWhatsAppCheckout} disabled={total < MIN_ORDER || cart.length === 0} className="w-full bg-green-600 text-white font-bold py-4 rounded-xl disabled:opacity-50 hover:bg-green-700 transition flex items-center justify-center gap-2 shadow-lg"><Send size={18} /> {t.checkout as string}</button>
                     {cart.length > 0 && (
                         <button onClick={handleShareDraft} className="w-full mt-3 border border-stone-200 text-stone-600 font-bold py-3 rounded-xl hover:bg-stone-50 transition flex items-center justify-center gap-2 text-sm"><Share2 size={16} /> {t.shareDraft as string}</button>
                     )}

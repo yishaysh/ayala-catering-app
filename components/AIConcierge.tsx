@@ -7,7 +7,7 @@ import { MenuItem } from '../types';
 
 export const AIConcierge: React.FC = () => {
     const { language, menuItems, bulkAddToCart } = useStore();
-    const t = translations[language];
+    const t = translations[language] || translations['he'];
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [recommendation, setRecommendation] = useState<{ items: { id: string, quantity: number }[], explanation: string } | null>(null);
@@ -16,10 +16,7 @@ export const AIConcierge: React.FC = () => {
         if (!prompt.trim()) return;
         setIsGenerating(true);
         try {
-            // Correct initialization as per Google GenAI SDK rules
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            
-            // Minimal menu context to keep tokens low and relevant
             const menuSummary = (menuItems || []).map(m => ({ id: m.id, name: m.name, price: m.price, cat: m.category })).slice(0, 40);
 
             const response = await ai.models.generateContent({
@@ -80,12 +77,12 @@ export const AIConcierge: React.FC = () => {
         <div className="bg-stone-900 border border-gold-500/30 rounded-3xl p-6 md:p-8 mb-12 shadow-2xl relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 blur-[50px] pointer-events-none group-hover:bg-gold-500/10 transition-all duration-500"></div>
             
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-6 text-start">
                 <div className="p-2 bg-gold-500/20 rounded-lg text-gold-500">
                     <Sparkles size={24} className="animate-pulse" />
                 </div>
                 <div>
-                    <h3 className="text-xl md:text-2xl font-serif font-bold text-white">{t.aiTitle}</h3>
+                    <h3 className="text-xl md:text-2xl font-serif font-bold text-white">{t.aiTitle as string}</h3>
                     <p className="text-stone-400 text-sm">{language === 'he' ? 'תנו לבינה המלאכותית לתכנן לכם אירוע מושלם' : 'Let AI plan your perfect event'}</p>
                 </div>
             </div>
@@ -94,24 +91,24 @@ export const AIConcierge: React.FC = () => {
                 <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder={t.aiPlaceholder}
-                    className="flex-1 bg-stone-800 border border-stone-700 rounded-2xl p-4 text-white placeholder-stone-500 focus:outline-none focus:border-gold-500 transition-colors h-24 resize-none"
+                    placeholder={t.aiPlaceholder as string}
+                    className="flex-1 bg-stone-800 border border-stone-700 rounded-2xl p-4 text-white placeholder-stone-500 focus:outline-none focus:border-gold-500 transition-colors h-24 resize-none text-start"
                 />
                 <button
                     onClick={generateRecommendation}
                     disabled={isGenerating || !prompt.trim()}
-                    className="md:w-32 bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-stone-900 font-bold rounded-2xl transition-all active:scale-95 flex flex-col items-center justify-center p-4 gap-2 shadow-lg shadow-gold-500/10"
+                    className="md:w-32 bg-gold-500 hover:bg-gold-400 disabled:opacity-50 text-stone-900 font-bold rounded-2xl transition-all active:scale-95 flex flex-col items-center justify-center p-4 gap-2 shadow-lg"
                 >
                     {isGenerating ? <Loader2 className="animate-spin" /> : <Send size={24} />}
-                    <span className="text-xs uppercase tracking-tighter">{t.aiGenerate}</span>
+                    <span className="text-xs uppercase tracking-tighter">{t.aiGenerate as string}</span>
                 </button>
             </div>
 
             {recommendation && (
-                <div className="bg-stone-800/50 rounded-2xl p-6 animate-slide-in-top border border-gold-500/20">
+                <div className="bg-stone-800/50 rounded-2xl p-6 animate-slide-in-top border border-gold-500/20 text-start">
                     <h4 className="text-gold-500 font-bold mb-2 flex items-center gap-2">
                         <CheckCircle2 size={18} />
-                        {t.aiExplanation}
+                        {t.aiExplanation as string}
                     </h4>
                     <p className="text-stone-300 text-sm mb-6 leading-relaxed">
                         {recommendation.explanation}
@@ -120,7 +117,7 @@ export const AIConcierge: React.FC = () => {
                         onClick={handleApply}
                         className="w-full bg-white text-stone-900 font-bold py-4 rounded-xl hover:bg-stone-100 transition-colors shadow-lg active:scale-[0.98]"
                     >
-                        {t.aiApply}
+                        {t.aiApply as string}
                     </button>
                 </div>
             )}
