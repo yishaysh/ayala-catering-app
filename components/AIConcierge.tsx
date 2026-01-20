@@ -1,22 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { useStore, translations, Translations } from '../store';
-import { Sparkles, Loader2, Send, CheckCircle2, Key } from 'lucide-react';
+import { Sparkles, Loader2, Send, CheckCircle2, Key, ExternalLink } from 'lucide-react';
 import { GoogleGenAI, Type } from '@google/genai';
 import { MenuItem } from '../types';
 
 export const AIConcierge: React.FC = () => {
     const { language, menuItems, bulkAddToCart } = useStore();
-    const t: Translations = translations[language] || translations['he'];
+    const t: Translations = (translations[language] || translations['he']) as Translations;
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [recommendation, setRecommendation] = useState<{ items: { id: string, quantity: number }[], explanation: string } | null>(null);
     const [needsKey, setNeedsKey] = useState(false);
 
-    // Check if the user has already selected an API key. 
-    // Gemini 3 models require a paid project key for full functionality in some contexts.
+    // Effect to check key status on mount
     useEffect(() => {
-        const checkKeyStatus = async () => {
+        const checkKey = async () => {
             if (window.aistudio) {
                 try {
                     const hasKey = await window.aistudio.hasSelectedApiKey();
@@ -24,18 +23,24 @@ export const AIConcierge: React.FC = () => {
                         setNeedsKey(true);
                     }
                 } catch (e) {
-                    console.error("Error checking API key status:", e);
+                    console.error("Error checking key status", e);
                 }
             }
         };
-        checkKeyStatus();
+        checkKey();
     }, []);
 
-    const handleOpenKeyDialog = async () => {
+    const handleConnect = async () => {
         if (window.aistudio) {
-            await window.aistudio.openSelectKey();
-            // Proceed to the app immediately after triggering the dialog to avoid race conditions.
-            setNeedsKey(false);
+            try {
+                await window.aistudio.openSelectKey();
+                // Per instructions: assume success and proceed
+                setNeedsKey(false);
+            } catch (e) {
+                console.error("Error opening key selector", e);
+            }
+        } else {
+            alert(language === 'he' ? "הדפדפן אינו תומך בבחירת מפתח אוטומטית." : "Browser does not support auto key selection.");
         }
     };
 
@@ -44,10 +49,9 @@ export const AIConcierge: React.FC = () => {
         
         setIsGenerating(true);
         try {
-            // Re-initialize to ensure it uses the latest API key injected into process.env.API_KEY
+            // ALWAYS initialize right before use to catch the latest key from process.env.API_KEY
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             
-            // Provide a condensed menu context to the model
             const menuSummary = (menuItems || []).map(m => ({ 
                 id: m.id, 
                 name: m.name, 
@@ -56,10 +60,10 @@ export const AIConcierge: React.FC = () => {
 
             const response = await ai.models.generateContent({
                 model: 'gemini-3-flash-preview',
-                contents: `User event request: "${prompt}". 
-                Available catering items: ${JSON.stringify(menuSummary)}. 
-                Task: Suggest a menu of 3-7 items with appropriate quantities based on the request. 
-                Output must be JSON only.`,
+                contents: `User event: "${prompt}". 
+                Menu: ${JSON.stringify(menuSummary)}. 
+                Suggest a balanced menu of 4-8 items with quantities. 
+                Return JSON only.`,
                 config: {
                     responseMimeType: "application/json",
                     responseSchema: {
@@ -83,22 +87,19 @@ export const AIConcierge: React.FC = () => {
                 }
             });
 
-            const responseText = response.text;
-            if (responseText) {
-                const data = JSON.parse(responseText.trim());
+            const text = response.text;
+            if (text) {
+                const data = JSON.parse(text.trim());
                 setRecommendation(data);
                 setNeedsKey(false);
             }
         } catch (error: any) {
-            console.error("AI Generation Error:", error);
-            const msg = error?.message || "";
-            // Handle specific API key errors by prompting selection
-            if (msg.includes("API Key") || msg.includes("Requested entity was not found")) {
+            console.error("AI Error:", error);
+            const errMsg = error?.message || "";
+            if (errMsg.includes("API Key") || errMsg.includes("Requested entity was not found")) {
                 setNeedsKey(true);
             } else {
-                alert(language === 'he' 
-                    ? "חלה שגיאה בתקשורת עם ה-AI. נסו שוב בעוד רגע." 
-                    : "Communication error with AI. Please try again in a moment.");
+                alert(language === 'he' ? "משהו השתבש בבניית התפריט. נסו שוב." : "Something went wrong. Please try again.");
             }
         } finally {
             setIsGenerating(false);
@@ -107,22 +108,22 @@ export const AIConcierge: React.FC = () => {
 
     const handleApply = () => {
         if (!recommendation?.items) return;
-        const itemsToBulkAdd = recommendation.items
+        const itemsToApply = recommendation.items
             .map(rec => {
                 const item = menuItems.find(m => m.id === rec.id);
                 return item ? { item, quantity: rec.quantity } : null;
             })
             .filter((x): x is { item: MenuItem, quantity: number } => x !== null);
         
-        if (itemsToBulkAdd.length > 0) {
-            bulkAddToCart(itemsToBulkAdd);
+        if (itemsToApply.length > 0) {
+            bulkAddToCart(itemsToApply);
             setRecommendation(null);
             setPrompt('');
         }
     };
 
     return (
-        <div className="bg-stone-900 border border-gold-500/30 rounded-3xl p-6 md:p-8 mb-12 shadow-2xl relative overflow-hidden">
+        <div className="bg-stone-900 border border-gold-500/30 rounded-3xl p-6 md:p-8 mb-12 shadow-2xl relative overflow-hidden transition-all duration-500">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gold-500/5 blur-[50px] pointer-events-none"></div>
             
             <div className="flex items-center gap-3 mb-6 text-start">
@@ -132,7 +133,7 @@ export const AIConcierge: React.FC = () => {
                 <div>
                     <h3 className="text-xl md:text-2xl font-serif font-bold text-white">{t.aiTitle}</h3>
                     <p className="text-stone-400 text-sm">
-                        {language === 'he' ? 'תכנון אירוע חכם בלחיצת כפתור' : 'Smart event planning at your fingertips'}
+                        {language === 'he' ? 'הקונסיירז׳ הדיגיטלי שיבנה לכם תפריט אישי' : 'The digital concierge that builds your menu'}
                     </p>
                 </div>
             </div>
@@ -142,24 +143,25 @@ export const AIConcierge: React.FC = () => {
                     <div className="inline-flex p-3 bg-gold-500/10 rounded-full text-gold-500 mb-4">
                         <Key size={32} />
                     </div>
-                    <h4 className="text-white font-bold mb-2">נדרש חיבור מפתח API</h4>
+                    <h4 className="text-white font-bold mb-2">חיבור מפתח API נדרש</h4>
                     <p className="text-stone-400 text-sm mb-6 max-w-sm mx-auto">
-                        כדי להשתמש בשירותי הבינה המלאכותית המתקדמים של Gemini 3, עליך לחבר מפתח API מהפרויקט שלך.
+                        לצורך שימוש בבינה מלאכותית בסביבת הפיתוח, עליך לחבר מפתח API (עם Billing פעיל) מהפרויקט שלך.
                     </p>
                     <button 
-                        onClick={handleOpenKeyDialog}
-                        className="bg-gold-500 text-stone-900 font-bold px-8 py-3 rounded-xl hover:bg-gold-400 transition transform active:scale-95 shadow-lg shadow-gold-500/20"
+                        onClick={handleConnect}
+                        className="bg-gold-500 text-stone-900 font-bold px-8 py-3 rounded-xl hover:bg-gold-400 transition transform active:scale-95 shadow-xl shadow-gold-500/20 flex items-center gap-2 mx-auto"
                     >
-                        חבר מפתח עכשיו
+                        <span>חבר מפתח עכשיו</span>
                     </button>
-                    <div className="mt-4">
+                    <div className="mt-6 border-t border-stone-700/50 pt-4">
                         <a 
                             href="https://ai.google.dev/gemini-api/docs/billing" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="text-[10px] text-stone-500 hover:text-gold-500 underline uppercase tracking-widest"
+                            className="text-[10px] text-stone-500 hover:text-gold-500 underline uppercase tracking-widest flex items-center justify-center gap-1"
                         >
-                            מידע על הגדרת חיוב (Billing Docs)
+                            <span>מידע על הגדרת חיוב</span>
+                            <ExternalLink size={10} />
                         </a>
                     </div>
                 </div>
@@ -190,12 +192,12 @@ export const AIConcierge: React.FC = () => {
                                 <CheckCircle2 size={18} />
                                 {t.aiExplanation}
                             </h4>
-                            <p className="text-stone-300 text-sm mb-6 leading-relaxed">
-                                {recommendation.explanation}
+                            <p className="text-stone-300 text-sm mb-6 leading-relaxed italic">
+                                "{recommendation.explanation}"
                             </p>
                             <button
                                 onClick={handleApply}
-                                className="w-full bg-white text-stone-900 font-bold py-4 rounded-xl hover:bg-stone-100 transition-colors shadow-lg active:scale-[0.98]"
+                                className="w-full bg-white text-stone-900 font-bold py-4 rounded-xl hover:bg-stone-100 transition-colors shadow-lg active:scale-[0.98] uppercase tracking-wider"
                             >
                                 {t.aiApply}
                             </button>

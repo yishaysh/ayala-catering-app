@@ -49,12 +49,12 @@ export interface CalculationSettings {
 }
 
 export interface EventRatioConfig {
-    sandwiches: number;       // Units per person
-    pastries: number;         // Units per person
-    saladsCoverage: number;   // 0.0 - 2.0 (1.0 = 100% guests covered)
-    mainsCoverage: number;    // 0.0 - 2.0
-    plattersCoverage: number; // 0.0 - 2.0
-    dessertsCoverage: number; // 0.0 - 2.0
+    sandwiches: number;
+    pastries: number;
+    saladsCoverage: number;
+    mainsCoverage: number;
+    plattersCoverage: number;
+    dessertsCoverage: number;
 }
 
 export interface AdvancedCalculationSettings {
@@ -69,20 +69,15 @@ export interface AppSettings {
   is_shop_open: boolean;
 }
 
-/**
- * Global declaration to inform TypeScript about the pre-configured 
- * aistudio object available on the window during execution.
- */
 declare global {
-  // Define AIStudio interface to match the global type name expected by the compiler
   interface AIStudio {
     hasSelectedApiKey: () => Promise<boolean>;
     openSelectKey: () => Promise<void>;
   }
 
   interface Window {
-    // Declarations for existing properties on global interfaces must have identical modifiers (readonly) and types (AIStudio)
-    readonly aistudio: AIStudio;
+    // Fixed: Removed readonly modifier to avoid conflicting with existing Window definitions during interface merging.
+    aistudio: AIStudio;
   }
 }
 
