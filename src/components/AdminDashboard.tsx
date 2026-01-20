@@ -95,7 +95,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             serves_max: Number(newItem.serves_max),
             is_premium: newItem.is_premium || false,
             availability_status: true,
-            // Image URL not controlled by admin
             tags: [],
             allowed_modifications: modsArray,
             allowed_modifications_en: modsArray
@@ -147,9 +146,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         <h3 className="text-sm font-bold text-stone-900 uppercase">{t.calcSettings}</h3>
                     </div>
                     
-                    <div className="grid grid-cols-3 gap-6">
-                        <div>
-                             <label className="text-xs text-stone-500 font-bold block mb-1">{t.sandwichesPerPerson}</label>
+                    <div className="grid grid-cols-3 gap-3 md:gap-6 items-end">
+                        <div className="flex flex-col">
+                             <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.sandwichesPerPerson}</label>
                              <input 
                                 type="number" 
                                 step="0.1"
@@ -158,8 +157,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500"
                              />
                         </div>
-                        <div>
-                             <label className="text-xs text-stone-500 font-bold block mb-1">{t.pastriesPerPerson}</label>
+                        <div className="flex flex-col">
+                             <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.pastriesPerPerson}</label>
                              <input 
                                 type="number" 
                                 step="0.1"
@@ -168,8 +167,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500"
                              />
                         </div>
-                         <div>
-                             <label className="text-xs text-stone-500 font-bold block mb-1">{t.trayCapacity}</label>
+                         <div className="flex flex-col">
+                             <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.trayCapacity}</label>
                              <input 
                                 type="number" 
                                 value={calculationSettings.averageTrayCapacity}

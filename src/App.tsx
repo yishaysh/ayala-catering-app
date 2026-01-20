@@ -123,11 +123,11 @@ export default function App() {
       {/* Hero */}
       <div className="relative bg-stone-900 text-white pt-16 pb-24 overflow-hidden mb-8">
          <div 
-            className="absolute inset-0 bg-no-repeat opacity-15"
+            className="absolute inset-0 bg-no-repeat opacity-20"
             style={{ 
                 backgroundImage: `url(${LOGO_SRC})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center 30%'
+                backgroundSize: 'contain',
+                backgroundPosition: 'center 20%'
             }}
          ></div>
          <div className="absolute inset-0 bg-gradient-to-t from-stone-50 via-transparent to-stone-900/50"></div>
