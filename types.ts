@@ -69,7 +69,21 @@ export interface AppSettings {
   is_shop_open: boolean;
 }
 
-// Global aistudio declaration removed because it conflicts with environment-provided type AIStudio.
-// The environment pre-configures window.aistudio with hasSelectedApiKey and openSelectKey methods.
+/**
+ * Global declaration to inform TypeScript about the pre-configured 
+ * aistudio object available on the window during execution.
+ */
+declare global {
+  // Define AIStudio interface to match the global type name expected by the compiler
+  interface AIStudio {
+    hasSelectedApiKey: () => Promise<boolean>;
+    openSelectKey: () => Promise<void>;
+  }
+
+  interface Window {
+    // Declarations for existing properties on global interfaces must have identical modifiers (readonly) and types (AIStudio)
+    readonly aistudio: AIStudio;
+  }
+}
 
 export {};
