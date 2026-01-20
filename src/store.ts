@@ -82,6 +82,7 @@ export const translations = {
     tray: 'מגש',
     liter: 'ליטר',
     unit: 'יחידה',
+    weight: 'משקל',
     clearCart: "רוקן עגלה",
     clearCartConfirm: "האם לרוקן את העגלה?",
     
@@ -188,6 +189,7 @@ export const translations = {
     tray: 'Tray',
     liter: 'Liter',
     unit: 'Unit',
+    weight: 'Weight',
     clearCart: "Clear Cart",
     clearCartConfirm: "Clear the cart?",
     
