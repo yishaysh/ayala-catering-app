@@ -15,15 +15,17 @@ const LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/pub
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, fetchSettings, isLoading, featureFlags } = useStore();
+  
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [loginError, setLoginError] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
+
   const t = translations[language] || translations['he'];
 
-  useEffect(() => { 
-      fetchMenuItems(); 
+  useEffect(() => {
+      fetchMenuItems();
       fetchSettings();
   }, []);
 
@@ -65,11 +67,12 @@ export default function App() {
                     <p className="text-[10px] text-stone-400 tracking-[0.2em] uppercase font-medium">{t.subtitle}</p>
                 </div>
             </div>
+
             <div className="flex items-center gap-3 md:gap-6">
                  <button onClick={() => setIsLoginOpen(true)} className="p-2 text-stone-400 hover:text-gold-500 transition-colors"><Lock size={18} /></button>
                  <button onClick={() => setLanguage(language === 'he' ? 'en' : 'he')} className="flex items-center gap-1.5 text-xs font-bold bg-stone-800 px-3 py-1.5 rounded-full border border-stone-700 hover:border-gold-500 transition-colors"><Globe size={14} className="text-gold-500" /><span>{language === 'he' ? 'EN' : 'עב'}</span></button>
                  <a href="tel:0547474764" className="hidden md:flex items-center gap-2 text-stone-300 hover:text-white transition-colors"><Phone size={16} /><span className="text-sm font-medium">054-747-4764</span></a>
-                 <button onClick={() => setIsCartOpen(true)} className={`relative group p-2 hover:bg-stone-800 rounded-full transition-all ${cart.length > 0 ? 'scale-110' : ''}`}>
+                 <button onClick={() => setIsCartOpen(true)} className="relative group p-2 hover:bg-stone-800 rounded-full transition-colors">
                     <ShoppingBag size={24} className="text-stone-300 group-hover:text-gold-500 transition-colors" />
                     {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-gold-600 text-stone-900 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full animate-bounce">{cart.length}</span>}
                 </button>
@@ -94,7 +97,7 @@ export default function App() {
         <div className="sticky top-[72px] z-40 bg-stone-50/95 backdrop-blur-md py-4 mb-8 border-b border-stone-200 -mx-4 px-4 overflow-x-auto shadow-sm">
             <nav className="flex gap-2 min-w-max mx-auto md:justify-center">
                 {CATEGORIES.map(cat => (
-                    <button key={cat} onClick={() => scrollToCategory(cat)} className={`whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full transition-all duration-300 ${activeCategory === cat ? 'bg-stone-900 text-gold-500 shadow-md scale-105' : 'bg-white text-stone-600 border border-stone-200 hover:border-gold-500'}`}>{(t.categories as Record<string, string>)[cat]}</button>
+                    <button key={cat} onClick={() => scrollToCategory(cat)} className={`whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full transition-all duration-300 ${activeCategory === cat ? 'bg-stone-900 text-gold-500 shadow-md transform scale-105' : 'bg-white text-stone-600 border border-stone-200 hover:border-gold-500 hover:text-stone-900'}`}>{(t.categories as Record<string, string>)[cat]}</button>
                 ))}
             </nav>
         </div>
@@ -102,10 +105,9 @@ export default function App() {
         {isLoading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gold-500" size={48} /></div> : <MenuGrid items={menuItems} />}
       </main>
 
-      <footer className="bg-stone-900 text-stone-400 py-12 px-4 text-center mt-auto pb-40">
+      <footer className="bg-stone-900 text-stone-400 py-8 px-4 text-center mt-auto pb-32">
           <div className="container mx-auto">
-              <img src={LOGO_SRC} alt="Ayala" className="h-16 mx-auto mb-6 opacity-30 grayscale" />
-              <p className="text-sm font-medium">© {new Date().getFullYear()} {t.title}</p>
+              <p className="text-sm font-medium mb-4">© {new Date().getFullYear()} {t.title}</p>
           </div>
       </footer>
 
@@ -125,14 +127,14 @@ export default function App() {
 
       {isLoginOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-zoom-in">
-              <div className="bg-white rounded-2xl p-8 w-full max-sm:w-[90vw] max-w-sm shadow-2xl relative">
-                  <button onClick={() => {setIsLoginOpen(false); setPin(''); setLoginError(false);}} className="absolute top-4 right-4 text-stone-400 hover:text-stone-900"><X /></button>
+              <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl relative">
+                  <button onClick={() => { setIsLoginOpen(false); setPin(''); setLoginError(false); }} className="absolute top-4 right-4 text-stone-400 hover:text-stone-900"><X /></button>
                   <div className="text-center mb-6">
                       <div className="inline-flex items-center justify-center w-16 h-16 bg-stone-100 rounded-full mb-4 text-stone-900"><Lock size={32} /></div>
                       <h2 className="text-2xl font-serif font-bold text-stone-900">כניסת מנהל</h2>
                   </div>
                   <form onSubmit={handleAdminLogin}>
-                      <input type="password" value={pin} onChange={(e) => { setPin(e.target.value); setLoginError(false); }} className={`w-full text-center text-3xl tracking-widest font-bold border-b-2 py-2 mb-6 focus:outline-none ${loginError ? 'border-red-500 text-red-500' : 'border-stone-200 focus:border-gold-500 text-stone-900'}`} placeholder="••••" maxLength={4} autoFocus />
+                      <input type="password" value={pin} onChange={(e) => { setPin(e.target.value); setLoginError(false); }} className={`w-full text-center text-3xl tracking-widest font-bold border-b-2 py-2 mb-6 focus:outline-none transition-colors ${loginError ? 'border-red-500 text-red-500' : 'border-stone-200 focus:border-gold-500 text-stone-900'}`} placeholder="••••" maxLength={4} autoFocus />
                       {loginError && <p className="text-red-500 text-xs text-center mb-4 font-bold">קוד שגוי</p>}
                       <button type="submit" className="w-full bg-stone-900 text-gold-500 font-bold py-3 rounded-xl hover:bg-stone-800 transition flex items-center justify-center gap-2">כניסה</button>
                   </form>
