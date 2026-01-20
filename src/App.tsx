@@ -9,6 +9,16 @@ import { AdminDashboard } from './components/AdminDashboard';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts'];
 
+// Inline SVG Logo Component
+const Logo: React.FC<{ className?: string }> = ({ className }) => (
+  <svg viewBox="0 0 200 60" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M45.5 48L32.5 12L19.5 48" stroke="#d4af37" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M24.5 36H40.5" stroke="#d4af37" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    <text x="65" y="42" fontFamily="serif" fontWeight="bold" fontSize="32" fill="#d4af37" letterSpacing="0.05em">YALA</text>
+    <path d="M15 55H185" stroke="#44403c" strokeWidth="1" strokeDasharray="4 4" opacity="0.5"/>
+  </svg>
+);
+
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading } = useStore();
@@ -64,15 +74,8 @@ export default function App() {
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
             <div className="flex items-center gap-3">
                 <div className="relative h-10 md:h-12 w-auto flex items-center justify-center overflow-hidden">
-                   <img 
-                        src="/logo.png" 
-                        alt="Ayala" 
-                        className="h-full w-auto object-contain" 
-                        onError={(e) => {
-                            e.currentTarget.src = "https://placehold.co/150x60/1c1917/d4af37?text=Ayala+Logo";
-                            e.currentTarget.onerror = null;
-                        }} 
-                   />
+                   {/* Inline SVG Logo */}
+                   <Logo className="h-full w-auto" />
                 </div>
                 <div className="hidden sm:block">
                     <h1 className="text-xl font-serif font-bold tracking-wide text-gold-500 leading-none mb-1">{t.title}</h1>
@@ -121,7 +124,7 @@ export default function App() {
 
       {/* Hero */}
       <div className="relative bg-stone-900 text-white pt-16 pb-24 overflow-hidden mb-8">
-         <div className="absolute inset-0 bg-[url('/logo.png')] bg-no-repeat bg-center bg-[length:70%_auto] md:bg-[length:40%_auto] opacity-10"></div>
+         <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')] bg-cover bg-center opacity-10 grayscale"></div>
          <div className="absolute inset-0 bg-gradient-to-t from-stone-50 via-transparent to-transparent"></div>
          
          <div className="container mx-auto text-center px-4 relative z-10">
