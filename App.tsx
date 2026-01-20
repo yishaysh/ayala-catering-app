@@ -60,9 +60,9 @@ export default function App() {
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pb-48 overflow-x-hidden">
       <header className="sticky top-0 z-50 bg-stone-900 text-white shadow-lg border-b border-stone-800">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 text-start">
                 <img src={LOGO_SRC} alt="Ayala Logo" className="h-12 w-auto object-contain" />
-                <div className="hidden sm:block text-start">
+                <div className="hidden sm:block">
                     <h1 className="text-xl font-serif font-bold tracking-wide text-gold-500 leading-none mb-1">{t.title}</h1>
                     <p className="text-[10px] text-stone-400 tracking-[0.2em] uppercase font-medium">{t.subtitle}</p>
                 </div>
