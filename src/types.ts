@@ -81,7 +81,7 @@ declare global {
   }
 
   interface Window {
-    // Added aistudio declaration to support global environment interaction with AI Studio APIs.
-    aistudio: AIStudio;
+    // Fixed: Added readonly modifier to ensure identical modifiers across all declarations of 'aistudio' in the global scope.
+    readonly aistudio: AIStudio;
   }
 }

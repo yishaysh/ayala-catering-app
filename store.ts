@@ -391,7 +391,7 @@ export const useStore = create<AppState>()(
       isLoading: false,
       eventType: 'snack',
       hungerLevel: 'medium',
-      featureFlags: { showCalculator: true, showAI: true },
+      featureFlags: { showCalculator: true, showAI: false },
       calculationSettings: { sandwichesPerPerson: 1.5, pastriesPerPerson: 1.0, averageTrayCapacity: 10 },
       advancedSettings: {
         hungerMultipliers: { light: 0.8, medium: 1.0, heavy: 1.3 },

@@ -76,8 +76,8 @@ declare global {
   }
 
   interface Window {
-    // Fixed: Removed readonly modifier to avoid conflicting with existing Window definitions during interface merging.
-    aistudio: AIStudio;
+    // Fixed: Added readonly modifier to ensure identical modifiers across all declarations of 'aistudio' in the global scope.
+    readonly aistudio: AIStudio;
   }
 }
 
