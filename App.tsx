@@ -14,7 +14,7 @@ const LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/pub
 
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading } = useStore();
+  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, fetchSettings, isLoading, featureFlags } = useStore();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [pin, setPin] = useState('');
@@ -22,7 +22,10 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const t = translations[language];
 
-  useEffect(() => { fetchMenuItems(); }, []);
+  useEffect(() => { 
+      fetchMenuItems(); 
+      fetchSettings();
+  }, []);
 
   const handleAdminLogin = (e: React.FormEvent) => {
       e.preventDefault();
@@ -85,8 +88,8 @@ export default function App() {
       </div>
 
       <main className="container mx-auto px-4 -mt-16 relative z-20">
-        <HostHelper />
-        <AIConcierge />
+        {featureFlags.showCalculator && <HostHelper />}
+        {featureFlags.showAI && <AIConcierge />}
 
         <div className="sticky top-[72px] z-40 bg-stone-50/95 backdrop-blur-md py-4 mb-8 border-b border-stone-200 -mx-4 px-4 overflow-x-auto shadow-sm">
             <nav className="flex gap-2 min-w-max mx-auto md:justify-center">

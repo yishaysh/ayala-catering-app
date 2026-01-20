@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel, AdvancedCalculationSettings } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel, AdvancedCalculationSettings, FeatureFlags } from './types';
 import { supabase } from './lib/supabase';
 
 type Language = 'he' | 'en';
@@ -16,8 +16,10 @@ interface AppState {
   hungerLevel: HungerLevel;
   calculationSettings: CalculationSettings;
   advancedSettings: AdvancedCalculationSettings;
+  featureFlags: FeatureFlags;
 
   fetchMenuItems: () => Promise<void>;
+  fetchSettings: () => Promise<void>;
   setGuestCount: (count: number) => void;
   setEventType: (type: EventType) => void;
   setHungerLevel: (level: HungerLevel) => void;
@@ -30,6 +32,7 @@ interface AppState {
   addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
   updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
   updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
+  updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
   clearCart: () => void;
   cartTotal: () => number;
 }
@@ -145,7 +148,10 @@ export const translations = {
         tableSalads: "סלטים",
         tableMains: "עיקריות",
         tablePlatters: "מגשים",
-        tableDesserts: "קינוחים"
+        tableDesserts: "קינוחים",
+        featureMgmt: "ניהול פיצ'רים",
+        showCalc: "הצג מחשבון אירוח",
+        showAI: "הצג קונסיירז' AI"
     }
   },
   en: {
@@ -258,7 +264,10 @@ export const translations = {
         tableSalads: "Salads",
         tableMains: "Mains",
         tablePlatters: "Platters",
-        tableDesserts: "Desserts"
+        tableDesserts: "Desserts",
+        featureMgmt: "Feature Management",
+        showCalc: "Show Event Calculator",
+        showAI: "Show AI Concierge"
     }
   }
 };
@@ -287,6 +296,10 @@ export const useStore = create<AppState>()(
             party: { sandwiches: 2.5, pastries: 1.0, saladsCoverage: 0.2, mainsCoverage: 0.2, plattersCoverage: 0.5, dessertsCoverage: 0.5 },
         }
       },
+      featureFlags: {
+        showCalculator: true,
+        showAI: true
+      },
 
       fetchMenuItems: async () => {
           set({ isLoading: true });
@@ -301,6 +314,18 @@ export const useStore = create<AppState>()(
               set({ menuItems: data as MenuItem[] });
           }
           set({ isLoading: false });
+      },
+
+      fetchSettings: async () => {
+        const { data, error } = await supabase
+            .from('app_settings')
+            .select('*')
+            .eq('key', 'features')
+            .single();
+
+        if (data && data.value) {
+            set({ featureFlags: data.value as FeatureFlags });
+        }
       },
 
       setLanguage: (lang) => set({ language: lang }),
@@ -387,11 +412,22 @@ export const useStore = create<AppState>()(
           }));
       },
 
+      updateFeatureFlags: async (flags) => {
+        const newFlags = { ...get().featureFlags, ...flags };
+        set({ featureFlags: newFlags });
+        
+        const { error } = await supabase
+            .from('app_settings')
+            .upsert({ key: 'features', value: newFlags });
+        
+        if (error) console.error("Failed to save feature flags", error);
+      },
+
       clearCart: () => set({ cart: [] }),
       cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
     }),
     {
-      name: 'ayala-catering-storage-v3',
+      name: 'ayala-catering-storage-v4',
     }
   )
 );
