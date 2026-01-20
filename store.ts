@@ -6,7 +6,116 @@ import { supabase } from './lib/supabase';
 
 type Language = 'he' | 'en';
 
-export const translations: Record<Language, any> = {
+export interface Translations {
+  title: string;
+  subtitle: string;
+  guestsQuestion: string;
+  guestsSub: string;
+  autoRecommend: string;
+  sandwiches: string;
+  trays: string;
+  perCategory: string;
+  addToCart: string;
+  add: string;
+  added: string;
+  outOfStock: string;
+  premium: string;
+  serves: string;
+  people: string;
+  myOrder: string;
+  emptyCart: string;
+  total: string;
+  minOrder: string;
+  checkout: string;
+  shareDraft: string;
+  freeDeliveryAt: string;
+  vipDelivery: string;
+  justMore: string;
+  forVip: string;
+  checkoutSub: string;
+  search: string;
+  customizeTitle: string;
+  notesPlaceholder: string;
+  modifications: string;
+  cancel: string;
+  confirmAdd: string;
+  tray: string;
+  liter: string;
+  unit: string;
+  weight: string;
+  clearCart: string;
+  clearCartConfirm: string;
+  planEvent: string;
+  eventType: string;
+  hungerLevel: string;
+  calcResults: string;
+  aiTitle: string;
+  aiPlaceholder: string;
+  aiGenerate: string;
+  aiApplying: string;
+  aiApply: string;
+  aiExplanation: string;
+  brunch: string;
+  dinner: string;
+  snack: string;
+  party: string;
+  light: string;
+  medium: string;
+  heavy: string;
+  categories: Record<string, string>;
+  admin: {
+    title: string;
+    exit: string;
+    minOrder: string;
+    prepTime: string;
+    storeStatus: string;
+    open: string;
+    closed: string;
+    searchPlaceholder: string;
+    productName: string;
+    category: string;
+    price: string;
+    status: string;
+    modifications: string;
+    edit: string;
+    active: string;
+    outOfStock: string;
+    editItemTitle: string;
+    inStock: string;
+    outOfStockLabel: string;
+    modsHint: string;
+    modsPlaceholder: string;
+    save: string;
+    cancelBtn: string;
+    addItem: string;
+    createItemTitle: string;
+    description: string;
+    unitType: string;
+    create: string;
+    premium: string;
+    calcSettings: string;
+    sandwichesPerPerson: string;
+    pastriesPerPerson: string;
+    trayCapacity: string;
+    advCalc: string;
+    hungerMult: string;
+    eventLogic: string;
+    unitsPerPerson: string;
+    coverage: string;
+    tableEventType: string;
+    tableSandwiches: string;
+    tablePastries: string;
+    tableSalads: string;
+    tableMains: string;
+    tablePlatters: string;
+    tableDesserts: string;
+    featureMgmt: string;
+    showCalc: string;
+    showAI: string;
+  };
+}
+
+export const translations: Record<Language, Translations> = {
   he: {
     title: "איילה פשוט טעים",
     subtitle: "קייטרינג חלבי פרימיום",
@@ -296,7 +405,7 @@ export const useStore = create<AppState>()(
 
       fetchMenuItems: async () => {
           set({ isLoading: true });
-          const { data, error } = await supabase.from('menu_items').select('*').order('category', { ascending: true });
+          const { data } = await supabase.from('menu_items').select('*').order('category', { ascending: true });
           if (data) set({ menuItems: data as MenuItem[] });
           set({ isLoading: false });
       },

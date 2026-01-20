@@ -13,10 +13,19 @@
     "noEmit": true,
     "jsx": "react-jsx",
     "strict": true,
+    "rootDir": ".",
+    "baseUrl": ".",
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["."],
-  "exclude": ["node_modules", "src"]
+  "include": [
+    "index.tsx",
+    "App.tsx",
+    "types.ts",
+    "store.ts",
+    "components/**/*",
+    "lib/**/*"
+  ],
+  "exclude": ["node_modules", "src", "dist"]
 }

@@ -6,7 +6,7 @@ import { AIConcierge } from './components/AIConcierge';
 import { CartDrawer } from './components/CartDrawer';
 import { Category } from './types';
 import { ShoppingBag, Phone, Globe, Lock, X, Loader2 } from 'lucide-react';
-import { useStore, translations } from './store';
+import { useStore, translations, Translations } from './store';
 import { AdminDashboard } from './components/AdminDashboard';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts'];
@@ -22,7 +22,7 @@ export default function App() {
   const [loginError, setLoginError] = useState(false);
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
 
-  const t = translations[language] || translations['he'];
+  const t: Translations = translations[language] || translations['he'];
 
   useEffect(() => {
       fetchMenuItems();
@@ -69,7 +69,7 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-3 md:gap-6">
-                 <button onClick={() => setIsLoginOpen(true)} className="p-2 text-stone-400 hover:text-gold-500 transition-colors"><Lock size={18} /></button>
+                 <button onClick={() => setIsLoginOpen(true)} className="p-2 text-stone-400 hover:text-gold-500 transition-colors" title="Admin Access"><Lock size={18} /></button>
                  <button onClick={() => setLanguage(language === 'he' ? 'en' : 'he')} className="flex items-center gap-1.5 text-xs font-bold bg-stone-800 px-3 py-1.5 rounded-full border border-stone-700 hover:border-gold-500 transition-colors"><Globe size={14} className="text-gold-500" /><span>{language === 'he' ? 'EN' : 'עב'}</span></button>
                 <a href="tel:0547474764" className="hidden md:flex items-center gap-2 text-stone-300 hover:text-white transition-colors"><Phone size={16} /><span className="text-sm font-medium">054-747-4764</span></a>
                 <button onClick={() => setIsCartOpen(true)} className="relative group p-2 hover:bg-stone-800 rounded-full transition-colors">
@@ -97,7 +97,7 @@ export default function App() {
         <div className="sticky top-[72px] z-40 bg-stone-50/95 backdrop-blur-md py-4 mb-8 border-b border-stone-200 -mx-4 px-4 overflow-x-auto shadow-sm">
             <nav className="flex gap-2 min-w-max mx-auto md:justify-center">
                 {CATEGORIES.map(cat => (
-                    <button key={cat} onClick={() => scrollToCategory(cat)} className={`whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full transition-all duration-300 ${activeCategory === cat ? 'bg-stone-900 text-gold-500 shadow-md transform scale-105' : 'bg-white text-stone-600 border border-stone-200 hover:border-gold-500 hover:text-stone-900'}`}>{(t.categories as Record<string, string>)[cat]}</button>
+                    <button key={cat} onClick={() => scrollToCategory(cat)} className={`whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full transition-all duration-300 ${activeCategory === cat ? 'bg-stone-900 text-gold-500 shadow-md transform scale-105' : 'bg-white text-stone-600 border border-stone-200 hover:border-gold-500 hover:text-stone-900'}`}>{(t.categories)[cat]}</button>
                 ))}
             </nav>
         </div>
