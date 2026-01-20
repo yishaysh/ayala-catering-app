@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel } from './types';
 import { supabase } from './lib/supabase';
 
 // HARDCODED INITIAL MENU (Fallback if DB is empty or not connected)
@@ -298,18 +298,24 @@ interface AppState {
   guestCount: number;
   language: Language;
   isLoading: boolean;
-  calculationSettings: CalculationSettings; // New state
+  
+  // Calculator State
+  eventType: EventType;
+  hungerLevel: HungerLevel;
+  calculationSettings: CalculationSettings;
 
   // Actions
   fetchMenuItems: () => Promise<void>;
   setGuestCount: (count: number) => void;
+  setEventType: (type: EventType) => void;
+  setHungerLevel: (level: HungerLevel) => void;
   setLanguage: (lang: Language) => void;
   addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
   addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
-  updateCalculationSettings: (settings: Partial<CalculationSettings>) => void; // New Action
+  updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
   clearCart: () => void;
   
   // Logic
@@ -324,6 +330,8 @@ export const useStore = create<AppState>()(
       guestCount: 0,
       language: 'he',
       isLoading: false,
+      eventType: 'snack',
+      hungerLevel: 'medium',
       calculationSettings: {
         sandwichesPerPerson: 1.5,
         pastriesPerPerson: 1.0,
@@ -346,8 +354,9 @@ export const useStore = create<AppState>()(
       },
 
       setLanguage: (lang) => set({ language: lang }),
-
       setGuestCount: (count) => set({ guestCount: count }),
+      setEventType: (type) => set({ eventType: type }),
+      setHungerLevel: (level) => set({ hungerLevel: level }),
 
       addToCart: (item, quantity = 1, notes = '', modifications = []) => {
         const currentCart = get().cart;
@@ -438,30 +447,27 @@ export const useStore = create<AppState>()(
           cart: state.cart, 
           guestCount: state.guestCount, 
           language: state.language,
-          calculationSettings: state.calculationSettings // Persist settings
+          calculationSettings: state.calculationSettings,
+          eventType: state.eventType,
+          hungerLevel: state.hungerLevel
       }), 
     }
   )
 );
 
-// Updated to use settings
 export const getSuggestedQuantity = (item: MenuItem, guestCount: number, settings: CalculationSettings): number => {
     if (guestCount <= 0) return 1;
     
-    // Use dynamic settings
     if (item.category === 'Sandwiches' && item.unit_type === 'unit') {
         return Math.ceil(guestCount * settings.sandwichesPerPerson);
     }
-    
     if (item.category === 'Pastries' && item.unit_type === 'unit') {
         return Math.ceil(guestCount * settings.pastriesPerPerson);
     }
-
     if (item.unit_type === 'tray' || item.unit_type === 'liter') {
         const capacity = item.serves_max || settings.averageTrayCapacity;
         return Math.ceil(guestCount / capacity);
     }
-    
     return 1;
 };
 
@@ -483,12 +489,12 @@ export const getLocalizedItem = (item: MenuItem, lang: Language) => {
 
 export const translations = {
   he: {
-    // ... existing translations ...
+    // ... existing ...
     title: "איילה פשוט טעים",
     subtitle: "קייטרינג חלבי פרימיום",
     guestsQuestion: "כמה אורחים מגיעים?",
-    guestsSub: "הזינו את כמות האורחים ונעזור לכם לחשב כמויות",
-    autoRecommend: "המלצה אוטומטית:",
+    guestsSub: "תכנון אירוע מעולם לא היה פשוט יותר",
+    autoRecommend: "התמהיל המומלץ עבורך:",
     sandwiches: "סנדוויצ'ים",
     trays: "מגשי אירוח",
     perCategory: "לכל קטגוריה",
@@ -514,6 +520,24 @@ export const translations = {
     tray: 'מגש',
     liter: 'ליטר',
     unit: 'יחידה',
+    
+    // Host Helper / Smart Calc
+    planEvent: "בואו נתכנן את האירוע המושלם",
+    eventType: "סוג האירוע",
+    hungerLevel: "רמת רעב",
+    calcResults: "המלצות להרכב האירוע",
+    
+    // Event Types
+    'brunch': "בראנץ'",
+    'dinner': "ארוחת ערב",
+    'snack': "אירוח קליל",
+    'party': "מסיבה",
+    
+    // Hunger Levels
+    'light': "נשנוש",
+    'medium': "רגיל",
+    'heavy': "רעבים מאוד",
+
     categories: {
       'Salads': 'סלטים טריים',
       'Cold Platters': 'מגשי אירוח',
@@ -561,12 +585,12 @@ export const translations = {
     }
   },
   en: {
-    // ... existing translations ...
+    // ... existing ...
     title: "Ayala Simply Delicious",
     subtitle: "Premium Dairy Catering",
     guestsQuestion: "How many guests?",
-    guestsSub: "Enter guest count for smart quantity suggestions",
-    autoRecommend: "Auto Recommendation:",
+    guestsSub: "Planning your event made simple",
+    autoRecommend: "Your recommended mix:",
     sandwiches: "Sandwiches",
     trays: "Trays",
     perCategory: "per category",
@@ -592,6 +616,24 @@ export const translations = {
     tray: 'Tray',
     liter: 'Liter',
     unit: 'Unit',
+    
+    // Host Helper
+    planEvent: "Let's plan the perfect event",
+    eventType: "Event Type",
+    hungerLevel: "Hunger Level",
+    calcResults: "Recommended Menu Composition",
+
+    // Event Types
+    'brunch': "Brunch",
+    'dinner': "Dinner",
+    'snack': "Light / Cocktail",
+    'party': "Party",
+    
+    // Hunger Levels
+    'light': "Light",
+    'medium': "Regular",
+    'heavy': "Starving",
+
     categories: {
       'Salads': 'Fresh Salads',
       'Cold Platters': 'Cold Platters',

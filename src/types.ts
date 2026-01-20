@@ -8,6 +8,9 @@ export type Category =
   | 'Pastries' 
   | 'Desserts';
 
+export type EventType = 'brunch' | 'dinner' | 'snack' | 'party';
+export type HungerLevel = 'light' | 'medium' | 'heavy';
+
 export interface MenuItem {
   id: string;
   category: Category;
