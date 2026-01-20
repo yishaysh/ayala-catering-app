@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Access environment variables directly without casting.
-// Vite replaces these statically at build time.
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Access environment variables safely.
+// Use optional chaining to prevent crashes if import.meta.env is undefined.
+const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Missing Supabase Environment Variables. Please check your .env file.');
