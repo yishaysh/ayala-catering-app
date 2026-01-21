@@ -297,7 +297,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     <label className="block text-sm font-bold text-stone-700 mb-1">{t.unitType}</label>
                                     <select value={newItem.unit_type} onChange={(e) => setNewItem({...newItem, unit_type: e.target.value as UnitType})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none">
                                         {UNIT_OPTIONS.map(u => (
-                                            <option key={u} value={u}>{u}</option>
+                                            <option key={u} value={u}>{rootT[u] || u}</option>
                                         ))}
                                     </select>
                                 </div>
