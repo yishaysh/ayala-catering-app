@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useStore, translations, Translations } from '../store';
-import { Sparkles, Loader2, Send } from 'lucide-react';
+import { Sparkles, Loader2, Send, AlertCircle } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { MenuItem } from '../types';
 
@@ -26,6 +25,7 @@ export const AIConcierge: React.FC = () => {
         if (!prompt.trim() || !API_KEY) return;
         
         setIsGenerating(true);
+        setRecommendation(null); // Clear previous result
         try {
             // אתחול ה-SDK החדש
             const ai = new GoogleGenAI({ apiKey: API_KEY });
@@ -36,10 +36,24 @@ export const AIConcierge: React.FC = () => {
                 cat: m.category 
             }));
 
-            const fullPrompt = `אתה עוזר אישי לקייטרינג 'איילה'. המשתמש ביקש: "${prompt}". 
-                זה התפריט הזמין: ${JSON.stringify(menuSummary)}.
-                בנה תפריט מאוזן של 4-8 מנות עם כמויות מתאימות. 
-                החזר רק את ה-JSON.`;
+            const fullPrompt = `
+                תפקידך: יועץ קולינרי לקייטרינג "איילה פשוט טעים".
+                בקשת המשתמש: "${prompt}".
+                תפריט זמין: ${JSON.stringify(menuSummary)}.
+
+                הוראות:
+                1. אם הבקשה אינה קשורה לאוכל, אירועים או קייטרינג, או אם היא לא ברורה/ג'יבריש:
+                   - החזר רשימת 'items' ריקה [].
+                   - ב-'explanation' כתוב הודעה מנומסת בעברית שמסבירה שלא הבנת את הבקשה ומבקשת מהמשתמש לתאר את האירוע (למשל: סוג האירוע, כמות אנשים, העדפות).
+                
+                2. אם הבקשה תקינה:
+                   - בחר 4-8 מנות מתאימות מהתפריט.
+                   - קבע כמויות הגיוניות לאירוע סטנדרטי (אלא אם צוינה כמות אנשים).
+                   - החזר את המנות ב-'items'.
+                   - ב-'explanation' כתוב הסבר קצר ומזמין בעברית על בחירת התפריט.
+
+                החזר JSON בלבד לפי הסכמה המוגדרת.
+            `;
 
             // קריאה למודל החדש gemini-3-flash-preview
             const response = await ai.models.generateContent({
@@ -120,13 +134,19 @@ export const AIConcierge: React.FC = () => {
                         <textarea
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    generateRecommendation();
+                                }
+                            }}
                             placeholder={t.aiPlaceholder}
                             className="flex-1 bg-stone-800 border border-stone-700 rounded-2xl p-4 text-white h-24 resize-none focus:outline-none focus:border-gold-500"
                         />
                         <button
                             onClick={generateRecommendation}
                             disabled={isGenerating || !prompt.trim()}
-                            className="bg-gold-500 text-stone-900 font-bold rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-gold-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-gold-500 text-stone-900 font-bold rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:bg-gold-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[100px]"
                         >
                             {isGenerating ? <Loader2 className="animate-spin" /> : <Send size={24} />}
                             <span className="text-xs">{t.aiGenerate}</span>
@@ -134,14 +154,23 @@ export const AIConcierge: React.FC = () => {
                     </div>
 
                     {recommendation && (
-                        <div className="bg-stone-800/50 rounded-2xl p-6 border border-gold-500/20 animate-fade-in">
-                            <p className="text-stone-300 text-sm mb-4 italic">"{recommendation.explanation}"</p>
-                            <button
-                                onClick={handleApply}
-                                className="w-full bg-white text-stone-900 font-bold py-3 rounded-xl hover:bg-stone-100 transition-colors"
-                            >
-                                {t.aiApply}
-                            </button>
+                        <div className="animate-fade-in">
+                            {recommendation.items.length > 0 ? (
+                                <div className="bg-stone-800/50 rounded-2xl p-6 border border-gold-500/20">
+                                    <p className="text-stone-300 text-sm mb-4 italic">"{recommendation.explanation}"</p>
+                                    <button
+                                        onClick={handleApply}
+                                        className="w-full bg-white text-stone-900 font-bold py-3 rounded-xl hover:bg-stone-100 transition-colors shadow-lg"
+                                    >
+                                        {t.aiApply} ({recommendation.items.length} {language === 'he' ? 'פריטים' : 'items'})
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-start gap-3">
+                                    <AlertCircle className="text-red-400 shrink-0 mt-0.5" size={20} />
+                                    <p className="text-red-200 text-sm">{recommendation.explanation}</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </>
