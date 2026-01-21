@@ -1,12 +1,15 @@
+
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Menu Items Table
+-- 1. Menu Items Table (Updated with all necessary fields)
 CREATE TABLE menu_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     category VARCHAR(50) NOT NULL,
     name VARCHAR(100) NOT NULL,
+    name_en VARCHAR(100),
     description TEXT,
+    description_en TEXT,
     price DECIMAL(10, 2) NOT NULL,
     unit_type VARCHAR(20) CHECK (unit_type IN ('tray', 'unit', 'liter', 'weight')),
     serves_min INT DEFAULT 1,
@@ -14,6 +17,9 @@ CREATE TABLE menu_items (
     is_premium BOOLEAN DEFAULT FALSE,
     tags TEXT[],
     availability_status BOOLEAN DEFAULT TRUE,
+    image_url TEXT,
+    allowed_modifications TEXT[],
+    allowed_modifications_en TEXT[],
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -35,9 +41,12 @@ CREATE TABLE app_settings (
     value JSONB
 );
 
--- SEED DATA (Parsed from PDF/OCR)
+-- STORAGE BUCKET POLICY (Ensure 'menu-images' bucket exists and is public)
+-- INSERT INTO storage.buckets (id, name, public) VALUES ('menu-images', 'menu-images', true);
+-- CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING ( bucket_id = 'menu-images' );
+-- CREATE POLICY "Authenticated Upload" ON storage.objects FOR INSERT WITH CHECK ( bucket_id = 'menu-images' );
 
--- Salads
+-- SEED DATA (Salads)
 INSERT INTO menu_items (category, name, description, price, unit_type, serves_min, serves_max) VALUES
 ('Salads', 'סלט הבית', 'חסה, מלפפונים, עגבניות, בטטה מקורמלת, פטריות חיות, בצל סגול, נבטי חמניה + ויניגרט', 145, 'tray', 8, 10),
 ('Salads', 'סלט כפרי', 'חסה, עלי בייבי, מלפפונים, עגבניות, בטטה מקורמלת, סלק טרי, חמוציות', 145, 'tray', 8, 10),

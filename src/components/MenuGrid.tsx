@@ -195,15 +195,17 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
 
     {/* Add to Cart Customization Modal */}
     {itemToAdd && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-0 md:p-4 font-sans">
+        <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center font-sans">
              <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" 
                 onClick={() => setItemToAdd(null)}
              ></div>
              
-             <div className="relative bg-white w-full h-full md:h-auto md:max-h-[85vh] md:max-w-lg md:rounded-2xl flex flex-col shadow-2xl animate-zoom-in overflow-hidden bg-stone-50">
+             {/* Modal Container: h-[100dvh] for mobile prevents browser bar cutoff */}
+             <div className="relative bg-stone-50 w-full h-[100dvh] md:h-auto md:max-h-[85vh] md:max-w-lg md:rounded-2xl flex flex-col shadow-2xl animate-slide-in-bottom md:animate-zoom-in overflow-hidden">
                 
                 {/* Header Image Section for Modal */}
-                <div className="relative h-56 md:h-64 bg-stone-200 shrink-0">
+                {/* Reduced height on mobile (h-48) to give more space for content */}
+                <div className="relative h-48 md:h-64 bg-stone-200 shrink-0">
                     <img 
                         src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
                         alt={getLocalizedItem(itemToAdd, language).name}
@@ -291,7 +293,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                     </div>
                 </div>
 
-                <div className="p-4 border-t border-stone-200 bg-white flex gap-4 shrink-0 pb-safe">
+                {/* Footer fixed at bottom with safe area padding */}
+                <div className="p-4 border-t border-stone-200 bg-white flex gap-4 shrink-0 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-20">
                     <div className="flex-1 flex flex-col justify-center">
                         <div className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">{t.total}</div>
                         <div className="text-2xl font-bold font-serif text-stone-900">₪{itemToAdd.price * addQuantity}</div>
