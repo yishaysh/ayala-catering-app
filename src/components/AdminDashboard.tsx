@@ -75,28 +75,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, isEdit: boolean) => {
         try {
-            setUploading(true);
             const file = event.target.files?.[0];
             if (!file) return;
 
-            // Generate unique filename
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-            const filePath = `${fileName}`;
+            // בדיקת גודל קובץ - הגבלה ל-5MB כדי למנוע בעיות זיכרון בנייד
+            if (file.size > 5 * 1024 * 1024) {
+                alert(language === 'he' ? 'הקובץ גדול מדי (מעל 5MB). אנא בחר תמונה קטנה יותר.' : 'File too large (>5MB). Please choose a smaller image.');
+                return;
+            }
+
+            setUploading(true);
+
+            // יצירת שם קובץ תקין ובטוח (רק אותיות באנגלית ומספרים)
+            // זה פותר בעיות בהעלאה מניידים שנותנים שמות גנריים או בעברית
+            const fileExt = file.name.split('.').pop()?.replace(/[^a-z0-9]/gi, '') || 'jpg';
+            const randomName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+            const cleanFileName = `${randomName}.${fileExt}`;
 
             // Upload to Supabase Storage 'menu-images' bucket
+            // הוספת contentType היא קריטית לדפדפני מובייל
             const { error: uploadError } = await supabase.storage
                 .from('menu-images')
-                .upload(filePath, file);
+                .upload(cleanFileName, file, {
+                    cacheControl: '3600',
+                    upsert: false,
+                    contentType: file.type || 'image/jpeg'
+                });
 
             if (uploadError) {
+                console.error("Supabase Upload Error:", uploadError);
+                // אם השגיאה קשורה ל-JSON/JFIF, זו בדרך כלל בעיה בתגובה מהשרת עקב שם קובץ או כותרת
+                if (uploadError.message.includes('JSON') || uploadError.message.includes('JFIF')) {
+                     throw new Error('שגיאה בתקשורת (פורמט קובץ). נסה קובץ אחר או וודא חיבור תקין.');
+                }
                 throw uploadError;
             }
 
             // Get Public URL
             const { data } = supabase.storage
                 .from('menu-images')
-                .getPublicUrl(filePath);
+                .getPublicUrl(cleanFileName);
 
             if (isEdit) {
                 setEditImageUrl(data.publicUrl);
@@ -106,8 +124,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
         } catch (error: any) {
             console.error('Error uploading image:', error);
-            // Display specific error message to help debug RLS issues
-            alert(`שגיאה בהעלאת התמונה: ${error.message || 'שגיאה לא ידועה'}\n\nאם השגיאה היא על הרשאות (Policy), יש להוסיף הרשאת INSERT ל-Public ב-Supabase Storage.`);
+            const msg = error.message || 'שגיאה לא ידועה';
+            alert(`שגיאה בהעלאת התמונה:\n${msg}\n\nנסה לצלם מחדש או לבחור תמונה אחרת.`);
         } finally {
             setUploading(false);
             // Clear input so same file can be selected again if retry is needed
@@ -341,7 +359,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                             <span>{uploading ? 'מעלה...' : 'העלה תמונה חדשה'}</span>
                                             <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, true)} className="hidden" disabled={uploading} />
                                         </label>
-                                        <p className="text-[10px] text-stone-400 mt-1">מומלץ: פורמט JPG/PNG עד 2MB</p>
+                                        <p className="text-[10px] text-stone-400 mt-1">מומלץ: פורמט JPG/PNG עד 5MB</p>
                                     </div>
                                 </div>
                             </div>
@@ -399,6 +417,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                             <span>{uploading ? 'מעלה...' : 'העלה תמונה'}</span>
                                             <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, false)} className="hidden" disabled={uploading} />
                                         </label>
+                                        <p className="text-[10px] text-stone-400 mt-1">מומלץ: פורמט JPG/PNG עד 5MB</p>
                                     </div>
                                 </div>
                             </div>
