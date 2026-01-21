@@ -1,3 +1,4 @@
+
 // Removed reference to vite/client to avoid type definition error in this environment
 // /// <reference types="vite/client" />
 
@@ -9,4 +10,13 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
+}
+
+interface AIStudio {
+  hasSelectedApiKey: () => Promise<boolean>;
+  openSelectKey: () => Promise<void>;
+}
+
+interface Window {
+  aistudio?: AIStudio;
 }

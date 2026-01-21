@@ -73,15 +73,3 @@ export interface AppSettings {
 export interface GuestCalculationResult {
   [itemId: string]: number;
 }
-
-declare global {
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
-
-  interface Window {
-    // Add readonly modifier to aistudio property in Window interface to match existing global declarations.
-    readonly aistudio: AIStudio;
-  }
-}

@@ -1,4 +1,5 @@
 
+
 export type UnitType = 'tray' | 'unit' | 'liter' | 'weight';
 export type Category = 
   | 'Salads' 
@@ -67,18 +68,6 @@ export interface AppSettings {
   lead_time_hours: number;
   delivery_fee: number;
   is_shop_open: boolean;
-}
-
-declare global {
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
-
-  interface Window {
-    // Add readonly modifier to aistudio property in Window interface to match existing global declarations.
-    readonly aistudio: AIStudio;
-  }
 }
 
 export {};
