@@ -200,11 +200,11 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                 onClick={() => setItemToAdd(null)}
              ></div>
              
-             {/* Modal Container: h-full for mobile prevents layout issues */}
-             <div className="relative bg-stone-50 w-full h-full md:h-auto md:max-h-[85vh] md:max-w-lg md:rounded-2xl flex flex-col shadow-2xl animate-slide-in-bottom md:animate-zoom-in overflow-hidden">
+             {/* Modal Container */}
+             {/* השינוי המרכזי: שימוש ב-h-[100dvh] למובייל כדי למנוע את הסתרת הכפתור ע"י הדפדפן */}
+             <div className="relative bg-stone-50 w-full h-[100dvh] md:h-auto md:max-h-[85vh] md:max-w-lg md:rounded-2xl flex flex-col shadow-2xl animate-slide-in-bottom md:animate-zoom-in overflow-hidden">
                 
                 {/* Header Image Section for Modal */}
-                {/* Reduced height on mobile (h-40) to give more space for content */}
                 <div className="relative h-40 md:h-64 bg-stone-200 shrink-0">
                     <img 
                         src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
@@ -231,7 +231,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-5 space-y-6">
+                {/* Content Area - min-h-0 is crucial for flex children scrolling correctly */}
+                <div className="flex-1 overflow-y-auto min-h-0 p-5 space-y-6">
                     {/* Description */}
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
                         <p className="text-stone-600 leading-relaxed text-sm">
@@ -291,9 +292,11 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                             className="w-full p-4 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-gold-500 min-h-[80px] text-sm"
                         ></textarea>
                     </div>
+                    {/* Extra padding to ensure bottom content isn't cut off by safe area on scroll */}
+                    <div className="h-4"></div>
                 </div>
 
-                {/* Footer fixed at bottom with safe area padding */}
+                {/* Footer fixed at bottom */}
                 <div className="p-4 border-t border-stone-200 bg-white flex gap-4 shrink-0 pb-safe shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-20">
                     <div className="flex-1 flex flex-col justify-center">
                         <div className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">{t.total}</div>
