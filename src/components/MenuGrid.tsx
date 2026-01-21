@@ -195,17 +195,17 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
 
     {/* Add to Cart Customization Modal */}
     {itemToAdd && (
-        <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center font-sans">
+        <div className="fixed inset-0 z-[70] flex justify-center md:items-center font-sans">
              <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" 
                 onClick={() => setItemToAdd(null)}
              ></div>
              
-             {/* Modal Container: h-[100dvh] for mobile prevents browser bar cutoff */}
-             <div className="relative bg-stone-50 w-full h-[100dvh] md:h-auto md:max-h-[85vh] md:max-w-lg md:rounded-2xl flex flex-col shadow-2xl animate-slide-in-bottom md:animate-zoom-in overflow-hidden">
+             {/* Modal Container: h-full for mobile prevents layout issues */}
+             <div className="relative bg-stone-50 w-full h-full md:h-auto md:max-h-[85vh] md:max-w-lg md:rounded-2xl flex flex-col shadow-2xl animate-slide-in-bottom md:animate-zoom-in overflow-hidden">
                 
                 {/* Header Image Section for Modal */}
-                {/* Reduced height on mobile (h-48) to give more space for content */}
-                <div className="relative h-48 md:h-64 bg-stone-200 shrink-0">
+                {/* Reduced height on mobile (h-40) to give more space for content */}
+                <div className="relative h-40 md:h-64 bg-stone-200 shrink-0">
                     <img 
                         src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
                         alt={getLocalizedItem(itemToAdd, language).name}
