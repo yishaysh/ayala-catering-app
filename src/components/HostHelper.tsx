@@ -1,24 +1,28 @@
 
 import React, { useMemo } from 'react';
 import { useStore, translations } from '../store';
-import { Minus, Plus, UtensilsCrossed, Wine, Sun, PartyPopper, Sparkles, Coffee, Pizza, Utensils } from 'lucide-react';
-import { EventType, HungerLevel } from '../types';
+import { Minus, Plus, UtensilsCrossed, Wine, Sun, Sparkles, Coffee, Pizza, Utensils, Sandwich, Croissant, Leaf, Cake, Droplets, Layers } from 'lucide-react';
+import { EventType } from '../types';
 
 export const HostHelper: React.FC = () => {
   const { 
-    guestCount, setGuestCount, 
+    guestAdults, setGuestAdults,
+    guestChildren, setGuestChildren,
     language, 
     eventType, setEventType, 
-    hungerLevel, setHungerLevel,
     advancedSettings
   } = useStore();
   
   const t = translations[language];
 
-  const recommendations = useMemo(() => {
-    if (guestCount === 0) return null;
+  // Logic: Child (4-11) is worth 0.6 of an adult serving
+  const effectiveGuests = useMemo(() => {
+    return guestAdults + (guestChildren * 0.6);
+  }, [guestAdults, guestChildren]);
 
-    const hungerMult = advancedSettings.hungerMultipliers[hungerLevel];
+  const recommendations = useMemo(() => {
+    if (effectiveGuests <= 0) return null;
+
     const ratios = advancedSettings.eventRatios[eventType];
 
     const TRAY_CAPACITY = 10;
@@ -26,22 +30,14 @@ export const HostHelper: React.FC = () => {
     const DESSERT_CAPACITY = 15;
 
     return {
-        sandwiches: Math.ceil(guestCount * ratios.sandwiches * hungerMult),
-        pastries: Math.ceil(guestCount * ratios.pastries * hungerMult),
-        salads: Math.ceil((guestCount * ratios.saladsCoverage * hungerMult) / TRAY_CAPACITY * 10),
-        mains: Math.ceil((guestCount * ratios.mainsCoverage * hungerMult) / TRAY_CAPACITY * 10),
-        platters: Math.ceil((guestCount * ratios.plattersCoverage * hungerMult) / PLATTER_CAPACITY * 12),
-        desserts: Math.ceil((guestCount * ratios.dessertsCoverage * hungerMult) / DESSERT_CAPACITY * 15),
+        sandwiches: Math.ceil(effectiveGuests * ratios.sandwiches),
+        pastries: Math.ceil(effectiveGuests * ratios.pastries),
+        salads: Math.ceil((effectiveGuests * ratios.saladsCoverage) / TRAY_CAPACITY * 10),
+        mains: Math.ceil((effectiveGuests * ratios.mainsCoverage) / TRAY_CAPACITY * 10),
+        platters: Math.ceil((effectiveGuests * ratios.plattersCoverage) / PLATTER_CAPACITY * 12),
+        desserts: Math.ceil((effectiveGuests * ratios.dessertsCoverage) / DESSERT_CAPACITY * 15),
     };
-  }, [guestCount, eventType, hungerLevel, advancedSettings]);
-
-  const hungerOptions: { id: HungerLevel, icon: React.ReactNode }[] = [
-    { id: 'light', icon: <Coffee size={18} /> },
-    { id: 'medium', icon: <Pizza size={18} /> },
-    { id: 'heavy', icon: <Utensils size={18} /> }
-  ];
-
-  const getActiveIndex = () => hungerOptions.findIndex(opt => opt.id === hungerLevel);
+  }, [effectiveGuests, eventType, advancedSettings]);
 
   return (
     <div className="relative bg-stone-900 text-stone-50 rounded-3xl shadow-2xl mb-12 border border-stone-800 w-full overflow-hidden transition-all duration-500">
@@ -57,149 +53,142 @@ export const HostHelper: React.FC = () => {
                     <p className="text-stone-400 text-sm md:text-base">{t.guestsSub}</p>
                 </div>
 
-                <div className="flex items-center gap-3 bg-stone-800/80 p-2 rounded-2xl border border-stone-700/50 backdrop-blur-sm self-start md:self-center">
-                    <button 
-                        onClick={() => setGuestCount(Math.max(0, guestCount - 5))}
-                        className="w-12 h-12 rounded-xl bg-stone-700 hover:bg-stone-600 text-stone-200 grid place-items-center transition-all active:scale-95"
-                    >
-                        <Minus size={20} />
-                    </button>
-                    <div className="min-w-[4rem] text-center">
-                        <span className="block text-xs text-stone-500 font-bold uppercase tracking-wider">{t.people}</span>
-                        <input
-                            type="number"
-                            value={guestCount || ''}
-                            onChange={(e) => setGuestCount(parseInt(e.target.value) || 0)}
-                            placeholder="0"
-                            className="w-full bg-transparent text-center text-3xl font-bold focus:outline-none text-white placeholder-stone-600 font-serif leading-none mt-1"
-                        />
+                <div className="flex flex-col sm:flex-row gap-4">
+                    {/* Adults 12+ */}
+                    <div className="flex items-center gap-3 bg-stone-800/80 p-2 rounded-2xl border border-stone-700/50 backdrop-blur-sm">
+                        <button 
+                            onClick={() => setGuestAdults(Math.max(0, guestAdults - 1))}
+                            className="w-10 h-10 rounded-xl bg-stone-700 hover:bg-stone-600 text-stone-200 grid place-items-center transition-all active:scale-95"
+                        >
+                            <Minus size={18} />
+                        </button>
+                        <div className="min-w-[4rem] text-center">
+                            <span className="block text-[10px] text-stone-500 font-bold uppercase tracking-wider">{t.ageAdults}</span>
+                            <input
+                                type="number"
+                                value={guestAdults || ''}
+                                onChange={(e) => setGuestAdults(parseInt(e.target.value) || 0)}
+                                placeholder="0"
+                                className="w-full bg-transparent text-center text-2xl font-bold focus:outline-none text-white placeholder-stone-600 font-serif leading-none mt-1"
+                            />
+                        </div>
+                        <button 
+                            onClick={() => setGuestAdults(guestAdults + 1)}
+                            className="w-10 h-10 rounded-xl bg-gold-500 hover:bg-gold-400 text-stone-900 grid place-items-center transition-all active:scale-95 shadow-lg shadow-gold-500/20"
+                        >
+                            <Plus size={18} />
+                        </button>
                     </div>
-                    <button 
-                        onClick={() => setGuestCount(guestCount + 5)}
-                        className="w-12 h-12 rounded-xl bg-gold-500 hover:bg-gold-400 text-stone-900 grid place-items-center transition-all active:scale-95 shadow-lg shadow-gold-500/20"
-                    >
-                        <Plus size={20} />
-                    </button>
+
+                    {/* Children 4-11 */}
+                    <div className="flex items-center gap-3 bg-stone-800/80 p-2 rounded-2xl border border-stone-700/50 backdrop-blur-sm">
+                        <button 
+                            onClick={() => setGuestChildren(Math.max(0, guestChildren - 1))}
+                            className="w-10 h-10 rounded-xl bg-stone-700 hover:bg-stone-600 text-stone-200 grid place-items-center transition-all active:scale-95"
+                        >
+                            <Minus size={18} />
+                        </button>
+                        <div className="min-w-[4rem] text-center">
+                            <span className="block text-[10px] text-stone-500 font-bold uppercase tracking-wider">{t.ageChildren}</span>
+                            <input
+                                type="number"
+                                value={guestChildren || ''}
+                                onChange={(e) => setGuestChildren(parseInt(e.target.value) || 0)}
+                                placeholder="0"
+                                className="w-full bg-transparent text-center text-2xl font-bold focus:outline-none text-white placeholder-stone-600 font-serif leading-none mt-1"
+                            />
+                        </div>
+                        <button 
+                            onClick={() => setGuestChildren(guestChildren + 1)}
+                            className="w-10 h-10 rounded-xl bg-stone-400 hover:bg-stone-300 text-stone-900 grid place-items-center transition-all active:scale-95 shadow-lg"
+                        >
+                            <Plus size={18} />
+                        </button>
+                    </div>
                 </div>
              </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-px bg-stone-800">
-              {/* Event Type Section */}
-              <div className="bg-stone-900 p-6 md:p-8">
-                  <label className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-4 block">{t.eventType}</label>
-                  <div className="grid grid-cols-2 gap-3">
-                      {(['brunch', 'dinner', 'snack', 'party'] as EventType[]).map((type) => (
-                          <button
-                            key={type}
-                            onClick={() => setEventType(type)}
-                            className={`
-                                relative p-4 rounded-xl border transition-all duration-300 flex flex-col items-center gap-2
-                                ${eventType === type 
-                                    ? 'bg-gold-500/10 border-gold-500 text-gold-400' 
-                                    : 'bg-stone-800/50 border-transparent text-stone-500 hover:bg-stone-800'
-                                }
-                            `}
-                          >
-                              {type === 'brunch' && <Sun size={24} />}
-                              {type === 'dinner' && <UtensilsCrossed size={24} />}
-                              {type === 'snack' && <Wine size={24} />}
-                              {type === 'party' && <PartyPopper size={24} />}
-                              <span className="text-sm font-bold">{(t as any)[type]}</span>
-                          </button>
-                      ))}
-                  </div>
-              </div>
-
-              {/* Hunger Level Section - NEW SEGMENTED UI */}
-              <div className="bg-stone-900 p-6 md:p-8 flex flex-col">
-                  <label className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-6 block">{t.hungerLevel}</label>
-                  
-                  <div className="relative bg-stone-800/50 p-1.5 rounded-2xl border border-stone-700/50 flex items-center h-16 w-full max-w-sm">
-                      {/* Active Indicator Background */}
-                      <div 
-                        className="absolute top-1.5 bottom-1.5 bg-gold-500 rounded-xl transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] shadow-lg shadow-gold-500/20"
-                        style={{ 
-                            width: 'calc(33.33% - 8px)',
-                            transform: `translateX(${language === 'he' ? -(getActiveIndex() * 100) : (getActiveIndex() * 100)}%)`,
-                            left: language === 'he' ? 'auto' : '1.5',
-                            right: language === 'he' ? '1.5' : 'auto'
-                        }}
-                      ></div>
-                      
-                      {/* Options */}
-                      {hungerOptions.map((opt) => (
-                          <button
-                            key={opt.id}
-                            onClick={() => setHungerLevel(opt.id)}
-                            className={`
-                                relative z-10 flex-1 flex items-center justify-center gap-2 text-sm font-bold transition-colors duration-300
-                                ${hungerLevel === opt.id ? 'text-stone-900' : 'text-stone-400 hover:text-stone-200'}
-                            `}
-                          >
-                            <span className={`transition-transform duration-300 ${hungerLevel === opt.id ? 'scale-110' : 'scale-100 opacity-60'}`}>
-                                {opt.icon}
-                            </span>
-                            <span className="hidden sm:inline">{(t as any)[opt.id]}</span>
-                          </button>
-                      ))}
-                  </div>
-                  
-                  {/* Subtext description */}
-                  <div className="mt-4 text-xs text-stone-500 font-medium px-2">
-                    {hungerLevel === 'light' && (language === 'he' ? '* כיבוד קל למפגש חברתי' : '* Light refreshments for social gathering')}
-                    {hungerLevel === 'medium' && (language === 'he' ? '* ארוחה משביעה וסטנדרטית' : '* Satisfying standard meal')}
-                    {hungerLevel === 'heavy' && (language === 'he' ? '* לאורחים רעבים במיוחד!' : '* For extra hungry guests!')}
-                  </div>
+          <div className="bg-stone-900 p-6 md:p-8 border-b border-stone-800">
+              <label className="text-xs font-bold text-stone-500 uppercase tracking-widest mb-6 block text-center md:text-start">{t.eventType}</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl">
+                  {(['brunch', 'dinner', 'snack'] as EventType[]).map((type) => (
+                      <button
+                        key={type}
+                        onClick={() => setEventType(type)}
+                        className={`
+                            relative p-6 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-3
+                            ${eventType === type 
+                                ? 'bg-gold-500/10 border-gold-500 text-gold-400 shadow-[0_0_20px_rgba(212,175,55,0.1)]' 
+                                : 'bg-stone-800/50 border-stone-800 text-stone-500 hover:bg-stone-800'
+                            }
+                        `}
+                      >
+                          {type === 'brunch' && <Sun size={32} />}
+                          {type === 'dinner' && <UtensilsCrossed size={32} />}
+                          {type === 'snack' && <Wine size={32} />}
+                          <span className="text-base font-bold">{(t as any)[type]}</span>
+                          {eventType === type && (
+                              <div className="absolute -top-2 -right-2 bg-gold-500 text-stone-900 rounded-full p-1 animate-zoom-in">
+                                  <Sparkles size={12} fill="currentColor" />
+                              </div>
+                          )}
+                      </button>
+                  ))}
               </div>
           </div>
 
-          {guestCount > 0 && recommendations && (
+          {effectiveGuests > 0 && recommendations && (
             <div className="bg-stone-950/50 p-6 md:p-8 animate-slide-in-top">
-                <div className="flex items-center gap-3 mb-6">
+                <div className="flex items-center gap-3 mb-8">
                     <div className="p-2 bg-gold-500/20 rounded-full text-gold-500">
                         <Sparkles size={20} />
                     </div>
                     <h3 className="text-xl font-serif font-bold text-white">{t.calcResults}</h3>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    {recommendations.sandwiches > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '0ms'}}>
-                            <span className="block text-3xl font-bold text-gold-500 mb-1">{recommendations.sandwiches}</span>
-                            <span className="text-xs text-stone-400 uppercase tracking-wider">{t.sandwiches}</span>
-                        </div>
-                    )}
-                    {recommendations.pastries > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '100ms'}}>
-                            <span className="block text-3xl font-bold text-white mb-1">{recommendations.pastries}</span>
-                            <span className="text-xs text-stone-400 uppercase tracking-wider">{(t.categories as any)['Pastries']}</span>
-                        </div>
-                    )}
-                     {recommendations.salads > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '200ms'}}>
-                            <span className="block text-3xl font-bold text-white mb-1">{recommendations.salads}</span>
-                            <span className="text-xs text-stone-400 uppercase tracking-wider">{t.trays} {(t.categories as any)['Salads']}</span>
-                        </div>
-                    )}
-                     {recommendations.mains > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '300ms'}}>
-                            <span className="block text-3xl font-bold text-white mb-1">{recommendations.mains}</span>
-                            <span className="text-xs text-stone-400 uppercase tracking-wider">{t.trays} {(t.categories as any)['Main Courses']}</span>
-                        </div>
-                    )}
-                     {recommendations.platters > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '400ms'}}>
-                            <span className="block text-3xl font-bold text-white mb-1">{recommendations.platters}</span>
-                            <span className="text-xs text-stone-400 uppercase tracking-wider">{(t.categories as any)['Cold Platters']}</span>
-                        </div>
-                    )}
-                     {recommendations.desserts > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '500ms'}}>
-                            <span className="block text-3xl font-bold text-gold-500 mb-1">{recommendations.desserts}</span>
-                            <span className="text-xs text-stone-400 uppercase tracking-wider">{(t.categories as any)['Desserts']}</span>
-                        </div>
-                    )}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                    {/* Sandwiches Square */}
+                    <div className="aspect-square bg-stone-900 rounded-2xl p-4 border border-stone-800 flex flex-col items-center justify-center text-center group hover:border-gold-500/50 transition-all duration-300 animate-zoom-in shadow-xl">
+                        <Sandwich size={32} className="text-gold-500 mb-3 group-hover:scale-110 transition-transform" />
+                        <span className="text-3xl font-bold text-white mb-1">{recommendations.sandwiches}</span>
+                        <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">{t.sandwiches}</span>
+                    </div>
+
+                    {/* Pastries Square */}
+                    <div className="aspect-square bg-stone-900 rounded-2xl p-4 border border-stone-800 flex flex-col items-center justify-center text-center group hover:border-gold-500/50 transition-all duration-300 animate-zoom-in shadow-xl" style={{animationDelay: '100ms'}}>
+                        <Croissant size={32} className="text-stone-300 mb-3 group-hover:scale-110 transition-transform" />
+                        <span className="text-3xl font-bold text-white mb-1">{recommendations.pastries}</span>
+                        <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">{(t.categories as any)['Pastries']}</span>
+                    </div>
+
+                    {/* Salads Square */}
+                    <div className="aspect-square bg-stone-900 rounded-2xl p-4 border border-stone-800 flex flex-col items-center justify-center text-center group hover:border-gold-500/50 transition-all duration-300 animate-zoom-in shadow-xl" style={{animationDelay: '200ms'}}>
+                        <Leaf size={32} className="text-green-500 mb-3 group-hover:scale-110 transition-transform" />
+                        <span className="text-3xl font-bold text-white mb-1">{recommendations.salads}</span>
+                        <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">{(t.categories as any)['Salads']}</span>
+                    </div>
+
+                    {/* Main Courses Square */}
+                    <div className="aspect-square bg-stone-900 rounded-2xl p-4 border border-stone-800 flex flex-col items-center justify-center text-center group hover:border-gold-500/50 transition-all duration-300 animate-zoom-in shadow-xl" style={{animationDelay: '300ms'}}>
+                        <UtensilsCrossed size={32} className="text-stone-300 mb-3 group-hover:scale-110 transition-transform" />
+                        <span className="text-3xl font-bold text-white mb-1">{recommendations.mains}</span>
+                        <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">{(t.categories as any)['Main Courses']}</span>
+                    </div>
+
+                    {/* Platters Square */}
+                    <div className="aspect-square bg-stone-900 rounded-2xl p-4 border border-stone-800 flex flex-col items-center justify-center text-center group hover:border-gold-500/50 transition-all duration-300 animate-zoom-in shadow-xl" style={{animationDelay: '400ms'}}>
+                        <Layers size={32} className="text-gold-500 mb-3 group-hover:scale-110 transition-transform" />
+                        <span className="text-3xl font-bold text-white mb-1">{recommendations.platters}</span>
+                        <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">{(t.categories as any)['Cold Platters']}</span>
+                    </div>
+
+                    {/* Desserts Square */}
+                    <div className="aspect-square bg-stone-900 rounded-2xl p-4 border border-stone-800 flex flex-col items-center justify-center text-center group hover:border-gold-500/50 transition-all duration-300 animate-zoom-in shadow-xl" style={{animationDelay: '500ms'}}>
+                        <Cake size={32} className="text-stone-300 mb-3 group-hover:scale-110 transition-transform" />
+                        <span className="text-3xl font-bold text-white mb-1">{recommendations.desserts}</span>
+                        <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">{(t.categories as any)['Desserts']}</span>
+                    </div>
                 </div>
             </div>
           )}

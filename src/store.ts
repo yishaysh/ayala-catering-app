@@ -48,6 +48,8 @@ export interface Translations {
   planEvent: string;
   eventType: string;
   hungerLevel: string;
+  ageAdults: string;
+  ageChildren: string;
   calcResults: string;
   aiTitle: string;
   aiPlaceholder: string;
@@ -159,6 +161,8 @@ export const translations: Record<Language, Translations> = {
     planEvent: "בואו נתכנן את האירוע המושלם",
     eventType: "סוג האירוע",
     hungerLevel: "רמת רעב",
+    ageAdults: "גיל 12 ומעלה",
+    ageChildren: "גיל 4-11",
     calcResults: "המלצות להרכב האירוע",
     aiTitle: "הקונסיירז' הדיגיטלי (AI)",
     aiPlaceholder: "תארו לנו את האירוע... (לדוגמה: יום הולדת ל-20 איש בשישי בצהריים, אוהבים מתוקים)",
@@ -276,6 +280,8 @@ export const translations: Record<Language, Translations> = {
     planEvent: "Let's plan the perfect event",
     eventType: "Event Type",
     hungerLevel: "Hunger Level",
+    ageAdults: "Age 12+",
+    ageChildren: "Age 4-11",
     calcResults: "Recommended Menu Composition",
     aiTitle: "AI Event Concierge",
     aiPlaceholder: "Describe your event... (e.g. Birthday party for 20 people, we love sweets)",
@@ -356,7 +362,9 @@ export const translations: Record<Language, Translations> = {
 interface AppState {
   cart: CartItem[];
   menuItems: MenuItem[];
-  guestCount: number;
+  guestAdults: number;
+  guestChildren: number;
+  guestCount: number; // For backward compatibility/legacy calc
   language: Language;
   isLoading: boolean;
   featureFlags: FeatureFlags;
@@ -368,6 +376,8 @@ interface AppState {
   fetchMenuItems: () => Promise<void>;
   fetchSettings: () => Promise<void>;
   setGuestCount: (count: number) => void;
+  setGuestAdults: (count: number) => void;
+  setGuestChildren: (count: number) => void;
   setEventType: (type: EventType) => void;
   setHungerLevel: (level: HungerLevel) => void;
   setLanguage: (lang: Language) => void;
@@ -389,6 +399,8 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       cart: [],
       menuItems: [],
+      guestAdults: 0,
+      guestChildren: 0,
       guestCount: 0,
       language: 'he',
       isLoading: false,
@@ -419,7 +431,9 @@ export const useStore = create<AppState>()(
       },
 
       setLanguage: (lang) => set({ language: lang }),
-      setGuestCount: (count) => set({ guestCount: count }),
+      setGuestAdults: (count) => set((state) => ({ guestAdults: count, guestCount: count + state.guestChildren })),
+      setGuestChildren: (count) => set((state) => ({ guestChildren: count, guestCount: state.guestAdults + count })),
+      setGuestCount: (count) => set({ guestCount: count, guestAdults: count, guestChildren: 0 }), // Fallback
       setEventType: (type) => set({ eventType: type }),
       setHungerLevel: (level) => set({ hungerLevel: level }),
 
@@ -479,6 +493,8 @@ export const useStore = create<AppState>()(
       name: 'ayala-catering-storage-v5',
       partialize: (state) => ({ 
           cart: state.cart, 
+          guestAdults: state.guestAdults,
+          guestChildren: state.guestChildren,
           guestCount: state.guestCount, 
           language: state.language,
           calculationSettings: state.calculationSettings,
