@@ -104,11 +104,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 setNewItem(prev => ({ ...prev, image_url: data.publicUrl }));
             }
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error uploading image:', error);
-            alert('שגיאה בהעלאת התמונה. וודא שקיים Bucket בשם menu-images ב-Supabase.');
+            // Display specific error message to help debug RLS issues
+            alert(`שגיאה בהעלאת התמונה: ${error.message || 'שגיאה לא ידועה'}\n\nאם השגיאה היא על הרשאות (Policy), יש להוסיף הרשאת INSERT ל-Public ב-Supabase Storage.`);
         } finally {
             setUploading(false);
+            // Clear input so same file can be selected again if retry is needed
+            event.target.value = '';
         }
     };
 
