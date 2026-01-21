@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useStore, translations, Translations } from '../store';
 import { Sparkles, Loader2, Send, CheckCircle2, Key, ExternalLink } from 'lucide-react';
@@ -13,34 +12,43 @@ export const AIConcierge: React.FC = () => {
     const [recommendation, setRecommendation] = useState<{ items: { id: string, quantity: number }[], explanation: string } | null>(null);
     const [needsKey, setNeedsKey] = useState(false);
 
-    // Effect to check key status on mount
+    // Use Vite-specific env variable
+    const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
     useEffect(() => {
-        const checkKey = async () => {
+        const checkKeyStatus = async () => {
+            // If we are in AI Studio preview
             if (window.aistudio) {
                 try {
                     const hasKey = await window.aistudio.hasSelectedApiKey();
-                    if (!hasKey && !process.env.API_KEY) {
+                    if (!hasKey && !API_KEY) {
                         setNeedsKey(true);
                     }
                 } catch (e) {
-                    console.error("Error checking key status", e);
+                    console.error("AI Studio key check failed", e);
                 }
+            } 
+            // If deployed (Vercel), check if the env var is missing
+            else if (!API_KEY) {
+                setNeedsKey(true);
             }
         };
-        checkKey();
-    }, []);
+        checkKeyStatus();
+    }, [API_KEY]);
 
     const handleConnect = async () => {
         if (window.aistudio) {
             try {
                 await window.aistudio.openSelectKey();
-                // Per instructions: assume success and proceed
                 setNeedsKey(false);
             } catch (e) {
                 console.error("Error opening key selector", e);
             }
         } else {
-            alert(language === 'he' ? "הדפדפן אינו תומך בבחירת מפתח אוטומטית." : "Browser does not support auto key selection.");
+            // Instruction for production users
+            alert(language === 'he' 
+                ? "יש להגדיר מפתח API במערכת הניהול (Vercel Environment Variables)." 
+                : "API Key must be configured in Vercel Environment Variables.");
         }
     };
 
@@ -49,8 +57,8 @@ export const AIConcierge: React.FC = () => {
         
         setIsGenerating(true);
         try {
-            // ALWAYS initialize right before use to catch the latest key from process.env.API_KEY
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            // Initialize with the available key
+            const ai = new GoogleGenAI({ apiKey: API_KEY });
             
             const menuSummary = (menuItems || []).map(m => ({ 
                 id: m.id, 
@@ -59,7 +67,7 @@ export const AIConcierge: React.FC = () => {
             })).slice(0, 50);
 
             const response = await ai.models.generateContent({
-                model: 'gemini-3-flash-preview',
+                model: 'gemini-1.5-flash', // Corrected model name
                 contents: `User event: "${prompt}". 
                 Menu: ${JSON.stringify(menuSummary)}. 
                 Suggest a balanced menu of 4-8 items with quantities. 
@@ -95,8 +103,7 @@ export const AIConcierge: React.FC = () => {
             }
         } catch (error: any) {
             console.error("AI Error:", error);
-            const errMsg = error?.message || "";
-            if (errMsg.includes("API Key") || errMsg.includes("Requested entity was not found")) {
+            if (error?.message?.includes("API Key") || error?.message?.includes("not found")) {
                 setNeedsKey(true);
             } else {
                 alert(language === 'he' ? "משהו השתבש בבניית התפריט. נסו שוב." : "Something went wrong. Please try again.");
@@ -145,25 +152,14 @@ export const AIConcierge: React.FC = () => {
                     </div>
                     <h4 className="text-white font-bold mb-2">חיבור מפתח API נדרש</h4>
                     <p className="text-stone-400 text-sm mb-6 max-w-sm mx-auto">
-                        לצורך שימוש בבינה מלאכותית בסביבת הפיתוח, עליך לחבר מפתח API (עם Billing פעיל) מהפרויקט שלך.
+                        לצורך שימוש בבינה מלאכותית, יש להגדיר מפתח API תקין במערכת.
                     </p>
                     <button 
                         onClick={handleConnect}
                         className="bg-gold-500 text-stone-900 font-bold px-8 py-3 rounded-xl hover:bg-gold-400 transition transform active:scale-95 shadow-xl shadow-gold-500/20 flex items-center gap-2 mx-auto"
                     >
-                        <span>חבר מפתח עכשיו</span>
+                        <span>{window.aistudio ? "חבר מפתח עכשיו" : "הדרכה להגדרת מפתח"}</span>
                     </button>
-                    <div className="mt-6 border-t border-stone-700/50 pt-4">
-                        <a 
-                            href="https://ai.google.dev/gemini-api/docs/billing" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-[10px] text-stone-500 hover:text-gold-500 underline uppercase tracking-widest flex items-center justify-center gap-1"
-                        >
-                            <span>מידע על הגדרת חיוב</span>
-                            <ExternalLink size={10} />
-                        </a>
-                    </div>
                 </div>
             ) : (
                 <>
