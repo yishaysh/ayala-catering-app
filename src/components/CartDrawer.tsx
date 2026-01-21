@@ -2,6 +2,7 @@
 import React from 'react';
 import { useStore, translations, getLocalizedItem } from '../store';
 import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles } from 'lucide-react';
+import { useBackButton } from '../hooks/useBackButton';
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -13,6 +14,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const t = translations[language] || translations['he'];
     const total = cartTotal();
     
+    // Handle Android/iOS Back Button
+    useBackButton(isOpen, onClose);
+
     const MIN_ORDER = 500;
     const VIP_THRESHOLD = 1500;
 

@@ -8,6 +8,7 @@ import { ShoppingBag, Phone, Globe, Lock, X, Loader2 } from 'lucide-react';
 import { useStore, translations } from './store';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AIConcierge } from './components/AIConcierge';
+import { useBackButton } from './hooks/useBackButton';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts'];
 
@@ -23,6 +24,9 @@ export default function App() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [loginError, setLoginError] = useState(false);
+
+  // Handle Back Button for Login Modal
+  useBackButton(isLoginOpen, () => setIsLoginOpen(false));
 
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const t = translations[language];

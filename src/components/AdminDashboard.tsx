@@ -4,6 +4,7 @@ import { MenuItem, Category, UnitType, EventType } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
 import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useBackButton } from '../hooks/useBackButton';
 
 interface AdminDashboardProps {
     onExit: () => void;
@@ -44,6 +45,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [showAdvancedCalc, setShowAdvancedCalc] = useState(false);
     const [uploading, setUploading] = useState(false);
+
+    // Handle Back Button for Modals
+    useBackButton(!!editingItem, () => setEditingItem(null));
+    useBackButton(isAddModalOpen, () => setIsAddModalOpen(false));
 
     // Edit State
     const [editPrice, setEditPrice] = useState(0);

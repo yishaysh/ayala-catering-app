@@ -3,6 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { MenuItem, Category } from '../types';
 import { useStore, getSuggestedQuantity, translations, getLocalizedItem } from '../store';
 import { Info, Star, Eye, X, Check, Minus, Plus } from 'lucide-react';
+import { useBackButton } from '../hooks/useBackButton';
 
 interface MenuGridProps {
   items: MenuItem[];
@@ -32,6 +33,10 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   const [addQuantity, setAddQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [selectedMods, setSelectedMods] = useState<string[]>([]);
+
+  // Handle Back Button for Modals
+  useBackButton(!!selectedImage, () => setSelectedImage(null));
+  useBackButton(!!itemToAdd, () => setItemToAdd(null));
 
   const groupedItems = useMemo(() => {
     const groups: Partial<Record<Category, MenuItem[]>> = {};
