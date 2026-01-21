@@ -78,7 +78,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             const file = event.target.files?.[0];
             if (!file) return;
 
-            // בדיקת גודל קובץ - הגבלה ל-5MB כדי למנוע בעיות זיכרון בנייד
+            // בדיקת גודל קובץ - הגבלה ל-5MB
             if (file.size > 5 * 1024 * 1024) {
                 alert(language === 'he' ? 'הקובץ גדול מדי (מעל 5MB). אנא בחר תמונה קטנה יותר.' : 'File too large (>5MB). Please choose a smaller image.');
                 return;
@@ -86,28 +86,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
             setUploading(true);
 
-            // יצירת שם קובץ תקין ובטוח (רק אותיות באנגלית ומספרים)
-            // זה פותר בעיות בהעלאה מניידים שנותנים שמות גנריים או בעברית
-            const fileExt = file.name.split('.').pop()?.replace(/[^a-z0-9]/gi, '') || 'jpg';
-            const randomName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
-            const cleanFileName = `${randomName}.${fileExt}`;
+            // 1. קביעת סוג הקובץ והסיומת בצורה קשיחה (פותר בעיות באנדרואיד/iOS)
+            let mimeType = file.type;
+            let ext = 'jpg';
+            
+            if (mimeType === 'image/png') {
+                ext = 'png';
+            } else if (mimeType === 'image/webp') {
+                ext = 'webp';
+            } else {
+                // ברירת מחדל ל-JPEG אם הזיהוי נכשל
+                mimeType = 'image/jpeg';
+                ext = 'jpg';
+            }
 
-            // Upload to Supabase Storage 'menu-images' bucket
-            // הוספת contentType היא קריטית לדפדפני מובייל
+            // יצירת שם קובץ ייחודי ללא תווים מיוחדים
+            const randomName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+            const cleanFileName = `${randomName}.${ext}`;
+
+            // 2. המרה ל-ArrayBuffer (הפתרון הקריטי למובייל)
+            // שליחת File object ישירות גורמת לבעיות ב-WebView ובדפדפנים ניידים מסוימים מול Supabase
+            const arrayBuffer = await file.arrayBuffer();
+            const fileData = new Uint8Array(arrayBuffer);
+
+            // 3. העלאה ל-Supabase עם הגדרות מדויקות
             const { error: uploadError } = await supabase.storage
                 .from('menu-images')
-                .upload(cleanFileName, file, {
+                .upload(cleanFileName, fileData, {
                     cacheControl: '3600',
                     upsert: false,
-                    contentType: file.type || 'image/jpeg'
+                    contentType: mimeType
                 });
 
             if (uploadError) {
                 console.error("Supabase Upload Error:", uploadError);
-                // אם השגיאה קשורה ל-JSON/JFIF, זו בדרך כלל בעיה בתגובה מהשרת עקב שם קובץ או כותרת
-                if (uploadError.message.includes('JSON') || uploadError.message.includes('JFIF')) {
-                     throw new Error('שגיאה בתקשורת (פורמט קובץ). נסה קובץ אחר או וודא חיבור תקין.');
-                }
                 throw uploadError;
             }
 
@@ -125,10 +137,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         } catch (error: any) {
             console.error('Error uploading image:', error);
             const msg = error.message || 'שגיאה לא ידועה';
-            alert(`שגיאה בהעלאת התמונה:\n${msg}\n\nנסה לצלם מחדש או לבחור תמונה אחרת.`);
+            
+            // הודעה ידידותית יותר למשתמש במקרה של שגיאת פורמט
+            if (msg.includes('JSON') || msg.includes('token')) {
+                 alert('אירעה שגיאה בעיבוד התמונה בשרת. נסה:\n1. לצלם תמונה חדשה במקום לבחור מהגלריה\n2. לוודא שיש חיבור אינטרנט יציב');
+            } else {
+                 alert(`שגיאה בהעלאת התמונה:\n${msg}`);
+            }
         } finally {
             setUploading(false);
-            // Clear input so same file can be selected again if retry is needed
+            // Clear input so same file can be selected again
             event.target.value = '';
         }
     };
