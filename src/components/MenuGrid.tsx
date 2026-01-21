@@ -18,6 +18,9 @@ const CATEGORY_ORDER: Category[] = [
   'Desserts'
 ];
 
+// תמונה גנרית איכותית (כהה ויוקרתית) למקרה שאין תמונת מנה
+const DEFAULT_PLACEHOLDER = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80";
+
 export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   const { addToCart, adultCount, childCount, language, calculationSettings } = useStore();
   const t = translations[language];
@@ -90,7 +93,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                 const suggestedQty = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings) : 1;
                 const localItem = getLocalizedItem(item, language);
                 
-                const previewUrl = item.image_url || `https://placehold.co/600x400/1c1917/d4af37?text=${encodeURIComponent(localItem.name)}`;
+                // שימוש בתמונה הגנרית אם אין תמונת מקור
+                const previewUrl = item.image_url || DEFAULT_PLACEHOLDER;
 
                 return (
                   <div 
@@ -201,7 +205,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                 {/* Header Image Section for Modal */}
                 <div className="relative h-56 md:h-64 bg-stone-200 shrink-0">
                     <img 
-                        src={itemToAdd.image_url || `https://placehold.co/600x400/1c1917/d4af37?text=${encodeURIComponent(getLocalizedItem(itemToAdd, language).name)}`}
+                        src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
                         alt={getLocalizedItem(itemToAdd, language).name}
                         className="w-full h-full object-cover"
                     />
