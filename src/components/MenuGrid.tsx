@@ -71,94 +71,87 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
 
   return (
     <>
-    <div className="space-y-16 pb-32">
+    <div className="space-y-8 pb-32">
       {CATEGORY_ORDER.map((cat) => {
         const catItems = groupedItems[cat];
         if (!catItems || catItems.length === 0) return null;
 
         return (
-          <section key={cat} id={cat} className="scroll-mt-48">
-            <div className="flex items-center gap-4 mb-8">
-                <h3 className="text-3xl font-serif font-bold text-stone-900 relative">
+          <section key={cat} id={cat} className="scroll-mt-40">
+            <div className="flex items-center gap-4 mb-4 px-2">
+                <h3 className="text-xl md:text-3xl font-serif font-bold text-stone-900 relative">
                   {(t.categories as Record<string, string>)[cat]}
-                  <span className="absolute -bottom-2 right-0 w-12 h-1 bg-gold-500 rounded-full"></span>
+                  <span className="absolute -bottom-2 right-0 w-8 md:w-12 h-1 bg-gold-500 rounded-full"></span>
                 </h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
               {catItems.map((item) => {
                 const suggestedQty = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings) : 1;
                 const localItem = getLocalizedItem(item, language);
                 
-                // Use actual item image or a high quality placeholder
                 const previewUrl = item.image_url || `https://placehold.co/600x400/1c1917/d4af37?text=${encodeURIComponent(localItem.name)}`;
 
                 return (
                   <div 
                       key={item.id} 
                       className={`
-                          group relative bg-white rounded-2xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-xl hover:border-gold-500/30 transition-all duration-300 flex flex-col justify-between
+                          group relative bg-white rounded-xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-xl hover:border-gold-500/30 transition-all duration-300 flex flex-col justify-between
                           ${!item.availability_status ? 'opacity-60 grayscale' : ''}
                       `}
                   >
-                    {item.is_premium && (
-                      <div className="absolute top-0 right-0 bg-stone-900 text-gold-500 text-xs px-3 py-1 rounded-bl-lg font-bold tracking-wider z-10 flex items-center gap-1 shadow-md">
-                        <Star size={10} fill="currentColor" /> {t.premium}
-                      </div>
-                    )}
+                    {/* Image Section - Top of Card */}
+                    <div className="relative aspect-[4/3] bg-stone-100 overflow-hidden cursor-pointer" onClick={() => openAddModal(item)}>
+                        <img 
+                            src={previewUrl} 
+                            alt={localItem.name}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none"></div>
 
-                    <div className="absolute top-4 left-4 z-10">
-                        <button 
-                            onClick={() => setSelectedImage({ name: localItem.name, url: previewUrl })}
-                            className="bg-white/90 px-3 py-1.5 rounded-full shadow-md text-stone-600 hover:text-gold-600 transition-colors backdrop-blur-sm border border-stone-100 flex items-center gap-1.5"
-                        >
-                            <Eye size={16} />
-                            <span className="text-[10px] font-bold uppercase tracking-wider">{language === 'he' ? 'הצג' : 'View'}</span>
-                        </button>
+                        {item.is_premium && (
+                          <div className="absolute top-0 right-0 bg-stone-900 text-gold-500 text-[10px] md:text-xs px-2 py-1 rounded-bl-lg font-bold tracking-wider z-10 flex items-center gap-1 shadow-md">
+                            <Star size={10} fill="currentColor" /> {t.premium}
+                          </div>
+                        )}
                     </div>
 
-                    <div className="p-6 pt-16">
-                      <div className="flex justify-between items-start mb-3">
-                          <h4 className="text-xl font-bold text-stone-900 group-hover:text-gold-600 transition-colors">{localItem.name}</h4>
-                          <span className="text-xl font-bold text-stone-900 bg-stone-50 px-2 py-1 rounded-md shrink-0 ml-2">₪{item.price}</span>
+                    <div className="p-2.5 md:p-5 flex flex-col flex-1">
+                      <div className="flex justify-between items-start mb-1 gap-1">
+                          <h4 className="text-sm md:text-lg font-bold text-stone-900 leading-tight line-clamp-2 min-h-[2.5em]">{localItem.name}</h4>
                       </div>
                       
-                      <p className="text-stone-500 text-sm mb-4 leading-relaxed line-clamp-2 min-h-[40px]">
-                          {localItem.description || (language === 'he' ? 'פריט איכותי וטרי מבית איילה פשוט טעים.' : 'Fresh premium item by Ayala Simply Delicious.')}
+                      <div className="flex items-baseline gap-1 mb-2">
+                           <span className="text-base md:text-xl font-bold text-stone-800">₪{item.price}</span>
+                           <span className="text-[10px] md:text-xs text-stone-400 font-normal">/ {getUnitName(item.unit_type)}</span>
+                      </div>
+                      
+                      {/* Description hidden on mobile for compactness */}
+                      <p className="hidden md:block text-stone-500 text-xs md:text-sm mb-3 leading-relaxed line-clamp-2">
+                          {localItem.description}
                       </p>
 
-                      <div className="flex flex-wrap gap-2 mb-2 text-xs text-stone-500 font-medium">
-                          {item.serves_min > 1 && (
-                              <span className="flex items-center gap-1 bg-stone-50 px-2 py-1 rounded-md border border-stone-200">
-                                  <Info size={12} />
-                                  {t.serves} {item.serves_min}-{item.serves_max}
-                              </span>
-                          )}
-                          <span className="bg-stone-50 px-2 py-1 rounded-md border border-stone-200">
-                              {getUnitName(item.unit_type)}
-                          </span>
+                      <div className="mt-auto pt-1">
+                        <button
+                            onClick={() => openAddModal(item)}
+                            disabled={!item.availability_status}
+                            className={`
+                                w-full py-2 md:py-3 rounded-lg flex items-center justify-center gap-1.5 font-bold text-xs md:text-sm tracking-wide transition-all duration-200
+                                ${!item.availability_status 
+                                    ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                                    : 'bg-stone-900 text-white shadow-md hover:bg-gold-500 hover:text-stone-900 active:scale-[0.98]'
+                                }
+                            `}
+                        >
+                            {!item.availability_status ? t.outOfStock : (
+                                <>
+                                    <Plus size={14} className="md:w-4 md:h-4" />
+                                    <span>{totalGuests > 0 ? `${t.add} (${suggestedQty})` : t.addToCart}</span>
+                                </>
+                            )}
+                        </button>
                       </div>
-                    </div>
-
-                    <div className="p-4 bg-stone-50 border-t border-stone-100 mt-auto">
-                      <button
-                        onClick={() => openAddModal(item)}
-                        disabled={!item.availability_status}
-                        className={`
-                            w-full py-3.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm tracking-wide transition-all duration-200
-                            ${!item.availability_status 
-                                ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
-                                : 'bg-stone-900 text-white shadow-lg shadow-stone-900/10 hover:bg-gold-500 hover:text-stone-900 hover:shadow-gold-500/20 active:scale-[0.98]'
-                            }
-                        `}
-                      >
-                        {!item.availability_status ? t.outOfStock : (
-                            <>
-                                <Plus size={18} strokeWidth={3} />
-                                <span>{totalGuests > 0 ? `${t.add} (${suggestedQty})` : t.addToCart}</span>
-                            </>
-                        )}
-                      </button>
                     </div>
                   </div>
                 );
@@ -187,9 +180,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         src={selectedImage.url} 
                         alt={selectedImage.name} 
                         className="w-full h-full object-cover"
-                        onError={(e) => {
-                            (e.target as HTMLImageElement).src = `https://placehold.co/600x400/1c1917/d4af37?text=${encodeURIComponent(selectedImage.name)}`;
-                        }}
                      />
                 </div>
                 <div className="p-6 bg-white">
@@ -201,42 +191,63 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
 
     {/* Add to Cart Customization Modal */}
     {itemToAdd && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 font-sans">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-0 md:p-4 font-sans">
              <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" 
                 onClick={() => setItemToAdd(null)}
              ></div>
              
-             <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl flex flex-col shadow-2xl animate-zoom-in">
+             <div className="relative bg-white w-full h-full md:h-auto md:max-h-[85vh] md:max-w-lg md:rounded-2xl flex flex-col shadow-2xl animate-zoom-in overflow-hidden bg-stone-50">
                 
-                <div className="bg-stone-900 p-5 text-white flex justify-between items-start shrink-0 rounded-t-2xl">
-                    <div className="pr-4"> 
-                        <h3 className="text-xl md:text-2xl font-serif font-bold mb-1 leading-tight">{getLocalizedItem(itemToAdd, language).name}</h3>
-                        <p className="text-stone-400 text-sm">₪{itemToAdd.price} / {getUnitName(itemToAdd.unit_type)}</p>
-                    </div>
+                {/* Header Image Section for Modal */}
+                <div className="relative h-56 md:h-64 bg-stone-200 shrink-0">
+                    <img 
+                        src={itemToAdd.image_url || `https://placehold.co/600x400/1c1917/d4af37?text=${encodeURIComponent(getLocalizedItem(itemToAdd, language).name)}`}
+                        alt={getLocalizedItem(itemToAdd, language).name}
+                        className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    
                     <button 
                         onClick={() => setItemToAdd(null)} 
-                        className="text-stone-400 hover:text-white bg-stone-800/50 p-2 rounded-full flex items-center justify-center"
+                        className="absolute top-4 right-4 text-white hover:text-gold-500 bg-black/20 hover:bg-black/40 backdrop-blur-sm p-2 rounded-full transition-all z-20"
                     >
                         <X size={24} />
                     </button>
+
+                    <div className="absolute bottom-0 left-0 right-0 p-6 z-10">
+                        <h3 className="text-2xl md:text-3xl font-serif font-bold text-white mb-2 leading-tight drop-shadow-md">
+                            {getLocalizedItem(itemToAdd, language).name}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                             <span className="text-xl font-bold text-gold-400">₪{itemToAdd.price}</span>
+                             <span className="text-stone-300 text-sm">/ {getUnitName(itemToAdd.unit_type)}</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-5 space-y-6">
-                    <div className="flex items-center justify-between bg-stone-50 p-4 rounded-xl border border-stone-200">
+                    {/* Description */}
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                        <p className="text-stone-600 leading-relaxed text-sm">
+                            {getLocalizedItem(itemToAdd, language).description || t.description}
+                        </p>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-white p-4 rounded-xl shadow-sm border border-stone-100">
                         <span className="font-bold text-stone-700">{t.customizeTitle}</span>
                         <div className="flex items-center gap-3">
                             <button 
                                 onClick={() => setAddQuantity(Math.max(1, addQuantity - 1))}
-                                className="w-12 h-12 rounded-full bg-white border border-stone-300 grid place-items-center text-stone-900 hover:bg-stone-100 transition-colors"
+                                className="w-10 h-10 rounded-full bg-stone-100 border border-stone-200 grid place-items-center text-stone-600 hover:bg-stone-200 transition-colors"
                             >
-                                <Minus size={20} />
+                                <Minus size={18} />
                             </button>
-                            <span className="text-2xl font-bold w-10 text-center">{addQuantity}</span>
+                            <span className="text-xl font-bold w-8 text-center text-stone-900">{addQuantity}</span>
                             <button 
                                 onClick={() => setAddQuantity(addQuantity + 1)}
-                                className="w-12 h-12 rounded-full bg-gold-500 text-stone-900 grid place-items-center shadow-lg hover:bg-gold-400 transition-colors"
+                                className="w-10 h-10 rounded-full bg-gold-500 text-stone-900 grid place-items-center shadow-lg hover:bg-gold-400 transition-colors"
                             >
-                                <Plus size={20} />
+                                <Plus size={18} />
                             </button>
                         </div>
                     </div>
@@ -252,8 +263,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                                         className={`
                                             px-3 py-2 rounded-lg text-sm font-medium border transition-all flex items-center gap-2
                                             ${selectedMods.includes(mod) 
-                                                ? 'bg-stone-900 text-white border-stone-900' 
-                                                : 'bg-white text-stone-600 border border-stone-200 hover:border-stone-400'
+                                                ? 'bg-stone-900 text-white border-stone-900 shadow-md' 
+                                                : 'bg-white text-stone-600 border border-stone-200 hover:border-gold-500'
                                             }
                                         `}
                                     >
@@ -271,19 +282,19 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder={language === 'he' ? "דגשים מיוחדים, אלרגיות, בקשות..." : "Special requests, allergies..."}
-                            className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:border-gold-500 min-h-[100px]"
+                            className="w-full p-4 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-gold-500 min-h-[80px] text-sm"
                         ></textarea>
                     </div>
                 </div>
 
-                <div className="p-5 border-t border-stone-200 bg-stone-50 flex gap-4 shrink-0 rounded-b-2xl">
-                    <div className="flex-1">
-                        <div className="text-xs text-stone-500 mb-1">{t.total}</div>
+                <div className="p-4 border-t border-stone-200 bg-white flex gap-4 shrink-0 pb-safe">
+                    <div className="flex-1 flex flex-col justify-center">
+                        <div className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">{t.total}</div>
                         <div className="text-2xl font-bold font-serif text-stone-900">₪{itemToAdd.price * addQuantity}</div>
                     </div>
                     <button 
                         onClick={handleConfirmAdd}
-                        className="flex-[2] bg-gold-500 text-stone-900 font-bold py-3.5 rounded-xl hover:bg-gold-400 transition-colors shadow-lg active:scale-95 flex items-center justify-center"
+                        className="flex-[2] bg-gold-500 text-stone-900 font-bold py-3 rounded-xl hover:bg-gold-400 transition-colors shadow-lg active:scale-95 flex items-center justify-center text-lg"
                     >
                         {t.confirmAdd}
                     </button>

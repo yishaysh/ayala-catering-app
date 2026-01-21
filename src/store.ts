@@ -37,6 +37,7 @@ export interface Translations {
   checkoutSub: string;
   search: string;
   customizeTitle: string;
+  description: string;
   notesPlaceholder: string;
   modifications: string;
   cancel: string;
@@ -144,6 +145,7 @@ export const translations: Record<Language, Translations> = {
     checkoutSub: "ההזמנה תשלח לאישור סופי מול איילה",
     search: "חיפוש בתפריט...",
     customizeTitle: "התאמה אישית",
+    description: "תיאור",
     notesPlaceholder: "הערות מיוחדות למנה...",
     modifications: "שינויים:",
     cancel: "ביטול",
@@ -257,6 +259,7 @@ export const translations: Record<Language, Translations> = {
     checkoutSub: "Order will be sent for final approval",
     search: "Search menu...",
     customizeTitle: "Customize Item",
+    description: "Description",
     notesPlaceholder: "Special requests...",
     modifications: "Modifications:",
     cancel: "Cancel",
