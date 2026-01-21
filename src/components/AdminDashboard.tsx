@@ -268,6 +268,77 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     </div>
                 </div>
             )}
+
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
+                    <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl animate-zoom-in text-start flex flex-col">
+                        <div className="flex justify-between items-center mb-6 shrink-0">
+                            <h2 className="text-2xl font-serif font-bold text-stone-900">{t.createItemTitle}</h2>
+                            <button onClick={() => setIsAddModalOpen(false)} className="text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full"><X size={20} /></button>
+                        </div>
+                        
+                        <div className="space-y-4 flex-1 overflow-y-auto">
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.productName}</label>
+                                <input type="text" value={newItem.name} onChange={(e) => setNewItem({...newItem, name: e.target.value})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.category}</label>
+                                    <select value={newItem.category} onChange={(e) => setNewItem({...newItem, category: e.target.value as Category})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none">
+                                        {CATEGORY_OPTIONS.map(c => (
+                                            <option key={c} value={c}>{(rootT.categories as any)[c] || c}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.unitType}</label>
+                                    <select value={newItem.unit_type} onChange={(e) => setNewItem({...newItem, unit_type: e.target.value as UnitType})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none">
+                                        {UNIT_OPTIONS.map(u => (
+                                            <option key={u} value={u}>{u}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label>
+                                <input type="number" value={newItem.price} onChange={(e) => setNewItem({...newItem, price: Number(e.target.value)})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.description}</label>
+                                <textarea value={newItem.description} onChange={(e) => setNewItem({...newItem, description: e.target.value})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-20" />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.modifications}</label>
+                                <textarea value={addMods} onChange={(e) => setAddMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-20" />
+                                <p className="text-xs text-stone-400 mt-1">{t.modsHint}</p>
+                            </div>
+                            
+                             <div>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50">
+                                    <input type="checkbox" checked={newItem.is_premium} onChange={(e) => setNewItem({...newItem, is_premium: e.target.checked})} className="w-4 h-4 text-gold-500 rounded" />
+                                    <span className="font-bold text-sm text-stone-700">{t.premium}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 flex gap-3 shrink-0">
+                            <button onClick={handleAddSave} disabled={!newItem.name || !newItem.price} className="flex-1 bg-stone-900 text-gold-500 font-bold py-3 rounded-lg hover:bg-stone-800 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <Plus size={18} />
+                                {t.create}
+                            </button>
+                            <button onClick={() => setIsAddModalOpen(false)} className="bg-stone-100 text-stone-600 font-bold py-3 px-6 rounded-lg hover:bg-stone-200">
+                                {t.cancelBtn}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
