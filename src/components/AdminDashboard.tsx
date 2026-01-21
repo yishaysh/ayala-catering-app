@@ -45,6 +45,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
     const [editPrice, setEditPrice] = useState(0);
     const [editStatus, setEditStatus] = useState(true);
+    const [editIsPremium, setEditIsPremium] = useState(false);
     const [editMods, setEditMods] = useState('');
 
     const [newItem, setNewItem] = useState<Partial<MenuItem>>({
@@ -61,6 +62,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         setEditingItem(item);
         setEditPrice(item.price);
         setEditStatus(item.availability_status);
+        setEditIsPremium(item.is_premium);
         const mods = language === 'he' ? item.allowed_modifications : (item.allowed_modifications_en || item.allowed_modifications);
         setEditMods(mods ? mods.join(', ') : '');
     };
@@ -68,7 +70,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const handleEditSave = () => {
         if (!editingItem) return;
         const modsArray = editMods.split(',').map(s => s.trim()).filter(s => s.length > 0);
-        const updateData: Partial<MenuItem> = { price: editPrice, availability_status: editStatus };
+        const updateData: Partial<MenuItem> = { 
+            price: editPrice, 
+            availability_status: editStatus,
+            is_premium: editIsPremium
+        };
         if (language === 'he') updateData.allowed_modifications = modsArray;
         else updateData.allowed_modifications_en = modsArray;
         updateMenuItem(editingItem.id, updateData);
@@ -262,6 +268,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         <div className="space-y-4 flex-1 overflow-y-auto">
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label><input type="number" value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" /></div>
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.status}</label><div className="flex items-center gap-4"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={editStatus} onChange={() => setEditStatus(true)} className="w-4 h-4 text-gold-500" /><span>{t.inStock}</span></label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={!editStatus} onChange={() => setEditStatus(false)} className="w-4 h-4 text-red-500" /><span>{t.outOfStockLabel}</span></label></div></div>
+                             <div>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50 w-full">
+                                    <input type="checkbox" checked={editIsPremium} onChange={(e) => setEditIsPremium(e.target.checked)} className="w-4 h-4 text-gold-500 rounded" />
+                                    <span className="font-bold text-sm text-stone-700">{t.premium}</span>
+                                </label>
+                            </div>
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.modifications}</label><textarea value={editMods} onChange={(e) => setEditMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-24" /></div>
                         </div>
                         <div className="mt-8 flex gap-3 shrink-0"><button onClick={handleEditSave} className="flex-1 bg-gold-500 text-stone-900 font-bold py-3 rounded-lg hover:bg-gold-400 flex items-center justify-center gap-2"><Save size={18} />{t.save}</button><button onClick={() => setEditingItem(null)} className="bg-stone-100 text-stone-600 font-bold py-3 px-6 rounded-lg hover:bg-stone-200">{t.cancelBtn}</button></div>
