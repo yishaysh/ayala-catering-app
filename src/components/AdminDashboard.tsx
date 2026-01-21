@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { MenuItem, Category, UnitType, EventType, HungerLevel } from '../types';
+import { MenuItem, Category, UnitType, EventType } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface AdminDashboardProps {
     onExit: () => void;
@@ -19,7 +20,7 @@ const CATEGORY_OPTIONS: Category[] = [
 ];
 
 const UNIT_OPTIONS: UnitType[] = ['tray', 'unit', 'liter', 'weight'];
-const EVENT_TYPES: EventType[] = ['brunch', 'dinner', 'snack', 'party'];
+const EVENT_TYPES: EventType[] = ['brunch', 'dinner', 'snack'];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const { 
@@ -42,14 +43,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [showAdvancedCalc, setShowAdvancedCalc] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
+    // Edit State
     const [editPrice, setEditPrice] = useState(0);
     const [editStatus, setEditStatus] = useState(true);
     const [editIsPremium, setEditIsPremium] = useState(false);
     const [editMods, setEditMods] = useState('');
+    const [editImageUrl, setEditImageUrl] = useState('');
 
+    // New Item State
     const [newItem, setNewItem] = useState<Partial<MenuItem>>({
-        name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: []
+        name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], image_url: ''
     });
     const [addMods, setAddMods] = useState('');
 
@@ -63,8 +68,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         setEditPrice(item.price);
         setEditStatus(item.availability_status);
         setEditIsPremium(item.is_premium);
+        setEditImageUrl(item.image_url || '');
         const mods = language === 'he' ? item.allowed_modifications : (item.allowed_modifications_en || item.allowed_modifications);
         setEditMods(mods ? mods.join(', ') : '');
+    };
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, isEdit: boolean) => {
+        try {
+            setUploading(true);
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            // Generate unique filename
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            // Upload to Supabase Storage 'menu-images' bucket
+            const { error: uploadError } = await supabase.storage
+                .from('menu-images')
+                .upload(filePath, file);
+
+            if (uploadError) {
+                throw uploadError;
+            }
+
+            // Get Public URL
+            const { data } = supabase.storage
+                .from('menu-images')
+                .getPublicUrl(filePath);
+
+            if (isEdit) {
+                setEditImageUrl(data.publicUrl);
+            } else {
+                setNewItem(prev => ({ ...prev, image_url: data.publicUrl }));
+            }
+
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert('שגיאה בהעלאת התמונה. וודא שקיים Bucket בשם menu-images ב-Supabase.');
+        } finally {
+            setUploading(false);
+        }
     };
 
     const handleEditSave = () => {
@@ -73,7 +118,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         const updateData: Partial<MenuItem> = { 
             price: editPrice, 
             availability_status: editStatus,
-            is_premium: editIsPremium
+            is_premium: editIsPremium,
+            image_url: editImageUrl
         };
         if (language === 'he') updateData.allowed_modifications = modsArray;
         else updateData.allowed_modifications_en = modsArray;
@@ -85,17 +131,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         if (!newItem.name || !newItem.price) return;
         const modsArray = addMods.split(',').map(s => s.trim()).filter(s => s.length > 0);
         const itemToSave: Omit<MenuItem, 'id'> = {
-            name: newItem.name || '', category: (newItem.category as Category) || 'Salads', price: Number(newItem.price), unit_type: (newItem.unit_type as UnitType) || 'tray', description: newItem.description || '', serves_min: Number(newItem.serves_min) || 1, serves_max: Number(newItem.serves_max) || 1, is_premium: newItem.is_premium || false, availability_status: true, tags: [], allowed_modifications: modsArray, allowed_modifications_en: modsArray
+            name: newItem.name || '', category: (newItem.category as Category) || 'Salads', price: Number(newItem.price), unit_type: (newItem.unit_type as UnitType) || 'tray', description: newItem.description || '', serves_min: Number(newItem.serves_min) || 1, serves_max: Number(newItem.serves_max) || 1, is_premium: newItem.is_premium || false, availability_status: true, tags: [], allowed_modifications: modsArray, allowed_modifications_en: modsArray, image_url: newItem.image_url
         };
         await addMenuItem(itemToSave);
         setIsAddModalOpen(false);
-        setNewItem({ name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [] });
-    };
-
-    const handleHungerMultChange = (level: HungerLevel, value: string) => {
-        const newMults = { ...advancedSettings.hungerMultipliers };
-        newMults[level] = parseFloat(value) || 1.0;
-        updateAdvancedSettings({ hungerMultipliers: newMults });
+        setNewItem({ name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], image_url: '' });
     };
 
     const handleEventRatioChange = (eType: EventType, field: string, value: string) => {
@@ -169,17 +209,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </button>
                 {showAdvancedCalc && (
                     <div className="p-6 bg-stone-50 animate-slide-in-top">
-                        <div className="mb-8 border-b border-stone-200 pb-8">
-                            <h4 className="text-stone-900 font-bold mb-4 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.hungerMult}</h4>
-                            <div className="grid grid-cols-3 gap-6 max-w-lg">
-                                {(['light', 'medium', 'heavy'] as HungerLevel[]).map(level => (
-                                    <div key={level}>
-                                        <label className="block text-xs font-bold text-stone-500 uppercase mb-1">{rootT[level] || level}</label>
-                                        <input type="number" step="0.1" value={advancedSettings?.hungerMultipliers?.[level] || 1} onChange={(e) => handleHungerMultChange(level, e.target.value)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500" />
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
 
                         <div>
                             <h4 className="text-stone-900 font-bold mb-2 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.eventLogic}</h4>
@@ -226,6 +255,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         <thead className="bg-stone-50 text-stone-500 text-sm">
                             <tr>
                                 <th className="p-4 text-start">{t.productName}</th>
+                                <th className="p-4 text-start">IMG</th>
                                 <th className="p-4 text-start">{t.category}</th>
                                 <th className="p-4 text-start">{t.price}</th>
                                 <th className="p-4 text-start">{t.status}</th>
@@ -239,6 +269,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 return (
                                     <tr key={item.id} className="border-b border-stone-100 hover:bg-stone-50">
                                         <td className="p-4 font-bold text-stone-800">{localItem.name}</td>
+                                        <td className="p-4">
+                                            {item.image_url ? (
+                                                <img src={item.image_url} alt="mini" className="w-10 h-10 object-cover rounded-md border border-stone-200" />
+                                            ) : (
+                                                <div className="w-10 h-10 bg-stone-100 rounded-md border border-stone-200 flex items-center justify-center text-stone-300">
+                                                    <ImageIcon size={16} />
+                                                </div>
+                                            )}
+                                        </td>
                                         <td className="p-4 text-stone-500">{(rootT.categories as Record<string, string>)?.[item.category] || item.category}</td>
                                         <td className="p-4">₪{item.price}</td>
                                         <td className="p-4">
@@ -271,6 +310,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             <button onClick={() => setEditingItem(null)} className="text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full"><X size={20} /></button>
                         </div>
                         <div className="space-y-4 flex-1 overflow-y-auto">
+                            
+                            {/* Image Upload Section */}
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-2">תמונת מנה</label>
+                                <div className="flex items-center gap-4">
+                                    <div className="relative w-20 h-20 bg-stone-100 rounded-lg overflow-hidden border border-stone-200 shrink-0">
+                                        {editImageUrl ? (
+                                            <img src={editImageUrl} alt="preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-stone-300">
+                                                <ImageIcon size={24} />
+                                            </div>
+                                        )}
+                                        {uploading && (
+                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                <Loader2 className="animate-spin text-white" size={20} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className={`
+                                            flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm
+                                            ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
+                                        `}>
+                                            <Upload size={16} />
+                                            <span>{uploading ? 'מעלה...' : 'העלה תמונה חדשה'}</span>
+                                            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, true)} className="hidden" disabled={uploading} />
+                                        </label>
+                                        <p className="text-[10px] text-stone-400 mt-1">מומלץ: פורמט JPG/PNG עד 2MB</p>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label><input type="number" value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" /></div>
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.status}</label><div className="flex items-center gap-4"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={editStatus} onChange={() => setEditStatus(true)} className="w-4 h-4 text-gold-500" /><span>{t.inStock}</span></label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={!editStatus} onChange={() => setEditStatus(false)} className="w-4 h-4 text-red-500" /><span>{t.outOfStockLabel}</span></label></div></div>
                              <div>
@@ -296,6 +368,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         </div>
                         
                         <div className="space-y-4 flex-1 overflow-y-auto">
+                            
+                            {/* Image Upload Section (Create) */}
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-2">תמונת מנה</label>
+                                <div className="flex items-center gap-4">
+                                    <div className="relative w-20 h-20 bg-stone-100 rounded-lg overflow-hidden border border-stone-200 shrink-0">
+                                        {newItem.image_url ? (
+                                            <img src={newItem.image_url} alt="preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-stone-300">
+                                                <ImageIcon size={24} />
+                                            </div>
+                                        )}
+                                        {uploading && (
+                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                <Loader2 className="animate-spin text-white" size={20} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className={`
+                                            flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm
+                                            ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
+                                        `}>
+                                            <Upload size={16} />
+                                            <span>{uploading ? 'מעלה...' : 'העלה תמונה'}</span>
+                                            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, false)} className="hidden" disabled={uploading} />
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="block text-sm font-bold text-stone-700 mb-1">{t.productName}</label>
                                 <input type="text" value={newItem.name} onChange={(e) => setNewItem({...newItem, name: e.target.value})} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />

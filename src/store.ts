@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings, EventType, HungerLevel, AdvancedCalculationSettings, FeatureFlags } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags } from './types';
 import { supabase } from './lib/supabase';
 
 type Language = 'he' | 'en';
@@ -47,9 +47,6 @@ export interface Translations {
   clearCartConfirm: string;
   planEvent: string;
   eventType: string;
-  hungerLevel: string;
-  ageAdults: string;
-  ageChildren: string;
   calcResults: string;
   aiTitle: string;
   aiPlaceholder: string;
@@ -60,10 +57,6 @@ export interface Translations {
   brunch: string;
   dinner: string;
   snack: string;
-  party: string;
-  light: string;
-  medium: string;
-  heavy: string;
   categories: Record<string, string>;
   admin: {
     title: string;
@@ -100,7 +93,6 @@ export interface Translations {
     pastriesPerPerson: string;
     trayCapacity: string;
     advCalc: string;
-    hungerMult: string;
     eventLogic: string;
     eventLogicExpl: string;
     unitsPerPerson: string;
@@ -160,9 +152,6 @@ export const translations: Record<Language, Translations> = {
     clearCartConfirm: "האם לרוקן את העגלה?",
     planEvent: "בואו נתכנן את האירוע המושלם",
     eventType: "סוג האירוע",
-    hungerLevel: "רמת רעב",
-    ageAdults: "גיל 12 ומעלה",
-    ageChildren: "גיל 4-11",
     calcResults: "המלצות להרכב האירוע",
     aiTitle: "הקונסיירז' הדיגיטלי (AI)",
     aiPlaceholder: "תארו לנו את האירוע... (לדוגמה: יום הולדת ל-20 איש בשישי בצהריים, אוהבים מתוקים)",
@@ -173,10 +162,6 @@ export const translations: Record<Language, Translations> = {
     brunch: "בראנץ'",
     dinner: "ארוחת ערב",
     snack: "אירוח קליל",
-    party: "מסיבה",
-    light: "נשנוש",
-    medium: "רגיל",
-    heavy: "רעבים מאוד",
     categories: {
       'Salads': 'סלטים טריים',
       'Cold Platters': 'מגשי אירוח',
@@ -221,7 +206,6 @@ export const translations: Record<Language, Translations> = {
         pastriesPerPerson: "מאפים לאדם",
         trayCapacity: "קיבולת מגש ממוצעת",
         advCalc: "הגדרות מחשבון מתקדמות",
-        hungerMult: "מכפילי רעב",
         eventLogic: "לוגיקה לפי סוג אירוע",
         eventLogicExpl: "* המספרים מייצגים יחידות לאדם (כריכים/מאפים) או אחוז כיסוי מהאורחים (שאר הקטגוריות). 1.0 = יחידה לכל אורח.",
         unitsPerPerson: "יח' לאדם",
@@ -279,9 +263,6 @@ export const translations: Record<Language, Translations> = {
     clearCartConfirm: "Clear the cart?",
     planEvent: "Let's plan the perfect event",
     eventType: "Event Type",
-    hungerLevel: "Hunger Level",
-    ageAdults: "Age 12+",
-    ageChildren: "Age 4-11",
     calcResults: "Recommended Menu Composition",
     aiTitle: "AI Event Concierge",
     aiPlaceholder: "Describe your event... (e.g. Birthday party for 20 people, we love sweets)",
@@ -292,10 +273,6 @@ export const translations: Record<Language, Translations> = {
     brunch: "Brunch",
     dinner: "Dinner",
     snack: "Light / Cocktail",
-    party: "Party",
-    light: "Light",
-    medium: "Regular",
-    heavy: "Starving",
     categories: {
       'Salads': 'Fresh Salads',
       'Cold Platters': 'Cold Platters',
@@ -340,7 +317,6 @@ export const translations: Record<Language, Translations> = {
         pastriesPerPerson: "Pastries Per Person",
         trayCapacity: "Avg. Tray Capacity",
         advCalc: "Advanced Calculator Config",
-        hungerMult: "Hunger Multipliers",
         eventLogic: "Event Logic Matrix",
         eventLogicExpl: "* Values represent units per person (Sandwiches/Pastries) or coverage ratio (other categories). 1.0 = one unit per guest.",
         unitsPerPerson: "Units/Prsn",
@@ -362,24 +338,18 @@ export const translations: Record<Language, Translations> = {
 interface AppState {
   cart: CartItem[];
   menuItems: MenuItem[];
-  guestAdults: number;
-  guestChildren: number;
-  guestCount: number; // For backward compatibility/legacy calc
+  guestCount: number;
   language: Language;
   isLoading: boolean;
   featureFlags: FeatureFlags;
   eventType: EventType;
-  hungerLevel: HungerLevel;
   calculationSettings: CalculationSettings;
   advancedSettings: AdvancedCalculationSettings;
 
   fetchMenuItems: () => Promise<void>;
   fetchSettings: () => Promise<void>;
   setGuestCount: (count: number) => void;
-  setGuestAdults: (count: number) => void;
-  setGuestChildren: (count: number) => void;
   setEventType: (type: EventType) => void;
-  setHungerLevel: (level: HungerLevel) => void;
   setLanguage: (lang: Language) => void;
   addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
   bulkAddToCart: (items: { item: MenuItem, quantity: number }[]) => void;
@@ -399,22 +369,17 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       cart: [],
       menuItems: [],
-      guestAdults: 0,
-      guestChildren: 0,
       guestCount: 0,
       language: 'he',
       isLoading: false,
       eventType: 'snack',
-      hungerLevel: 'medium',
       featureFlags: { showCalculator: true, showAI: false },
       calculationSettings: { sandwichesPerPerson: 1.5, pastriesPerPerson: 1.0, averageTrayCapacity: 10 },
       advancedSettings: {
-        hungerMultipliers: { light: 0.8, medium: 1.0, heavy: 1.3 },
         eventRatios: {
             brunch: { sandwiches: 1.0, pastries: 1.5, saladsCoverage: 0.8, mainsCoverage: 0.5, plattersCoverage: 0.6, dessertsCoverage: 0.4 },
             dinner: { sandwiches: 0.5, pastries: 0.5, saladsCoverage: 1.0, mainsCoverage: 1.0, plattersCoverage: 0.4, dessertsCoverage: 0.5 },
             snack: { sandwiches: 2.0, pastries: 0.5, saladsCoverage: 0.3, mainsCoverage: 0.0, plattersCoverage: 0.8, dessertsCoverage: 0.3 },
-            party: { sandwiches: 2.5, pastries: 1.0, saladsCoverage: 0.2, mainsCoverage: 0.2, plattersCoverage: 0.5, dessertsCoverage: 0.5 },
         }
       },
 
@@ -431,11 +396,8 @@ export const useStore = create<AppState>()(
       },
 
       setLanguage: (lang) => set({ language: lang }),
-      setGuestAdults: (count) => set((state) => ({ guestAdults: count, guestCount: count + state.guestChildren })),
-      setGuestChildren: (count) => set((state) => ({ guestChildren: count, guestCount: state.guestAdults + count })),
-      setGuestCount: (count) => set({ guestCount: count, guestAdults: count, guestChildren: 0 }), // Fallback
+      setGuestCount: (count) => set({ guestCount: count }),
       setEventType: (type) => set({ eventType: type }),
-      setHungerLevel: (level) => set({ hungerLevel: level }),
 
       addToCart: (item, quantity = 1, notes = '', modifications = []) => {
         const currentCart = get().cart;
@@ -493,14 +455,11 @@ export const useStore = create<AppState>()(
       name: 'ayala-catering-storage-v5',
       partialize: (state) => ({ 
           cart: state.cart, 
-          guestAdults: state.guestAdults,
-          guestChildren: state.guestChildren,
           guestCount: state.guestCount, 
           language: state.language,
           calculationSettings: state.calculationSettings,
           advancedSettings: state.advancedSettings,
           eventType: state.eventType,
-          hungerLevel: state.hungerLevel,
           featureFlags: state.featureFlags
       }), 
     }

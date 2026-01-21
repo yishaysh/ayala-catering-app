@@ -9,10 +9,8 @@ export type Category =
   | 'Pastries' 
   | 'Desserts';
 
-export type EventType = 'brunch' | 'dinner' | 'snack' | 'party';
-export type HungerLevel = 'light' | 'medium' | 'heavy';
+export type EventType = 'brunch' | 'dinner' | 'snack';
 
-// Fix: Added missing FeatureFlags interface to resolve "Module '"./types"' has no exported member 'FeatureFlags'" error.
 export interface FeatureFlags {
   showCalculator: boolean;
   showAI: boolean;
@@ -59,7 +57,6 @@ export interface EventRatioConfig {
 }
 
 export interface AdvancedCalculationSettings {
-    hungerMultipliers: Record<HungerLevel, number>;
     eventRatios: Record<EventType, EventRatioConfig>;
 }
 
