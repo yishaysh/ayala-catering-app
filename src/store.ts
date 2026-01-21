@@ -22,6 +22,8 @@ export interface Translations {
   premium: string;
   serves: string;
   people: string;
+  adults: string;
+  children: string;
   myOrder: string;
   emptyCart: string;
   total: string;
@@ -127,6 +129,8 @@ export const translations: Record<Language, Translations> = {
     premium: "מומלץ",
     serves: "מספיק ל-",
     people: "סועדים",
+    adults: "מבוגרים (12+)",
+    children: "ילדים (4-11)",
     myOrder: "ההזמנה שלי",
     emptyCart: "העגלה ריקה, זה הזמן להוסיף דברים טובים",
     total: "סה\"כ לתשלום",
@@ -238,6 +242,8 @@ export const translations: Record<Language, Translations> = {
     premium: "Premium",
     serves: "Serves",
     people: "people",
+    adults: "Adults (12+)",
+    children: "Children (4-11)",
     myOrder: "My Order",
     emptyCart: "Cart is empty, time to add some goodies",
     total: "Total",
@@ -338,6 +344,9 @@ export const translations: Record<Language, Translations> = {
 interface AppState {
   cart: CartItem[];
   menuItems: MenuItem[];
+  adultCount: number;
+  childCount: number;
+  // guestCount is now derived/maintained for compatibility but logic should use adult/child
   guestCount: number;
   language: Language;
   isLoading: boolean;
@@ -348,7 +357,9 @@ interface AppState {
 
   fetchMenuItems: () => Promise<void>;
   fetchSettings: () => Promise<void>;
-  setGuestCount: (count: number) => void;
+  setAdultCount: (count: number) => void;
+  setChildCount: (count: number) => void;
+  setGuestCount: (count: number) => void; // Deprecated but kept for type compatibility if needed
   setEventType: (type: EventType) => void;
   setLanguage: (lang: Language) => void;
   addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
@@ -369,6 +380,8 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       cart: [],
       menuItems: [],
+      adultCount: 0,
+      childCount: 0,
       guestCount: 0,
       language: 'he',
       isLoading: false,
@@ -396,7 +409,23 @@ export const useStore = create<AppState>()(
       },
 
       setLanguage: (lang) => set({ language: lang }),
-      setGuestCount: (count) => set({ guestCount: count }),
+      
+      setAdultCount: (count) => set((state) => ({ 
+          adultCount: count, 
+          guestCount: count + state.childCount 
+      })),
+      
+      setChildCount: (count) => set((state) => ({ 
+          childCount: count, 
+          guestCount: state.adultCount + count 
+      })),
+
+      setGuestCount: (count) => set({ 
+          guestCount: count, 
+          adultCount: count, 
+          childCount: 0 
+      }), // Fallback: resets children if used
+
       setEventType: (type) => set({ eventType: type }),
 
       addToCart: (item, quantity = 1, notes = '', modifications = []) => {
@@ -452,10 +481,12 @@ export const useStore = create<AppState>()(
       cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
     }),
     {
-      name: 'ayala-catering-storage-v5',
+      name: 'ayala-catering-storage-v6',
       partialize: (state) => ({ 
           cart: state.cart, 
-          guestCount: state.guestCount, 
+          guestCount: state.guestCount,
+          adultCount: state.adultCount,
+          childCount: state.childCount,
           language: state.language,
           calculationSettings: state.calculationSettings,
           advancedSettings: state.advancedSettings,
@@ -466,13 +497,18 @@ export const useStore = create<AppState>()(
   )
 );
 
-export const getSuggestedQuantity = (item: MenuItem, guestCount: number, settings: CalculationSettings): number => {
-    if (guestCount <= 0) return 1;
-    if (item.category === 'Sandwiches' && item.unit_type === 'unit') return Math.ceil(guestCount * settings.sandwichesPerPerson);
-    if (item.category === 'Pastries' && item.unit_type === 'unit') return Math.ceil(guestCount * settings.pastriesPerPerson);
+export const getSuggestedQuantity = (item: MenuItem, adultCount: number, childCount: number, settings: CalculationSettings): number => {
+    const totalGuests = adultCount + childCount;
+    if (totalGuests <= 0) return 1;
+
+    // Weight calculation: Adults = 1.0, Children (4-11) = 0.66
+    const weightedCount = adultCount + (childCount * 0.66);
+
+    if (item.category === 'Sandwiches' && item.unit_type === 'unit') return Math.ceil(weightedCount * settings.sandwichesPerPerson);
+    if (item.category === 'Pastries' && item.unit_type === 'unit') return Math.ceil(weightedCount * settings.pastriesPerPerson);
     if (item.unit_type === 'tray' || item.unit_type === 'liter') {
         const capacity = item.serves_max || settings.averageTrayCapacity;
-        return Math.ceil(guestCount / capacity);
+        return Math.ceil(weightedCount / capacity);
     }
     return 1;
 };

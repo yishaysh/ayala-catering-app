@@ -1,38 +1,42 @@
 
 import React, { useMemo } from 'react';
 import { useStore, translations } from '../store';
-import { Minus, Plus, UtensilsCrossed, Wine, Sun, Sparkles } from 'lucide-react';
+import { Minus, Plus, UtensilsCrossed, Wine, Sun, Sparkles, Users, Baby } from 'lucide-react';
 import { EventType } from '../types';
 
 export const HostHelper: React.FC = () => {
   const { 
-    guestCount, setGuestCount, 
+    adultCount, setAdultCount,
+    childCount, setChildCount,
     language, 
     eventType, setEventType, 
     advancedSettings
   } = useStore();
   
   const t = translations[language];
+  const totalGuests = adultCount + childCount;
 
   const recommendations = useMemo(() => {
-    if (guestCount === 0) return null;
+    if (totalGuests === 0) return null;
 
-    // No hunger multiplier (treated as 1.0)
     const ratios = advancedSettings.eventRatios[eventType];
 
     const TRAY_CAPACITY = 10;
     const PLATTER_CAPACITY = 12;
     const DESSERT_CAPACITY = 15;
 
+    // Weight calculation: Adults = 1.0, Children = 0.66
+    const weightedCount = adultCount + (childCount * 0.66);
+
     return {
-        sandwiches: Math.ceil(guestCount * ratios.sandwiches),
-        pastries: Math.ceil(guestCount * ratios.pastries),
-        salads: Math.ceil((guestCount * ratios.saladsCoverage) / TRAY_CAPACITY * 10),
-        mains: Math.ceil((guestCount * ratios.mainsCoverage) / TRAY_CAPACITY * 10),
-        platters: Math.ceil((guestCount * ratios.plattersCoverage) / PLATTER_CAPACITY * 12),
-        desserts: Math.ceil((guestCount * ratios.dessertsCoverage) / DESSERT_CAPACITY * 15),
+        sandwiches: Math.ceil(weightedCount * ratios.sandwiches),
+        pastries: Math.ceil(weightedCount * ratios.pastries),
+        salads: Math.ceil((weightedCount * ratios.saladsCoverage) / TRAY_CAPACITY * 10),
+        mains: Math.ceil((weightedCount * ratios.mainsCoverage) / TRAY_CAPACITY * 10),
+        platters: Math.ceil((weightedCount * ratios.plattersCoverage) / PLATTER_CAPACITY * 12),
+        desserts: Math.ceil((weightedCount * ratios.dessertsCoverage) / DESSERT_CAPACITY * 15),
     };
-  }, [guestCount, eventType, advancedSettings]);
+  }, [adultCount, childCount, eventType, advancedSettings]);
 
   return (
     <div className="relative bg-stone-900 text-stone-50 rounded-3xl shadow-2xl mb-12 border border-stone-800 w-full overflow-hidden transition-all duration-500">
@@ -42,35 +46,70 @@ export const HostHelper: React.FC = () => {
       <div className="relative z-10">
           
           <div className="p-6 md:p-8 border-b border-stone-800">
-             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+             <div className="flex flex-col gap-6">
                 <div>
                     <h2 className="text-2xl md:text-3xl font-serif font-bold text-white mb-2">{t.planEvent}</h2>
                     <p className="text-stone-400 text-sm md:text-base">{t.guestsSub}</p>
                 </div>
 
-                <div className="flex items-center gap-3 bg-stone-800/80 p-2 rounded-2xl border border-stone-700/50 backdrop-blur-sm self-start md:self-center">
-                    <button 
-                        onClick={() => setGuestCount(Math.max(0, guestCount - 5))}
-                        className="w-12 h-12 rounded-xl bg-stone-700 hover:bg-stone-600 text-stone-200 grid place-items-center transition-all active:scale-95"
-                    >
-                        <Minus size={20} />
-                    </button>
-                    <div className="min-w-[4rem] text-center">
-                        <span className="block text-xs text-stone-500 font-bold uppercase tracking-wider">{t.people}</span>
-                        <input
-                            type="number"
-                            value={guestCount || ''}
-                            onChange={(e) => setGuestCount(parseInt(e.target.value) || 0)}
-                            placeholder="0"
-                            className="w-full bg-transparent text-center text-3xl font-bold focus:outline-none text-white placeholder-stone-600 font-serif leading-none mt-1"
-                        />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Adults Input */}
+                    <div className="flex items-center justify-between bg-stone-800/80 p-3 rounded-2xl border border-stone-700/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-stone-700 rounded-lg text-stone-300"><Users size={20} /></div>
+                            <span className="text-sm font-bold text-stone-300">{t.adults}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button 
+                                onClick={() => setAdultCount(Math.max(0, adultCount - 5))}
+                                className="w-10 h-10 rounded-lg bg-stone-700 hover:bg-stone-600 text-stone-200 grid place-items-center transition-all active:scale-95"
+                            >
+                                <Minus size={16} />
+                            </button>
+                            <input
+                                type="number"
+                                value={adultCount || ''}
+                                onChange={(e) => setAdultCount(parseInt(e.target.value) || 0)}
+                                placeholder="0"
+                                className="w-12 bg-transparent text-center text-xl font-bold focus:outline-none text-white placeholder-stone-600 font-serif"
+                            />
+                            <button 
+                                onClick={() => setAdultCount(adultCount + 5)}
+                                className="w-10 h-10 rounded-lg bg-gold-500 hover:bg-gold-400 text-stone-900 grid place-items-center transition-all active:scale-95 shadow-lg shadow-gold-500/20"
+                            >
+                                <Plus size={16} />
+                            </button>
+                        </div>
                     </div>
-                    <button 
-                        onClick={() => setGuestCount(guestCount + 5)}
-                        className="w-12 h-12 rounded-xl bg-gold-500 hover:bg-gold-400 text-stone-900 grid place-items-center transition-all active:scale-95 shadow-lg shadow-gold-500/20"
-                    >
-                        <Plus size={20} />
-                    </button>
+
+                    {/* Children Input */}
+                    <div className="flex items-center justify-between bg-stone-800/80 p-3 rounded-2xl border border-stone-700/50 backdrop-blur-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-stone-700 rounded-lg text-stone-300"><Baby size={20} /></div>
+                            <span className="text-sm font-bold text-stone-300">{t.children}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <button 
+                                onClick={() => setChildCount(Math.max(0, childCount - 5))}
+                                className="w-10 h-10 rounded-lg bg-stone-700 hover:bg-stone-600 text-stone-200 grid place-items-center transition-all active:scale-95"
+                            >
+                                <Minus size={16} />
+                            </button>
+                            <input
+                                type="number"
+                                value={childCount || ''}
+                                onChange={(e) => setChildCount(parseInt(e.target.value) || 0)}
+                                placeholder="0"
+                                className="w-12 bg-transparent text-center text-xl font-bold focus:outline-none text-white placeholder-stone-600 font-serif"
+                            />
+                            <button 
+                                onClick={() => setChildCount(childCount + 5)}
+                                className="w-10 h-10 rounded-lg bg-gold-500 hover:bg-gold-400 text-stone-900 grid place-items-center transition-all active:scale-95 shadow-lg shadow-gold-500/20"
+                            >
+                                <Plus size={16} />
+                            </button>
+                        </div>
+                    </div>
                 </div>
              </div>
           </div>
@@ -102,7 +141,7 @@ export const HostHelper: React.FC = () => {
               </div>
           </div>
 
-          {guestCount > 0 && recommendations && (
+          {totalGuests > 0 && recommendations && (
             <div className="bg-stone-950/50 p-6 md:p-8 animate-slide-in-top">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="p-2 bg-gold-500/20 rounded-full text-gold-500">

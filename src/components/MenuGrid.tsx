@@ -19,8 +19,9 @@ const CATEGORY_ORDER: Category[] = [
 ];
 
 export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
-  const { addToCart, guestCount, language, calculationSettings } = useStore();
+  const { addToCart, adultCount, childCount, language, calculationSettings } = useStore();
   const t = translations[language];
+  const totalGuests = adultCount + childCount;
   
   const [selectedImage, setSelectedImage] = useState<{name: string, url: string} | null>(null);
   
@@ -39,7 +40,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   }, [items]);
 
   const openAddModal = (item: MenuItem) => {
-    const suggested = guestCount > 0 ? getSuggestedQuantity(item, guestCount, calculationSettings) : 1;
+    const suggested = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings) : 1;
     setAddQuantity(suggested);
     setNotes('');
     setSelectedMods([]);
@@ -86,7 +87,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {catItems.map((item) => {
-                const suggestedQty = guestCount > 0 ? getSuggestedQuantity(item, guestCount, calculationSettings) : 1;
+                const suggestedQty = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings) : 1;
                 const localItem = getLocalizedItem(item, language);
                 
                 // Use actual item image or a high quality placeholder
@@ -154,7 +155,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         {!item.availability_status ? t.outOfStock : (
                             <>
                                 <Plus size={18} strokeWidth={3} />
-                                <span>{guestCount > 0 ? `${t.add} (${suggestedQty})` : t.addToCart}</span>
+                                <span>{totalGuests > 0 ? `${t.add} (${suggestedQty})` : t.addToCart}</span>
                             </>
                         )}
                       </button>
