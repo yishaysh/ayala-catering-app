@@ -206,11 +206,11 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
              ></div>
              
              {/* Modal Container */}
-             {/* Fix: use 100svh to ensure it fits within the small viewport (address bar visible) */}
+             {/* 100svh ensures it fits viewport. Flex layout handles internal spacing. */}
              <div className="relative bg-stone-50 w-full h-[100svh] md:h-auto md:max-h-[85vh] md:max-w-lg md:rounded-2xl flex flex-col shadow-2xl animate-slide-in-bottom md:animate-zoom-in overflow-hidden">
                 
-                {/* Header Image Section for Modal */}
-                <div className="relative h-40 md:h-64 bg-stone-200 shrink-0">
+                {/* Header Image Section - Reduced height for mobile (h-36 instead of h-40) */}
+                <div className="relative h-36 md:h-64 bg-stone-200 shrink-0">
                     <img 
                         src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
                         alt={getLocalizedItem(itemToAdd, language).name}
@@ -236,8 +236,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                     </div>
                 </div>
 
-                {/* Content Area */}
-                <div className="flex-1 overflow-y-auto min-h-0 p-5 space-y-6">
+                {/* Content Area - Tightened spacing (p-4, space-y-4) */}
+                <div className="flex-1 overflow-y-auto min-h-0 p-4 space-y-4">
                     {/* Description */}
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
                         <p className="text-stone-600 leading-relaxed text-sm">
@@ -297,18 +297,17 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                             className="w-full p-4 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-gold-500 min-h-[80px] text-sm"
                         ></textarea>
                     </div>
-                    {/* Add generous spacing at bottom of content to ensure scrolling reveals everything before footer */}
-                    <div className="h-8"></div>
+                    {/* Bottom spacer removed to bring footer closer */}
                 </div>
 
-                {/* Footer fixed at bottom - Improved padding logic */}
+                {/* Footer fixed at bottom - Optimized padding */}
                 <div 
                     className="bg-white border-t border-stone-200 flex gap-4 shrink-0 shadow-[0_-5px_15px_rgba(0,0,0,0.05)] z-20"
                     style={{ 
-                        paddingTop: '1rem',
+                        paddingTop: '0.75rem', 
                         paddingLeft: '1rem',
                         paddingRight: '1rem',
-                        paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 20px))' 
+                        paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 10px))' 
                     }}
                 >
                     <div className="flex-1 flex flex-col justify-center">
