@@ -1,13 +1,37 @@
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route } from 'lucide-react';
+import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2 } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
 
 interface CartDrawerProps {
     isOpen: boolean;
     onClose: () => void;
 }
+
+// Coordinates for Kedumim, Israel
+const KEDUMIM_COORDS = {
+    lat: 32.2205,
+    lon: 35.1643
+};
+
+// Haversine formula to calculate distance + 25% buffer for road curvature
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in km
+    return Math.round(d * 1.25); // Add 25% for road vs air distance
+};
+
+const deg2rad = (deg: number) => {
+    return deg * (Math.PI / 180);
+};
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const { 
@@ -20,12 +44,48 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     // Handle Android/iOS Back Button
     useBackButton(isOpen, onClose);
 
+    const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+    const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
     const MIN_ORDER = 500;
     
     // Feature 4: Location Based Delivery Logic
     // Check if distance is valid (greater than 0) and within radius
     const isWithinRadius = customerDetails.distanceKm > 0 && customerDetails.distanceKm <= calculationSettings.serviceRadiusKm;
     const FREE_DELIVERY_THRESHOLD = calculationSettings.minOrderFreeDelivery;
+
+    const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setCustomerDetails({ location: value });
+
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        if (value.length > 2) {
+            setIsCalculatingDistance(true);
+            debounceTimerRef.current = setTimeout(async () => {
+                try {
+                    // Use OpenStreetMap Nominatim API (Free, no key required for low usage)
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&countrycodes=il&limit=1`);
+                    const data = await response.json();
+
+                    if (data && data.length > 0) {
+                        const destLat = parseFloat(data[0].lat);
+                        const destLon = parseFloat(data[0].lon);
+                        const dist = calculateDistance(KEDUMIM_COORDS.lat, KEDUMIM_COORDS.lon, destLat, destLon);
+                        setCustomerDetails({ distanceKm: dist });
+                    }
+                } catch (error) {
+                    console.error("Error calculating distance:", error);
+                } finally {
+                    setIsCalculatingDistance(false);
+                }
+            }, 1000); // Wait 1 second after typing stops
+        } else {
+            setIsCalculatingDistance(false);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -58,14 +118,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             message += `👤 שם: ${customerDetails.name}\n`;
             message += `📞 טלפון: ${customerDetails.phone}\n`;
             message += `📍 מיקום: ${customerDetails.location}\n`;
-            message += `🚗 מרחק: ${customerDetails.distanceKm} ק"מ\n\n`;
+            message += `🚗 מרחק משוער: ${customerDetails.distanceKm} ק"מ (מקדומים)\n\n`;
             message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
         } else {
             message += `*Customer Details:* 👤\n`;
             message += `👤 Name: ${customerDetails.name}\n`;
             message += `📞 Phone: ${customerDetails.phone}\n`;
             message += `📍 Location: ${customerDetails.location}\n`;
-            message += `🚗 Distance: ${customerDetails.distanceKm} km\n\n`;
+            message += `🚗 Est. Distance: ${customerDetails.distanceKm} km (from Kedumim)\n\n`;
             message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
         }
         
@@ -136,7 +196,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
                 {/* Feature 4: Location Based Free Delivery Bar Logic */}
                 <div className="bg-stone-800 px-6 py-4 shadow-inner transition-all duration-300">
-                    {/* Show progress bar ONLY if customer is within delivery radius */}
+                    {/* Only show progress bar if customer is within delivery radius */}
                     {isWithinRadius ? (
                         <>
                             <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">
@@ -188,10 +248,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             <input 
                                 type="text"
                                 value={customerDetails.location}
-                                onChange={(e) => setCustomerDetails({ location: e.target.value })}
+                                onChange={handleLocationChange}
                                 placeholder={t.eventLocation}
                                 className="w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none"
                             />
+                             {isCalculatingDistance && (
+                                <div className="absolute left-3 top-2.5">
+                                    <Loader2 className="animate-spin text-gold-500" size={16} />
+                                </div>
+                            )}
                         </div>
                         <div className="relative">
                             <Route className="absolute right-3 top-2.5 text-stone-400" size={16} />
@@ -200,7 +265,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                 value={customerDetails.distanceKm || ''}
                                 onChange={(e) => setCustomerDetails({ distanceKm: Number(e.target.value) })}
                                 placeholder={t.eventDistance}
-                                className="w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none"
+                                className={`w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none ${isCalculatingDistance ? 'opacity-50' : ''}`}
                             />
                         </div>
                     </div>
