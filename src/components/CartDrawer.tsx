@@ -21,6 +21,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     useBackButton(isOpen, onClose);
 
     const MIN_ORDER = 500;
+    
+    // Feature 4: Location Based Delivery Logic
     const isWithinRadius = customerDetails.distanceKm <= calculationSettings.serviceRadiusKm;
     const FREE_DELIVERY_THRESHOLD = calculationSettings.minOrderFreeDelivery;
 
@@ -49,7 +51,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         const line = "━━━━━━━━━━━━━━━━";
         let message = "";
 
-        // Format Customer Info at the top
+        // Feature 2: Format Customer Info at the top
         if (language === 'he') {
             message += `*פרטי לקוח להזמנה:* 👤\n`;
             message += `👤 שם: ${customerDetails.name}\n`;
@@ -131,8 +133,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     </div>
                 </div>
 
-                {/* Free Delivery Bar Logic */}
-                <div className="bg-stone-800 px-6 py-4 shadow-inner">
+                {/* Feature 4: Location Based Free Delivery Bar Logic */}
+                <div className="bg-stone-800 px-6 py-4 shadow-inner transition-all duration-300">
+                    {/* Only show progress bar if customer is within delivery radius */}
                     {isWithinRadius ? (
                         <>
                             <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">
@@ -148,15 +151,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             </div>
                         </>
                     ) : (
-                        <div className="text-[10px] uppercase font-bold tracking-widest text-gold-400 flex items-center gap-2">
-                            <MapPin size={12} />
+                        <div className="text-[10px] uppercase font-bold tracking-widest text-gold-400 flex items-center gap-2 justify-center py-1">
+                            <MapPin size={14} />
                             {t.deliveryByDistance as string}
                         </div>
                     )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {/* Customer Info Form */}
+                    {/* Feature 2: Customer Info Inputs */}
                     <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm space-y-3">
                         <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">{language === 'he' ? 'פרטי המשלוח' : 'Delivery Details'}</h3>
                         <div className="relative">

@@ -229,7 +229,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
             </div>
 
-            {/* Added Delivery Settings Grid */}
+            {/* Feature 4: Delivery Settings */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-start">
                 <div className="bg-white p-6 rounded-lg shadow-sm border border-gold-100">
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.serviceRadius}</h3>

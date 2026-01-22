@@ -52,8 +52,8 @@ export interface CalculationSettings {
   sandwichesPerPerson: number;
   pastriesPerPerson: number;
   averageTrayCapacity: number;
-  serviceRadiusKm: number;
-  minOrderFreeDelivery: number;
+  serviceRadiusKm: number; // Added for Feature 4
+  minOrderFreeDelivery: number; // Added for Feature 4
 }
 
 export interface EventRatioConfig {

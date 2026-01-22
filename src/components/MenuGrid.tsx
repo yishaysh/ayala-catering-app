@@ -33,13 +33,19 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   const [addQuantity, setAddQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [selectedMods, setSelectedMods] = useState<string[]>([]);
+  
+  // Feature 1: Zoom State
   const [isZoomed, setIsZoomed] = useState(false);
 
   // Handle Back Button for Modals
   useBackButton(!!selectedImage, () => setSelectedImage(null));
   useBackButton(!!itemToAdd, () => {
-      if (isZoomed) setIsZoomed(false);
-      else setItemToAdd(null);
+      // If zoomed, close zoom first
+      if (isZoomed) {
+          setIsZoomed(false);
+      } else {
+          setItemToAdd(null);
+      }
   });
 
   const groupedItems = useMemo(() => {
@@ -52,6 +58,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   }, [items]);
 
   const openAddModal = (item: MenuItem) => {
+    // Pass currentCart to calculate saturation logic correctly
     const suggested = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings, cart) : 1;
     setAddQuantity(suggested);
     setNotes('');
@@ -176,19 +183,23 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
       })}
     </div>
 
-    {/* Full Screen Image Overlay */}
+    {/* Feature 1: Full Screen Image Overlay */}
     {isZoomed && itemToAdd && (
         <div 
             className="fixed inset-0 z-[200] flex items-center justify-center bg-stone-900/95 backdrop-blur-md animate-fade-in p-2 md:p-8"
             onClick={() => setIsZoomed(false)}
         >
-            <button className="absolute top-6 right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors">
+            <button 
+                onClick={() => setIsZoomed(false)}
+                className="absolute top-6 right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[210]"
+            >
                 <X size={32} />
             </button>
             <img 
                 src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
                 alt="zoomed"
                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-zoom-in"
+                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking the image itself
             />
         </div>
     )}
@@ -207,25 +218,28 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                     <img 
                         src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
                         alt={getLocalizedItem(itemToAdd, language).name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover cursor-pointer"
+                        onClick={() => setIsZoomed(true)} // Clicking image zooms
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none"></div>
                     
+                    {/* Zoom Button */}
                     <button 
                         onClick={() => setIsZoomed(true)}
-                        className="absolute bottom-3 right-3 text-white bg-black/40 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute bottom-16 right-3 text-white bg-black/40 backdrop-blur-md p-2 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-20 hover:bg-black/60"
+                        title="Zoom Image"
                     >
                         <Maximize2 size={16} />
                     </button>
 
                     <button 
                         onClick={() => setItemToAdd(null)} 
-                        className="absolute top-2 right-2 text-white bg-black/30 backdrop-blur-md p-1.5 rounded-full transition-all z-20"
+                        className="absolute top-2 right-2 text-white bg-black/30 backdrop-blur-md p-1.5 rounded-full transition-all z-20 hover:bg-black/50"
                     >
                         <X size={18} />
                     </button>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+                    <div className="absolute bottom-0 left-0 right-0 p-3 z-10 pointer-events-none">
                         <h3 className="text-lg md:text-2xl font-serif font-bold text-white mb-0.5 leading-tight drop-shadow-md">
                             {getLocalizedItem(itemToAdd, language).name}
                         </h3>
