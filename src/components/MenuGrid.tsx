@@ -92,7 +92,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
         if (!catItems || catItems.length === 0) return null;
 
         return (
-          <section key={cat} id={cat} className="scroll-mt-40">
+          <section key={cat} id={cat} className="scroll-mt-52">
             <div className="flex items-center gap-4 mb-4 px-2">
                 <h3 className="text-xl md:text-3xl font-serif font-bold text-stone-900 relative">
                   {(t.categories as Record<string, string>)[cat]}
