@@ -5,6 +5,7 @@ import { useStore, translations, getLocalizedItem } from '../store';
 import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useBackButton } from '../hooks/useBackButton';
+import { FeedbackModal, FeedbackType } from './FeedbackModal';
 
 interface AdminDashboardProps {
     onExit: () => void;
@@ -46,6 +47,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [showAdvancedCalc, setShowAdvancedCalc] = useState(false);
     const [uploading, setUploading] = useState(false);
 
+    // Feedback Modal State
+    const [feedback, setFeedback] = useState<{
+        isOpen: boolean;
+        type: FeedbackType;
+        title: string;
+        message: string;
+    }>({ isOpen: false, type: 'info', title: '', message: '' });
+
+    const closeFeedback = () => setFeedback(prev => ({ ...prev, isOpen: false }));
+
     // Handle Back Button for Modals
     useBackButton(!!editingItem, () => setEditingItem(null));
     useBackButton(isAddModalOpen, () => setIsAddModalOpen(false));
@@ -84,7 +95,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             if (!file) return;
 
             if (file.size > 5 * 1024 * 1024) {
-                alert(language === 'he' ? 'הקובץ גדול מדי (מעל 5MB). אנא בחר תמונה קטנה יותר.' : 'File too large (>5MB). Please choose a smaller image.');
+                setFeedback({
+                    isOpen: true,
+                    type: 'warning',
+                    title: language === 'he' ? 'קובץ גדול מדי' : 'File Too Large',
+                    message: language === 'he' ? 'אנא בחר תמונה קטנה מ-5MB.' : 'Please choose an image smaller than 5MB.'
+                });
                 return;
             }
 
@@ -132,7 +148,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
         } catch (error: any) {
             console.error('Error uploading image:', error);
-            alert(`Error uploading image: ${error.message}`);
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: 'שגיאת העלאה',
+                message: `Error uploading image: ${error.message}`
+            });
         } finally {
             setUploading(false);
             event.target.value = '';
@@ -173,6 +194,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
     return (
         <div className="p-8 bg-stone-100 min-h-screen font-sans animate-fade-in" dir={language === 'he' ? 'rtl' : 'ltr'}>
+            
+            <FeedbackModal
+                isOpen={feedback.isOpen}
+                onClose={closeFeedback}
+                title={feedback.title}
+                message={feedback.message}
+                type={feedback.type}
+            />
+
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 text-start">
                  <h1 className="text-3xl font-serif font-bold text-stone-900">{t.title}</h1>
                  <div className="flex gap-4">
