@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles } from 'lucide-react';
+import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
 
 interface CartDrawerProps {
@@ -10,7 +10,10 @@ interface CartDrawerProps {
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
-    const { cart, updateQuantity, cartTotal, language, clearCart } = useStore();
+    const { 
+        cart, updateQuantity, cartTotal, language, clearCart, 
+        customerDetails, setCustomerDetails, calculationSettings 
+    } = useStore();
     const t = translations[language] || translations['he'];
     const total = cartTotal();
     
@@ -18,7 +21,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     useBackButton(isOpen, onClose);
 
     const MIN_ORDER = 500;
-    const VIP_THRESHOLD = 1500;
+    const isWithinRadius = customerDetails.distanceKm <= calculationSettings.serviceRadiusKm;
+    const FREE_DELIVERY_THRESHOLD = calculationSettings.minOrderFreeDelivery;
 
     if (!isOpen) return null;
 
@@ -45,9 +49,20 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         const line = "━━━━━━━━━━━━━━━━";
         let message = "";
 
+        // Format Customer Info at the top
         if (language === 'he') {
+            message += `*פרטי לקוח להזמנה:* 👤\n`;
+            message += `👤 שם: ${customerDetails.name}\n`;
+            message += `📞 טלפון: ${customerDetails.phone}\n`;
+            message += `📍 מיקום: ${customerDetails.location}\n`;
+            message += `🚗 מרחק: ${customerDetails.distanceKm} ק"מ\n\n`;
             message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
         } else {
+            message += `*Customer Details:* 👤\n`;
+            message += `👤 Name: ${customerDetails.name}\n`;
+            message += `📞 Phone: ${customerDetails.phone}\n`;
+            message += `📍 Location: ${customerDetails.location}\n`;
+            message += `🚗 Distance: ${customerDetails.distanceKm} km\n\n`;
             message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
         }
         
@@ -81,7 +96,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       return units[type] || type;
     };
 
-    const progress = Math.min((total / VIP_THRESHOLD) * 100, 100);
+    const progress = Math.min((total / FREE_DELIVERY_THRESHOLD) * 100, 100);
 
     return (
         <div className="fixed inset-0 z-50 flex justify-end font-sans">
@@ -116,23 +131,78 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     </div>
                 </div>
 
+                {/* Free Delivery Bar Logic */}
                 <div className="bg-stone-800 px-6 py-4 shadow-inner">
-                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">
-                        <span>{t.freeDeliveryAt as string}</span>
-                        {total < VIP_THRESHOLD ? (
-                            <span>{t.justMore as string} ₪{VIP_THRESHOLD - total} {t.forVip as string}</span>
-                        ) : (
-                            <span className="text-gold-500 flex items-center gap-1"><Sparkles size={10} /> {t.vipDelivery as string}</span>
-                        )}
-                    </div>
-                    <div className="h-2 bg-stone-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-gold-600 to-gold-400 transition-all duration-700 ease-out" style={{ width: `${progress}%` }}></div>
-                    </div>
+                    {isWithinRadius ? (
+                        <>
+                            <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">
+                                <span>{t.freeDeliveryAt as string} ₪{FREE_DELIVERY_THRESHOLD}</span>
+                                {total < FREE_DELIVERY_THRESHOLD ? (
+                                    <span>{t.justMore as string} ₪{FREE_DELIVERY_THRESHOLD - total} {t.forVip as string}</span>
+                                ) : (
+                                    <span className="text-gold-500 flex items-center gap-1"><Sparkles size={10} /> {t.vipDelivery as string}</span>
+                                )}
+                            </div>
+                            <div className="h-2 bg-stone-700 rounded-full overflow-hidden">
+                                <div className="h-full bg-gradient-to-r from-gold-600 to-gold-400 transition-all duration-700 ease-out" style={{ width: `${progress}%` }}></div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="text-[10px] uppercase font-bold tracking-widest text-gold-400 flex items-center gap-2">
+                            <MapPin size={12} />
+                            {t.deliveryByDistance as string}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                    {/* Customer Info Form */}
+                    <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm space-y-3">
+                        <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">{language === 'he' ? 'פרטי המשלוח' : 'Delivery Details'}</h3>
+                        <div className="relative">
+                            <User className="absolute right-3 top-2.5 text-stone-400" size={16} />
+                            <input 
+                                type="text"
+                                value={customerDetails.name}
+                                onChange={(e) => setCustomerDetails({ name: e.target.value })}
+                                placeholder={t.customerName}
+                                className="w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none"
+                            />
+                        </div>
+                        <div className="relative">
+                            <Phone className="absolute right-3 top-2.5 text-stone-400" size={16} />
+                            <input 
+                                type="tel"
+                                value={customerDetails.phone}
+                                onChange={(e) => setCustomerDetails({ phone: e.target.value })}
+                                placeholder={t.customerPhone}
+                                className="w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none"
+                            />
+                        </div>
+                        <div className="relative">
+                            <MapPin className="absolute right-3 top-2.5 text-stone-400" size={16} />
+                            <input 
+                                type="text"
+                                value={customerDetails.location}
+                                onChange={(e) => setCustomerDetails({ location: e.target.value })}
+                                placeholder={t.eventLocation}
+                                className="w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none"
+                            />
+                        </div>
+                        <div className="relative">
+                            <Route className="absolute right-3 top-2.5 text-stone-400" size={16} />
+                            <input 
+                                type="number"
+                                value={customerDetails.distanceKm || ''}
+                                onChange={(e) => setCustomerDetails({ distanceKm: Number(e.target.value) })}
+                                placeholder={t.eventDistance}
+                                className="w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none"
+                            />
+                        </div>
+                    </div>
+
                     {cart.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center h-full text-center text-stone-400 space-y-4">
+                        <div className="flex flex-col items-center justify-center py-10 text-center text-stone-400 space-y-4">
                             <ShoppingBag size={64} strokeWidth={1} className="opacity-20" />
                             <div>
                                 <p className="text-lg font-medium">{t.emptyCart as string}</p>
@@ -198,7 +268,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
                     <button 
                         onClick={handleWhatsAppCheckout}
-                        disabled={total < MIN_ORDER || cart.length === 0}
+                        disabled={total < MIN_ORDER || cart.length === 0 || !customerDetails.name || !customerDetails.phone}
                         className="w-full bg-green-600 text-white font-bold py-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 group"
                     >
                         <span>{t.checkout as string}</span>

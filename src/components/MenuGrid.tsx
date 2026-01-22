@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { MenuItem, Category } from '../types';
 import { useStore, getSuggestedQuantity, translations, getLocalizedItem } from '../store';
-import { Info, Star, Eye, X, Check, Minus, Plus } from 'lucide-react';
+import { Info, Star, Eye, X, Check, Minus, Plus, Maximize2 } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
 
 interface MenuGridProps {
@@ -23,7 +23,7 @@ const CATEGORY_ORDER: Category[] = [
 const DEFAULT_PLACEHOLDER = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80";
 
 export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
-  const { addToCart, adultCount, childCount, language, calculationSettings } = useStore();
+  const { addToCart, adultCount, childCount, language, calculationSettings, cart } = useStore();
   const t = translations[language];
   const totalGuests = adultCount + childCount;
   
@@ -33,10 +33,14 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   const [addQuantity, setAddQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [selectedMods, setSelectedMods] = useState<string[]>([]);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   // Handle Back Button for Modals
   useBackButton(!!selectedImage, () => setSelectedImage(null));
-  useBackButton(!!itemToAdd, () => setItemToAdd(null));
+  useBackButton(!!itemToAdd, () => {
+      if (isZoomed) setIsZoomed(false);
+      else setItemToAdd(null);
+  });
 
   const groupedItems = useMemo(() => {
     const groups: Partial<Record<Category, MenuItem[]>> = {};
@@ -48,11 +52,12 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   }, [items]);
 
   const openAddModal = (item: MenuItem) => {
-    const suggested = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings) : 1;
+    const suggested = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings, cart) : 1;
     setAddQuantity(suggested);
     setNotes('');
     setSelectedMods([]);
     setItemToAdd(item);
+    setIsZoomed(false);
   };
 
   const handleConfirmAdd = () => {
@@ -95,7 +100,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
             
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
               {catItems.map((item) => {
-                const suggestedQty = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings) : 1;
+                const suggestedQty = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings, cart) : 1;
                 const localItem = getLocalizedItem(item, language);
                 
                 // שימוש בתמונה הגנרית אם אין תמונת מקור
@@ -171,120 +176,109 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
       })}
     </div>
 
-    {/* Image Preview Modal */}
-    {selectedImage && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-stone-900/90 backdrop-blur-sm transition-opacity" 
-                onClick={() => setSelectedImage(null)}
-            ></div>
-            <div className="relative bg-white rounded-2xl overflow-hidden shadow-2xl max-w-2xl w-full animate-zoom-in">
-                <button 
-                    onClick={() => setSelectedImage(null)}
-                    className="absolute top-4 right-4 z-10 bg-white/50 hover:bg-white text-stone-900 p-2 rounded-full transition-all flex items-center justify-center"
-                >
-                    <X size={24} />
-                </button>
-                <div className="aspect-video bg-stone-100 relative">
-                     <img 
-                        src={selectedImage.url} 
-                        alt={selectedImage.name} 
-                        className="w-full h-full object-cover"
-                     />
-                </div>
-                <div className="p-6 bg-white">
-                    <h3 className="text-2xl font-serif font-bold text-stone-900">{selectedImage.name}</h3>
-                </div>
-            </div>
+    {/* Full Screen Image Overlay */}
+    {isZoomed && itemToAdd && (
+        <div 
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-stone-900/95 backdrop-blur-md animate-fade-in p-2 md:p-8"
+            onClick={() => setIsZoomed(false)}
+        >
+            <button className="absolute top-6 right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors">
+                <X size={32} />
+            </button>
+            <img 
+                src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
+                alt="zoomed"
+                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-zoom-in"
+            />
         </div>
     )}
 
-    {/* Add to Cart Customization Modal - RE-REFACTORED FOR CENTERING & VISIBILITY */}
+    {/* Add to Cart Customization Modal */}
     {itemToAdd && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 font-sans">
              <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" 
                 onClick={() => setItemToAdd(null)}
              ></div>
              
-             {/* Modal Container: 
-                 - Centered on all screens
-                 - w-[95%] for mobile, max-w-lg for desktop
-                 - Fixed max-height to ensure footer button is always within viewport bounds
-             */}
              <div className="relative bg-stone-50 w-full md:max-w-lg max-h-[85vh] rounded-2xl md:rounded-3xl flex flex-col shadow-2xl animate-zoom-in overflow-hidden border border-stone-200">
                 
-                {/* Header Image Section - Compacted for mobile height (h-28) */}
-                <div className="relative h-28 md:h-64 bg-stone-200 shrink-0">
+                {/* Header: Fixed image with Zoom trigger */}
+                <div className="relative h-28 md:h-48 bg-stone-200 shrink-0 group">
                     <img 
                         src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
                         alt={getLocalizedItem(itemToAdd, language).name}
                         className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
                     
                     <button 
+                        onClick={() => setIsZoomed(true)}
+                        className="absolute bottom-3 right-3 text-white bg-black/40 backdrop-blur-md p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                        <Maximize2 size={16} />
+                    </button>
+
+                    <button 
                         onClick={() => setItemToAdd(null)} 
-                        className="absolute top-3 right-3 text-white hover:text-gold-500 bg-black/40 backdrop-blur-md p-2 rounded-full transition-all z-20"
+                        className="absolute top-2 right-2 text-white bg-black/30 backdrop-blur-md p-1.5 rounded-full transition-all z-20"
                     >
                         <X size={18} />
                     </button>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-                        <h3 className="text-lg md:text-3xl font-serif font-bold text-white mb-1 leading-tight drop-shadow-md">
+                    <div className="absolute bottom-0 left-0 right-0 p-3 z-10">
+                        <h3 className="text-lg md:text-2xl font-serif font-bold text-white mb-0.5 leading-tight drop-shadow-md">
                             {getLocalizedItem(itemToAdd, language).name}
                         </h3>
                         <div className="flex items-center gap-2">
-                             <span className="text-base font-bold text-gold-400">₪{itemToAdd.price}</span>
-                             <span className="text-stone-300 text-[10px] md:text-xs">/ {getUnitName(itemToAdd.unit_type)}</span>
+                             <span className="text-sm font-bold text-gold-400">₪{itemToAdd.price}</span>
+                             <span className="text-stone-300 text-[10px]">/ {getUnitName(itemToAdd.unit_type)}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Content Area - flex-1 and overflow-y-auto ensures it scrolls while header/footer stay fixed */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                    {/* Description - Tight */}
-                    <div className="bg-white p-3 rounded-xl shadow-sm border border-stone-100">
-                        <p className="text-stone-600 leading-relaxed text-xs md:text-sm">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-stone-50">
+                    <div className="bg-white p-3 rounded-xl border border-stone-100 shadow-sm">
+                        <p className="text-stone-600 text-xs md:text-sm leading-relaxed">
                             {getLocalizedItem(itemToAdd, language).description || t.description}
                         </p>
                     </div>
 
-                    {/* Quantity Picker - Tight */}
-                    <div className="flex items-center justify-between bg-white p-3 rounded-xl shadow-sm border border-stone-100">
+                    <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-stone-100 shadow-sm">
                         <span className="font-bold text-stone-700 text-sm">{t.customizeTitle}</span>
                         <div className="flex items-center gap-3">
                             <button 
                                 onClick={() => setAddQuantity(Math.max(1, addQuantity - 1))}
-                                className="w-9 h-9 rounded-full bg-stone-100 border border-stone-200 grid place-items-center text-stone-600 hover:bg-stone-200 transition-colors"
+                                className="w-8 h-8 rounded-full bg-stone-100 border border-stone-200 grid place-items-center text-stone-600 active:bg-stone-200 transition-colors"
                             >
-                                <Minus size={16} />
+                                <Minus size={14} />
                             </button>
-                            <span className="text-lg font-bold w-6 text-center text-stone-900">{addQuantity}</span>
+                            <span className="text-base font-bold w-6 text-center text-stone-900">{addQuantity}</span>
                             <button 
                                 onClick={() => setAddQuantity(addQuantity + 1)}
-                                className="w-9 h-9 rounded-full bg-gold-500 text-stone-900 grid place-items-center shadow-lg hover:bg-gold-400 transition-colors"
+                                className="w-8 h-8 rounded-full bg-gold-500 text-stone-900 grid place-items-center shadow-md active:bg-gold-600 transition-colors"
                             >
-                                <Plus size={16} />
+                                <Plus size={14} />
                             </button>
                         </div>
                     </div>
 
                     {getLocalizedItem(itemToAdd, language).modifications.length > 0 && (
-                        <div>
-                            <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-widest mb-1.5 px-1">{t.modifications}</label>
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest px-1">{t.modifications}</label>
                             <div className="flex flex-wrap gap-2">
                                 {getLocalizedItem(itemToAdd, language).modifications.map(mod => (
                                     <button
                                         key={mod}
                                         onClick={() => toggleMod(mod)}
                                         className={`
-                                            px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5
+                                            px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-1.5
                                             ${selectedMods.includes(mod) 
-                                                ? 'bg-stone-900 text-white border-stone-900 shadow-sm' 
-                                                : 'bg-white text-stone-600 border border-stone-200 hover:border-gold-500'
+                                                ? 'bg-stone-900 text-white border-stone-900' 
+                                                : 'bg-white text-stone-600 border-stone-200'
                                             }
                                         `}
                                     >
-                                        {selectedMods.includes(mod) && <Check size={12} />}
+                                        {selectedMods.includes(mod) && <Check size={10} />}
                                         {mod}
                                     </button>
                                 ))}
@@ -292,29 +286,25 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         </div>
                     )}
 
-                    <div>
-                        <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-widest mb-1.5 px-1">{t.notesPlaceholder}</label>
+                    <div className="space-y-2">
+                        <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest px-1">{t.notesPlaceholder}</label>
                         <textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
-                            placeholder={language === 'he' ? "דגשים מיוחדים, אלרגיות, בקשות..." : "Special requests, allergies..."}
-                            className="w-full p-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-gold-500 min-h-[70px] text-xs resize-none"
+                            placeholder={language === 'he' ? "דגשים מיוחדים, אלרגיות..." : "Special requests, allergies..."}
+                            className="w-full p-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-gold-500 min-h-[80px] text-xs resize-none shadow-sm"
                         ></textarea>
                     </div>
                 </div>
 
-                {/* Footer fixed at bottom of modal container.
-                    - No pb-safe here because it's a centered modal, but p-4 is fine.
-                    - High shadow to ensure visibility over scrollable content.
-                */}
-                <div className="bg-white border-t border-stone-200 p-4 flex gap-4 shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-[110]">
-                    <div className="flex-1 flex flex-col justify-center">
-                        <div className="text-[10px] text-stone-400 font-bold uppercase tracking-wider leading-none mb-1">{t.total}</div>
-                        <div className="text-xl md:text-2xl font-bold font-serif text-stone-900 leading-none">₪{itemToAdd.price * addQuantity}</div>
+                <div className="bg-white border-t border-stone-200 p-4 flex gap-3 shrink-0 shadow-[0_-8px_24px_rgba(0,0,0,0.05)]">
+                    <div className="flex flex-col justify-center">
+                        <div className="text-[10px] text-stone-400 font-bold uppercase tracking-tighter">{t.total}</div>
+                        <div className="text-xl font-bold font-serif text-stone-900 leading-none">₪{itemToAdd.price * addQuantity}</div>
                     </div>
                     <button 
                         onClick={handleConfirmAdd}
-                        className="flex-[2.5] bg-gold-500 text-stone-900 font-bold py-3.5 rounded-xl hover:bg-gold-400 transition-all shadow-lg active:scale-95 flex items-center justify-center text-base md:text-lg"
+                        className="flex-1 bg-gold-500 text-stone-900 font-bold py-3 rounded-xl hover:bg-gold-400 active:scale-95 transition-all shadow-md flex items-center justify-center text-base"
                     >
                         {t.confirmAdd}
                     </button>

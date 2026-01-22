@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails } from './types';
 import { supabase } from './lib/supabase';
 
 type Language = 'he' | 'en';
@@ -32,6 +32,7 @@ export interface Translations {
   shareDraft: string;
   freeDeliveryAt: string;
   vipDelivery: string;
+  deliveryByDistance: string;
   justMore: string;
   forVip: string;
   checkoutSub: string;
@@ -60,6 +61,10 @@ export interface Translations {
   brunch: string;
   dinner: string;
   snack: string;
+  customerName: string;
+  customerPhone: string;
+  eventLocation: string;
+  eventDistance: string;
   categories: Record<string, string>;
   admin: {
     title: string;
@@ -95,6 +100,8 @@ export interface Translations {
     sandwichesPerPerson: string;
     pastriesPerPerson: string;
     trayCapacity: string;
+    serviceRadius: string;
+    minFreeDelivery: string;
     advCalc: string;
     eventLogic: string;
     eventLogicExpl: string;
@@ -138,10 +145,11 @@ export const translations: Record<Language, Translations> = {
     minOrder: "מינימום הזמנה",
     checkout: "סיום הזמנה ב-WhatsApp",
     shareDraft: "שתף טיוטה לאישור",
-    freeDeliveryAt: "משלוח חינם ב-1,500 ₪",
-    vipDelivery: "הובלת VIP עלינו!",
+    freeDeliveryAt: "משלוח חינם מעל",
+    vipDelivery: "משלוח חינם עלינו!",
+    deliveryByDistance: "עלות משלוח לפי מיקום",
     justMore: "רק עוד",
-    forVip: "בשביל VIP",
+    forVip: "למשלוח חינם",
     checkoutSub: "ההזמנה תשלח לאישור סופי מול איילה",
     search: "חיפוש בתפריט...",
     customizeTitle: "התאמה אישית",
@@ -168,6 +176,10 @@ export const translations: Record<Language, Translations> = {
     brunch: "בראנץ'",
     dinner: "ארוחת ערב",
     snack: "אירוח קליל",
+    customerName: "שם מלא",
+    customerPhone: "טלפון ליצירת קשר",
+    eventLocation: "מיקום האירוע (עיר/כתובת)",
+    eventDistance: "מרחק מהמטבח (ק\"מ)",
     categories: {
       'Salads': 'סלטים טריים',
       'Cold Platters': 'מגשי אירוח',
@@ -211,6 +223,8 @@ export const translations: Record<Language, Translations> = {
         sandwichesPerPerson: "כריכים לאדם",
         pastriesPerPerson: "מאפים לאדם",
         trayCapacity: "קיבולת מגש ממוצעת",
+        serviceRadius: "רדיוס משלוח (ק\"מ)",
+        minFreeDelivery: "מינימום למשלוח חינם",
         advCalc: "הגדרות מחשבון מתקדמות",
         eventLogic: "לוגיקה לפי סוג אירוע",
         eventLogicExpl: "* המספרים מייצגים יחידות לאדם (כריכים/מאפים) או אחוז כיסוי מהאורחים (שאר הקטגוריות). 1.0 = יחידה לכל אורח.",
@@ -252,10 +266,11 @@ export const translations: Record<Language, Translations> = {
     minOrder: "Minimum Order",
     checkout: "Checkout via WhatsApp",
     shareDraft: "Share Draft for Approval",
-    freeDeliveryAt: "Free Delivery at 1,500 ₪",
-    vipDelivery: "VIP Delivery included!",
+    freeDeliveryAt: "Free Delivery over",
+    vipDelivery: "Free Delivery included!",
+    deliveryByDistance: "Delivery fee based on location",
     justMore: "Just",
-    forVip: "more for VIP",
+    forVip: "more for Free Delivery",
     checkoutSub: "Order will be sent for final approval",
     search: "Search menu...",
     customizeTitle: "Customize Item",
@@ -282,6 +297,10 @@ export const translations: Record<Language, Translations> = {
     brunch: "Brunch",
     dinner: "Dinner",
     snack: "Light / Cocktail",
+    customerName: "Full Name",
+    customerPhone: "Contact Phone",
+    eventLocation: "Event Location (City/Address)",
+    eventDistance: "Distance from Kitchen (km)",
     categories: {
       'Salads': 'Fresh Salads',
       'Cold Platters': 'Cold Platters',
@@ -325,6 +344,8 @@ export const translations: Record<Language, Translations> = {
         sandwichesPerPerson: "Sandwiches Per Person",
         pastriesPerPerson: "Pastries Per Person",
         trayCapacity: "Avg. Tray Capacity",
+        serviceRadius: "Service Radius (km)",
+        minFreeDelivery: "Min Order Free Delivery",
         advCalc: "Advanced Calculator Config",
         eventLogic: "Event Logic Matrix",
         eventLogicExpl: "* Values represent units per person (Sandwiches/Pastries) or coverage ratio (other categories). 1.0 = one unit per guest.",
@@ -349,8 +370,8 @@ interface AppState {
   menuItems: MenuItem[];
   adultCount: number;
   childCount: number;
-  // guestCount is now derived/maintained for compatibility but logic should use adult/child
   guestCount: number;
+  customerDetails: CustomerDetails;
   language: Language;
   isLoading: boolean;
   featureFlags: FeatureFlags;
@@ -362,7 +383,7 @@ interface AppState {
   fetchSettings: () => Promise<void>;
   setAdultCount: (count: number) => void;
   setChildCount: (count: number) => void;
-  setGuestCount: (count: number) => void; // Deprecated but kept for type compatibility if needed
+  setCustomerDetails: (details: Partial<CustomerDetails>) => void;
   setEventType: (type: EventType) => void;
   setLanguage: (lang: Language) => void;
   addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
@@ -386,11 +407,18 @@ export const useStore = create<AppState>()(
       adultCount: 0,
       childCount: 0,
       guestCount: 0,
+      customerDetails: { name: '', phone: '', location: '', distanceKm: 0 },
       language: 'he',
       isLoading: false,
       eventType: 'snack',
       featureFlags: { showCalculator: true, showAI: false },
-      calculationSettings: { sandwichesPerPerson: 1.5, pastriesPerPerson: 1.0, averageTrayCapacity: 10 },
+      calculationSettings: { 
+        sandwichesPerPerson: 1.5, 
+        pastriesPerPerson: 1.0, 
+        averageTrayCapacity: 10,
+        serviceRadiusKm: 25,
+        minOrderFreeDelivery: 1500
+      },
       advancedSettings: {
         eventRatios: {
             brunch: { sandwiches: 1.0, pastries: 1.5, saladsCoverage: 0.8, mainsCoverage: 0.5, plattersCoverage: 0.6, dessertsCoverage: 0.4 },
@@ -423,11 +451,9 @@ export const useStore = create<AppState>()(
           guestCount: state.adultCount + count 
       })),
 
-      setGuestCount: (count) => set({ 
-          guestCount: count, 
-          adultCount: count, 
-          childCount: 0 
-      }), // Fallback: resets children if used
+      setCustomerDetails: (details) => set((state) => ({
+          customerDetails: { ...state.customerDetails, ...details }
+      })),
 
       setEventType: (type) => set({ eventType: type }),
 
@@ -484,7 +510,7 @@ export const useStore = create<AppState>()(
       cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
     }),
     {
-      name: 'ayala-catering-storage-v6',
+      name: 'ayala-catering-storage-v7',
       partialize: (state) => ({ 
           cart: state.cart, 
           guestCount: state.guestCount,
@@ -494,26 +520,47 @@ export const useStore = create<AppState>()(
           calculationSettings: state.calculationSettings,
           advancedSettings: state.advancedSettings,
           eventType: state.eventType,
-          featureFlags: state.featureFlags
+          featureFlags: state.featureFlags,
+          customerDetails: state.customerDetails
       }), 
     }
   )
 );
 
-export const getSuggestedQuantity = (item: MenuItem, adultCount: number, childCount: number, settings: CalculationSettings): number => {
+/**
+ * Dynamic suggested quantity logic.
+ * Uses a "Saturation Logic" damping factor: 
+ * As the variety of categories increases, the per-item quantity recommendation decreases.
+ */
+export const getSuggestedQuantity = (item: MenuItem, adultCount: number, childCount: number, settings: CalculationSettings, currentCart: CartItem[] = []): number => {
     const totalGuests = adultCount + childCount;
     if (totalGuests <= 0) return 1;
 
     // Weight calculation: Adults = 1.0, Children (4-11) = 0.66
     const weightedCount = adultCount + (childCount * 0.66);
 
-    if (item.category === 'Sandwiches' && item.unit_type === 'unit') return Math.ceil(weightedCount * settings.sandwichesPerPerson);
-    if (item.category === 'Pastries' && item.unit_type === 'unit') return Math.ceil(weightedCount * settings.pastriesPerPerson);
-    if (item.unit_type === 'tray' || item.unit_type === 'liter') {
+    // Calculate Saturation Logic
+    const uniqueCategories = new Set(currentCart.map(i => i.category));
+    uniqueCategories.add(item.category);
+    const categoryCount = uniqueCategories.size;
+    
+    // Saturation Damping Factor: 
+    // 1 category = 100% quantity
+    // 2 categories = ~85% quantity each
+    // 3 categories = ~74% quantity each
+    const saturationDamping = 1 / (1 + (categoryCount - 1) * 0.18);
+
+    let baseQty = 1;
+    if (item.category === 'Sandwiches' && item.unit_type === 'unit') {
+        baseQty = weightedCount * settings.sandwichesPerPerson;
+    } else if (item.category === 'Pastries' && item.unit_type === 'unit') {
+        baseQty = weightedCount * settings.pastriesPerPerson;
+    } else if (item.unit_type === 'tray' || item.unit_type === 'liter') {
         const capacity = item.serves_max || settings.averageTrayCapacity;
-        return Math.ceil(weightedCount / capacity);
+        baseQty = weightedCount / capacity;
     }
-    return 1;
+
+    return Math.max(1, Math.ceil(baseQty * saturationDamping));
 };
 
 export const getLocalizedItem = (item: MenuItem, lang: Language) => {

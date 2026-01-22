@@ -41,10 +41,19 @@ export interface CartItem extends MenuItem {
   selected_modifications?: string[];
 }
 
+export interface CustomerDetails {
+  name: string;
+  phone: string;
+  location: string;
+  distanceKm: number;
+}
+
 export interface CalculationSettings {
   sandwichesPerPerson: number;
   pastriesPerPerson: number;
   averageTrayCapacity: number;
+  serviceRadiusKm: number;
+  minOrderFreeDelivery: number;
 }
 
 export interface EventRatioConfig {
