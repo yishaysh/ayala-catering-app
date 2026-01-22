@@ -393,6 +393,114 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
             </div>
 
+            {/* Add Item Modal */}
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
+                    <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl animate-zoom-in text-start flex flex-col">
+                        <div className="flex justify-between items-center mb-6 shrink-0">
+                            <h2 className="text-2xl font-serif font-bold text-stone-900">
+                                {t.createItemTitle}
+                            </h2>
+                            <button onClick={() => setIsAddModalOpen(false)} className="text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full"><X size={20} /></button>
+                        </div>
+                        <div className="space-y-4 flex-1 overflow-y-auto">
+                            {/* Image Upload */}
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-2">{t.image}</label>
+                                <div className="flex items-center gap-4">
+                                    <div className="relative w-20 h-20 bg-stone-100 rounded-lg overflow-hidden border border-stone-200 shrink-0">
+                                        {newItem.image_url ? (
+                                            <img src={newItem.image_url} alt="preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-stone-300">
+                                                <ImageIcon size={24} />
+                                            </div>
+                                        )}
+                                        {uploading && (
+                                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                <Loader2 className="animate-spin text-white" size={20} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex-1">
+                                        <label className={`
+                                            flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm
+                                            ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
+                                        `}>
+                                            <Upload size={16} />
+                                            <span>{uploading ? '...' : 'Upload'}</span>
+                                            <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, false)} className="hidden" disabled={uploading} />
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Name */}
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.productName}</label>
+                                <input type="text" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                            </div>
+
+                            {/* Category & Unit Type Row */}
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.category}</label>
+                                    <select value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value as Category })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white">
+                                        {CATEGORY_OPTIONS.map(cat => (
+                                            <option key={cat} value={cat}>{(rootT.categories as any)[cat] || cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.unitType}</label>
+                                    <select value={newItem.unit_type} onChange={(e) => setNewItem({ ...newItem, unit_type: e.target.value as UnitType })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white">
+                                        {UNIT_OPTIONS.map(u => (
+                                            <option key={u} value={u}>{u}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Price */}
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label>
+                                <input type="number" value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.description}</label>
+                                <textarea value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-20 resize-none" />
+                            </div>
+
+                            {/* Premium Toggle */}
+                            <div>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50 w-full">
+                                    <input type="checkbox" checked={newItem.is_premium} onChange={(e) => setNewItem({ ...newItem, is_premium: e.target.checked })} className="w-4 h-4 text-gold-500 rounded" />
+                                    <span className="font-bold text-sm text-stone-700">{t.premium}</span>
+                                </label>
+                            </div>
+
+                            {/* Modifications */}
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.modifications}</label>
+                                <textarea value={addMods} onChange={(e) => setAddMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-24" />
+                                <p className="text-[10px] text-stone-400 mt-1">{t.modsHint}</p>
+                            </div>
+                        </div>
+                        <div className="mt-8 flex gap-3 shrink-0">
+                            <button onClick={handleAddSave} className="flex-1 bg-gold-500 text-stone-900 font-bold py-3 rounded-lg hover:bg-gold-400 flex items-center justify-center gap-2">
+                                <Plus size={18} />{t.create}
+                            </button>
+                            <button onClick={() => setIsAddModalOpen(false)} className="bg-stone-100 text-stone-600 font-bold py-3 px-6 rounded-lg hover:bg-stone-200">
+                                {t.cancelBtn}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {editingItem && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" onClick={() => setEditingItem(null)}></div>
