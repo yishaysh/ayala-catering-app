@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore, translations, getLocalizedItem } from '../store';
 import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock } from 'lucide-react';
@@ -77,10 +76,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             debounceTimerRef.current = window.setTimeout(async () => {
                 try {
                     // Improved API Call:
-                    // 1. limit=3: Fetch more candidates to ensure we get the best match
-                    // 2. addressdetails=1: To verify it's a valid place
-                    // 3. accept-language=he: Prefer Hebrew results for better matching with user input
-                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&countrycodes=il&limit=3&addressdetails=1&accept-language=he`);
+                    // 1. limit=3: Fetch more candidates.
+                    // 2. addressdetails=1: To verify validity.
+                    // 3. accept-language=he: Hebrew results.
+                    // 4. REMOVED countrycodes=il: This was filtering out settlements like Karnei Shomron.
+                    // 5. Changed to format=jsonv2 for better consistency.
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(value)}&limit=3&addressdetails=1&accept-language=he`);
                     const data = await response.json();
 
                     if (data && data.length > 0) {
