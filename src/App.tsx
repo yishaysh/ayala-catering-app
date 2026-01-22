@@ -11,27 +11,22 @@ import { AIConcierge } from './components/AIConcierge';
 import { useBackButton } from './hooks/useBackButton';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts'];
-
-// LINK TO LOGO - Managed in code only
 const LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png";
 
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, featureFlags, fetchSettings } = useStore();
   
-  // Admin State
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [loginError, setLoginError] = useState(false);
 
-  // Handle Back Button for Login Modal
   useBackButton(isLoginOpen, () => setIsLoginOpen(false));
 
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const t = translations[language];
 
-  // Fetch Menu on Load
   useEffect(() => {
       fetchMenuItems();
       fetchSettings();
@@ -55,9 +50,16 @@ export default function App() {
   }, [language]);
 
   const scrollToCategory = (cat: Category) => {
-    const element = document.getElementById(cat);
+    const sectionId = `cat-${cat.replace(/\s+/g, '-')}`;
+    const element = document.getElementById(sectionId);
     if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Safe scroll accounting for the sticky headers
+        const headerHeight = 135; 
+        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+        window.scrollTo({
+            top: elementPosition - headerHeight,
+            behavior: 'smooth'
+        });
         setActiveCategory(cat);
     }
   };
@@ -70,11 +72,10 @@ export default function App() {
     <div className="min-h-screen bg-stone-50 text-stone-900 font-sans pb-48 overflow-x-hidden">
       
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-stone-900 text-white shadow-lg border-b border-stone-800">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+      <header className="sticky top-0 z-50 bg-stone-900 text-white shadow-lg border-b border-stone-800 h-[72px]">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center h-full">
             <div className="flex items-center gap-3">
                 <div className="relative h-12 w-auto flex items-center justify-center overflow-hidden">
-                   {/* Logo */}
                    <img 
                         src={LOGO_SRC} 
                         alt="Ayala Logo" 
@@ -156,13 +157,12 @@ export default function App() {
          </div>
       </div>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 -mt-16 relative z-20">
         
         {featureFlags?.showCalculator && <HostHelper />}
         {featureFlags?.showAI && <AIConcierge />}
 
-        <div className="sticky top-[72px] z-40 bg-stone-50/95 backdrop-blur-md py-4 mb-8 border-b border-stone-200 -mx-4 px-4 overflow-x-auto shadow-sm">
+        <div className="sticky top-[72px] z-40 bg-stone-50/95 backdrop-blur-md py-4 mb-8 border-b border-stone-200 -mx-4 px-4 overflow-x-auto shadow-sm h-[60px]">
             <nav className="flex gap-2 min-w-max mx-auto md:justify-center">
                 {CATEGORIES.map(cat => (
                     <button 
@@ -192,14 +192,12 @@ export default function App() {
         
       </main>
 
-      {/* Footer */}
       <footer className="bg-stone-900 text-stone-400 py-8 px-4 text-center mt-auto pb-32">
           <div className="container mx-auto">
               <p className="text-sm font-medium mb-4">© {new Date().getFullYear()} {t.title}</p>
           </div>
       </footer>
 
-      {/* Mobile Sticky Action */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-[0_-5px_20px_rgba(0,0,0,0.1)] md:hidden z-30 pb-safe">
           <div className="flex justify-between items-center gap-4">
               <div className="flex flex-col">
@@ -218,7 +216,6 @@ export default function App() {
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
-      {/* Admin Login Modal */}
       {isLoginOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-zoom-in">
               <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl relative">

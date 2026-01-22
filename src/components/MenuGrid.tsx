@@ -31,10 +31,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   const [notes, setNotes] = useState('');
   const [selectedMods, setSelectedMods] = useState<string[]>([]);
   
-  // Feature 1: Zoom State
   const [isZoomed, setIsZoomed] = useState(false);
 
-  // Handle Back Button logic
   useBackButton(!!itemToAdd, () => {
       if (isZoomed) {
           setIsZoomed(false);
@@ -53,7 +51,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   }, [items]);
 
   const openAddModal = (item: MenuItem) => {
-    // Feature 3: Pass 'cart' to apply saturation logic based on existing items
     const suggested = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings, cart) : 1;
     setAddQuantity(suggested);
     setNotes('');
@@ -91,8 +88,11 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
         const catItems = groupedItems[cat];
         if (!catItems || catItems.length === 0) return null;
 
+        // Create a URL-safe ID
+        const sectionId = `cat-${cat.replace(/\s+/g, '-')}`;
+
         return (
-          <section key={cat} id={cat} className="scroll-mt-52">
+          <section key={cat} id={sectionId} className="scroll-mt-48 md:scroll-mt-52">
             <div className="flex items-center gap-4 mb-4 px-2">
                 <h3 className="text-xl md:text-3xl font-serif font-bold text-stone-900 relative">
                   {(t.categories as Record<string, string>)[cat]}
@@ -110,10 +110,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                   <div 
                       key={item.id} 
                       id={`item-${item.id}`}
-                      className={`
-                          scroll-mt-48 group relative bg-white rounded-xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-xl hover:border-gold-500/30 transition-all duration-300 flex flex-col justify-between
-                          ${!item.availability_status ? 'opacity-60 grayscale' : ''}
-                      `}
+                      className="group relative bg-white rounded-xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-xl hover:border-gold-500/30 transition-all duration-300 flex flex-col justify-between"
                   >
                     <div className="relative aspect-[4/3] bg-stone-100 overflow-hidden cursor-pointer" onClick={() => openAddModal(item)}>
                         <img 
@@ -175,7 +172,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
       })}
     </div>
 
-    {/* Feature 1: Full Screen Image Overlay */}
     {isZoomed && itemToAdd && (
         <div 
             className="fixed inset-0 z-[200] flex items-center justify-center bg-stone-900/95 backdrop-blur-md animate-fade-in p-2 md:p-8"
@@ -196,7 +192,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
         </div>
     )}
 
-    {/* Add to Cart Customization Modal */}
     {itemToAdd && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 font-sans">
              <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" 
@@ -204,8 +199,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
              ></div>
              
              <div className="relative bg-stone-50 w-full md:max-w-lg max-h-[85vh] rounded-2xl md:rounded-3xl flex flex-col shadow-2xl animate-zoom-in overflow-hidden border border-stone-200">
-                
-                {/* Header: Fixed image with Zoom trigger */}
                 <div className="relative h-28 md:h-48 bg-stone-200 shrink-0 group">
                     <img 
                         src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
