@@ -374,31 +374,42 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         )}
                     </div>
 
-                    <div className="p-6 bg-white border-t border-stone-200 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-10 shrink-0 pb-safe">
-                        <div className="flex justify-between items-center mb-6">
+                    <div className="p-4 bg-white border-t border-stone-200 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-10 shrink-0 pb-safe">
+                        <div className="flex justify-between items-center mb-4">
                             <span className="text-lg text-stone-600">{t.total as string}:</span>
                             <span className="text-3xl font-bold font-serif text-stone-900">₪{total}</span>
                         </div>
                         
                         {total < MIN_ORDER && total > 0 && (
-                            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm mb-4 border border-red-100 flex items-center justify-center gap-2">
+                            <div className="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs mb-3 border border-red-100 flex items-center justify-center gap-2">
                                 <span>⚠️</span>
                                 {t.minOrder as string}: ₪{MIN_ORDER}
                             </div>
                         )}
 
-                        <button 
-                            onClick={handleWhatsAppCheckout}
-                            disabled={total < MIN_ORDER || cart.length === 0 || !customerDetails.name || !customerDetails.phone}
-                            className="w-full bg-green-600 text-white font-bold py-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 group"
-                        >
-                            <span>{t.checkout as string}</span>
-                            <Send size={18} className={`transition-transform ${language === 'he' ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
-                        </button>
-                        {cart.length > 0 && (
-                            <button onClick={handleShareDraft} className="w-full mt-3 border border-stone-200 text-stone-600 font-bold py-3 rounded-xl hover:bg-stone-50 transition flex items-center justify-center gap-2 text-sm"><Share2 size={16} /> {t.shareDraft as string}</button>
-                        )}
-                        <p className="text-center text-xs text-stone-400 mt-3 font-medium">
+                        <div className="flex gap-3">
+                            {cart.length > 0 && (
+                                <button 
+                                    onClick={handleShareDraft} 
+                                    className="flex-1 border border-stone-200 text-stone-600 font-bold py-3.5 rounded-xl hover:bg-stone-50 transition flex items-center justify-center gap-2 text-sm"
+                                >
+                                    <Share2 size={16} /> 
+                                    <span className="hidden sm:inline">{t.shareDraft as string}</span>
+                                    <span className="sm:hidden">{language === 'he' ? 'טיוטה' : 'Draft'}</span>
+                                </button>
+                            )}
+                            
+                            <button 
+                                onClick={handleWhatsAppCheckout}
+                                disabled={total < MIN_ORDER || cart.length === 0 || !customerDetails.name || !customerDetails.phone}
+                                className="flex-[2] bg-green-600 text-white font-bold py-3.5 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 group text-sm sm:text-base"
+                            >
+                                <span>{t.checkout as string}</span>
+                                <Send size={18} className={`transition-transform ${language === 'he' ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
+                            </button>
+                        </div>
+                        
+                        <p className="text-center text-[10px] text-stone-400 mt-3 font-medium">
                             {t.checkoutSub as string}
                         </p>
                     </div>
