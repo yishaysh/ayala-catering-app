@@ -429,9 +429,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                             ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                                         `}>
                                             <Upload size={16} />
-                                            <span>{uploading ? '...' : 'Upload'}</span>
+                                            <span>{uploading ? '...' : t.upload}</span>
                                             <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, false)} className="hidden" disabled={uploading} />
                                         </label>
+                                        <p className="text-[10px] text-stone-400 mt-1">{t.imageHint}</p>
                                     </div>
                                 </div>
                             </div>
@@ -456,7 +457,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     <label className="block text-sm font-bold text-stone-700 mb-1">{t.unitType}</label>
                                     <select value={newItem.unit_type} onChange={(e) => setNewItem({ ...newItem, unit_type: e.target.value as UnitType })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white">
                                         {UNIT_OPTIONS.map(u => (
-                                            <option key={u} value={u}>{u}</option>
+                                            <option key={u} value={u}>{rootT[u] || u}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -513,7 +514,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         </div>
                         <div className="space-y-4 flex-1 overflow-y-auto">
                             <div>
-                                <label className="block text-sm font-bold text-stone-700 mb-2">תמונת מנה</label>
+                                <label className="block text-sm font-bold text-stone-700 mb-2">{t.image}</label>
                                 <div className="flex items-center gap-4">
                                     <div className="relative w-20 h-20 bg-stone-100 rounded-lg overflow-hidden border border-stone-200 shrink-0">
                                         {editImageUrl ? (
@@ -535,10 +536,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                             ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                                         `}>
                                             <Upload size={16} />
-                                            <span>{uploading ? 'מעלה...' : 'העלה תמונה חדשה'}</span>
+                                            <span>{uploading ? '...' : t.upload}</span>
                                             <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, true)} className="hidden" disabled={uploading} />
                                         </label>
-                                        <p className="text-[10px] text-stone-400 mt-1">מומלץ: פורמט JPG/PNG עד 5MB</p>
+                                        <p className="text-[10px] text-stone-400 mt-1">{t.imageHint}</p>
                                     </div>
                                 </div>
                             </div>

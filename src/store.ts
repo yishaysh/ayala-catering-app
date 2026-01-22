@@ -80,6 +80,8 @@ export interface Translations {
     price: string;
     status: string;
     image: string;
+    upload: string;
+    imageHint: string;
     modifications: string;
     edit: string;
     active: string;
@@ -206,6 +208,8 @@ export const translations: Record<Language, Translations> = {
         price: "מחיר",
         status: "סטטוס",
         image: "תמונה",
+        upload: "העלאת תמונה",
+        imageHint: "מומלץ: קובץ JPG/PNG עד 5MB",
         modifications: "שינויים אפשריים",
         edit: "עריכה",
         active: "פעיל",
@@ -330,6 +334,8 @@ export const translations: Record<Language, Translations> = {
         price: "Price",
         status: "Status",
         image: "Image",
+        upload: "Upload Image",
+        imageHint: "Recommended: JPG/PNG up to 5MB",
         modifications: "Allowed Modifications",
         edit: "Edit",
         active: "Active",
