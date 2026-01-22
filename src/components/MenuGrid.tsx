@@ -109,8 +109,9 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                 return (
                   <div 
                       key={item.id} 
+                      id={`item-${item.id}`}
                       className={`
-                          group relative bg-white rounded-xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-xl hover:border-gold-500/30 transition-all duration-300 flex flex-col justify-between
+                          scroll-mt-48 group relative bg-white rounded-xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-xl hover:border-gold-500/30 transition-all duration-300 flex flex-col justify-between
                           ${!item.availability_status ? 'opacity-60 grayscale' : ''}
                       `}
                   >

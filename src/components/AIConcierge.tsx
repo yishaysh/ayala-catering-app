@@ -154,6 +154,14 @@ export const AIConcierge: React.FC = () => {
         }
     };
 
+    const scrollToItem = (itemId: string) => {
+        const element = document.getElementById(`item-${itemId}`);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Subtle highlight effect could be added here if needed
+        }
+    };
+
     // Helper to calculate total of recommendation
     const recTotal = recommendation?.items.reduce((acc, rec) => {
         const item = menuItems.find(m => m.id === rec.id);
@@ -251,15 +259,18 @@ export const AIConcierge: React.FC = () => {
                                             
                                             return (
                                                 <div key={rec.id} className="flex justify-between items-center p-3 hover:bg-white/5 rounded-xl transition-colors border-b border-stone-700/50 last:border-0">
-                                                    <div className="flex items-center gap-3 overflow-hidden">
+                                                    <button 
+                                                        onClick={() => scrollToItem(rec.id)}
+                                                        className="flex items-center gap-3 overflow-hidden text-start flex-1 group"
+                                                    >
                                                         <div className="w-8 h-8 bg-gold-500/20 rounded-lg flex items-center justify-center text-gold-500 font-bold text-sm shrink-0">
                                                             {rec.quantity}
                                                         </div>
                                                         <div className="flex flex-col min-w-0">
-                                                            <span className="text-stone-200 font-bold text-sm truncate">{localItem.name}</span>
+                                                            <span className="text-stone-200 font-bold text-sm truncate group-hover:text-gold-500 transition-colors">{localItem.name}</span>
                                                             <span className="text-[10px] text-stone-500 truncate">{t.categories[item.category] || item.category}</span>
                                                         </div>
-                                                    </div>
+                                                    </button>
                                                     
                                                     <div className="flex items-center gap-3 shrink-0">
                                                         {item.image_url && (
