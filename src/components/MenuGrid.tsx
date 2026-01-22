@@ -198,18 +198,22 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
         </div>
     )}
 
-    {/* Add to Cart Customization Modal - REFACTORED FOR COMPACTNESS */}
+    {/* Add to Cart Customization Modal - RE-REFACTORED FOR CENTERING & VISIBILITY */}
     {itemToAdd && (
-        <div className="fixed inset-0 z-[70] flex items-end md:items-center justify-center font-sans">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6 font-sans">
              <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" 
                 onClick={() => setItemToAdd(null)}
              ></div>
              
-             {/* Modal Container - h-auto ensures it wraps content instead of stretching */}
-             <div className="relative bg-stone-50 w-full h-auto max-h-[92vh] md:max-w-lg rounded-t-3xl md:rounded-2xl flex flex-col shadow-2xl animate-slide-in-bottom md:animate-zoom-in overflow-hidden">
+             {/* Modal Container: 
+                 - Centered on all screens
+                 - w-[95%] for mobile, max-w-lg for desktop
+                 - Fixed max-height to ensure footer button is always within viewport bounds
+             */}
+             <div className="relative bg-stone-50 w-full md:max-w-lg max-h-[85vh] rounded-2xl md:rounded-3xl flex flex-col shadow-2xl animate-zoom-in overflow-hidden border border-stone-200">
                 
-                {/* Header Image Section - Even smaller for mobile (h-32) */}
-                <div className="relative h-32 md:h-64 bg-stone-200 shrink-0">
+                {/* Header Image Section - Compacted for mobile height (h-28) */}
+                <div className="relative h-28 md:h-64 bg-stone-200 shrink-0">
                     <img 
                         src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
                         alt={getLocalizedItem(itemToAdd, language).name}
@@ -219,45 +223,45 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                     
                     <button 
                         onClick={() => setItemToAdd(null)} 
-                        className="absolute top-3 right-3 text-white hover:text-gold-500 bg-black/20 hover:bg-black/40 backdrop-blur-sm p-2 rounded-full transition-all z-20"
+                        className="absolute top-3 right-3 text-white hover:text-gold-500 bg-black/40 backdrop-blur-md p-2 rounded-full transition-all z-20"
                     >
-                        <X size={20} />
+                        <X size={18} />
                     </button>
 
                     <div className="absolute bottom-0 left-0 right-0 p-4 z-10">
-                        <h3 className="text-xl md:text-3xl font-serif font-bold text-white mb-1 leading-tight drop-shadow-md">
+                        <h3 className="text-lg md:text-3xl font-serif font-bold text-white mb-1 leading-tight drop-shadow-md">
                             {getLocalizedItem(itemToAdd, language).name}
                         </h3>
                         <div className="flex items-center gap-2">
-                             <span className="text-lg font-bold text-gold-400">₪{itemToAdd.price}</span>
-                             <span className="text-stone-300 text-xs">/ {getUnitName(itemToAdd.unit_type)}</span>
+                             <span className="text-base font-bold text-gold-400">₪{itemToAdd.price}</span>
+                             <span className="text-stone-300 text-[10px] md:text-xs">/ {getUnitName(itemToAdd.unit_type)}</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Content Area - Tightened padding and gaps */}
-                <div className="overflow-y-auto p-4 space-y-3 pb-8">
-                    {/* Description - Compact */}
+                {/* Content Area - flex-1 and overflow-y-auto ensures it scrolls while header/footer stay fixed */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {/* Description - Tight */}
                     <div className="bg-white p-3 rounded-xl shadow-sm border border-stone-100">
-                        <p className="text-stone-600 leading-tight text-xs md:text-sm">
+                        <p className="text-stone-600 leading-relaxed text-xs md:text-sm">
                             {getLocalizedItem(itemToAdd, language).description || t.description}
                         </p>
                     </div>
 
-                    {/* Quantity Picker */}
+                    {/* Quantity Picker - Tight */}
                     <div className="flex items-center justify-between bg-white p-3 rounded-xl shadow-sm border border-stone-100">
                         <span className="font-bold text-stone-700 text-sm">{t.customizeTitle}</span>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                             <button 
                                 onClick={() => setAddQuantity(Math.max(1, addQuantity - 1))}
-                                className="w-8 h-8 rounded-full bg-stone-100 border border-stone-200 grid place-items-center text-stone-600 hover:bg-stone-200 transition-colors"
+                                className="w-9 h-9 rounded-full bg-stone-100 border border-stone-200 grid place-items-center text-stone-600 hover:bg-stone-200 transition-colors"
                             >
                                 <Minus size={16} />
                             </button>
                             <span className="text-lg font-bold w-6 text-center text-stone-900">{addQuantity}</span>
                             <button 
                                 onClick={() => setAddQuantity(addQuantity + 1)}
-                                className="w-8 h-8 rounded-full bg-gold-500 text-stone-900 grid place-items-center shadow-lg hover:bg-gold-400 transition-colors"
+                                className="w-9 h-9 rounded-full bg-gold-500 text-stone-900 grid place-items-center shadow-lg hover:bg-gold-400 transition-colors"
                             >
                                 <Plus size={16} />
                             </button>
@@ -266,7 +270,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
 
                     {getLocalizedItem(itemToAdd, language).modifications.length > 0 && (
                         <div>
-                            <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-1.5 px-1">{t.modifications}</label>
+                            <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-widest mb-1.5 px-1">{t.modifications}</label>
                             <div className="flex flex-wrap gap-2">
                                 {getLocalizedItem(itemToAdd, language).modifications.map(mod => (
                                     <button
@@ -276,7 +280,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                                             px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1.5
                                             ${selectedMods.includes(mod) 
                                                 ? 'bg-stone-900 text-white border-stone-900 shadow-sm' 
-                                                : 'bg-white text-stone-600 border border-stone-200'
+                                                : 'bg-white text-stone-600 border border-stone-200 hover:border-gold-500'
                                             }
                                         `}
                                     >
@@ -289,33 +293,28 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                     )}
 
                     <div>
-                        <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-wider mb-1.5 px-1">{t.notesPlaceholder}</label>
+                        <label className="block text-[11px] font-bold text-stone-500 uppercase tracking-widest mb-1.5 px-1">{t.notesPlaceholder}</label>
                         <textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder={language === 'he' ? "דגשים מיוחדים, אלרגיות, בקשות..." : "Special requests, allergies..."}
-                            className="w-full p-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-gold-500 min-h-[60px] text-xs"
+                            className="w-full p-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-gold-500 min-h-[70px] text-xs resize-none"
                         ></textarea>
                     </div>
                 </div>
 
-                {/* Footer fixed at bottom - Higher Z-Index and shadow */}
-                <div 
-                    className="bg-white border-t border-stone-200 flex gap-4 shrink-0 shadow-[0_-8px_20px_rgba(0,0,0,0.1)] z-[80] relative"
-                    style={{ 
-                        paddingTop: '0.75rem', 
-                        paddingLeft: '1rem',
-                        paddingRight: '1rem',
-                        paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 12px))' 
-                    }}
-                >
+                {/* Footer fixed at bottom of modal container.
+                    - No pb-safe here because it's a centered modal, but p-4 is fine.
+                    - High shadow to ensure visibility over scrollable content.
+                */}
+                <div className="bg-white border-t border-stone-200 p-4 flex gap-4 shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.05)] z-[110]">
                     <div className="flex-1 flex flex-col justify-center">
-                        <div className="text-[10px] text-stone-400 font-bold uppercase tracking-wider">{t.total}</div>
+                        <div className="text-[10px] text-stone-400 font-bold uppercase tracking-wider leading-none mb-1">{t.total}</div>
                         <div className="text-xl md:text-2xl font-bold font-serif text-stone-900 leading-none">₪{itemToAdd.price * addQuantity}</div>
                     </div>
                     <button 
                         onClick={handleConfirmAdd}
-                        className="flex-[2] bg-gold-500 text-stone-900 font-bold py-3.5 rounded-xl hover:bg-gold-400 transition-colors shadow-lg active:scale-95 flex items-center justify-center text-base md:text-lg"
+                        className="flex-[2.5] bg-gold-500 text-stone-900 font-bold py-3.5 rounded-xl hover:bg-gold-400 transition-all shadow-lg active:scale-95 flex items-center justify-center text-base md:text-lg"
                     >
                         {t.confirmAdd}
                     </button>
