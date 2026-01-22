@@ -14,7 +14,7 @@ export const AIConcierge: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [needsKey, setNeedsKey] = useState(false);
 
-    // משיכת המפתח מתוך משתני הסביבה של Vite (Vercel)
+    // Fetch API Key from Env
     const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
     useEffect(() => {
@@ -38,38 +38,48 @@ export const AIConcierge: React.FC = () => {
 
         const ai = new GoogleGenAI({ apiKey: API_KEY });
         
+        // Prepare menu summary for context
         const menuSummary = (menuItems || []).map(m => ({ 
             id: m.id, 
             name: m.name, 
-            cat: m.category 
+            cat: m.category,
+            price: m.price,
+            unit: m.unit_type,
+            serves: m.serves_min
         }));
 
-        const fullPrompt = `
-            תפקידך: יועץ קולינרי לקייטרינג "איילה פשוט טעים".
-            בקשת המשתמש: "${prompt}".
-            תפריט זמין: ${JSON.stringify(menuSummary)}.
+        // Feature 5: AI Guardrails & Prompt Engineering
+        // Enforce strict rules on budget, quantity, and context.
+        const systemInstruction = `
+            You are "Ayala", an expert catering planner for a premium dairy catering business.
+            Your goal is to build a PERFECT menu based on the user's event description.
 
-            הוראות:
-            1. אם הבקשה אינה קשורה לאוכל, אירועים או קייטרינג, או אם היא לא ברורה/ג'יבריש:
-               - החזר רשימת 'items' ריקה [].
-               - ב-'explanation' כתוב הודעה מנומסת בעברית שמסבירה שלא הבנת את הבקשה ומבקשת מהמשתמש לתאר את האירוע (למשל: סוג האירוע, כמות אנשים, העדפות).
+            STRICT CONSTRAINTS (Guardrails):
+            1. **Budget Profile**: Use a "Balanced" approach. Target approximately 80-120 NIS per person. Do not suggest excessive amounts.
+            2. **Quantity Logic**: 
+               - Do not order 1 unit per person for EVERY category. That is too much food.
+               - If ordering many categories (Salads + Quiche + Pastries), reduce the quantity per category.
+               - For trays (Salads/Pastas), 1 tray usually serves 10-15 people. Do not order 5 trays for 10 people.
+            3. **Context**: We sell specific items. Only choose from the provided list.
+            4. **Variety**: Select a realistic variety (5-8 distinct items max for small groups).
+            5. **Language**: The user prompt is in Hebrew or English. Your 'explanation' MUST be in Hebrew (unless the prompt is explicitly English).
             
-            2. אם הבקשה תקינה:
-               - בחר 4-8 מנות מתאימות מהתפריט.
-               - קבע כמויות הגיוניות לאירוע סטנדרטי (אלא אם צוינה כמות אנשים).
-               - החזר את המנות ב-'items'.
-               - ב-'explanation' כתוב הסבר קצר ומזמין בעברית על בחירת התפריט.
+            INPUT:
+            - User Prompt: "${prompt}"
+            - Menu Inventory: ${JSON.stringify(menuSummary)}
 
-            החזר JSON בלבד לפי הסכמה המוגדרת.
+            OUTPUT:
+            - A JSON object with "items" (id, quantity) and "explanation" (string).
+            - If the request is unclear, return empty items and a polite question.
         `;
 
         while (attempt < MAX_RETRIES && !success) {
             try {
                 attempt++;
-                // קריאה למודל החדש gemini-3-flash-preview
+                // Using gemini-3-flash-preview as requested
                 const response = await ai.models.generateContent({
                     model: 'gemini-3-flash-preview',
-                    contents: fullPrompt,
+                    contents: systemInstruction, // Injecting the robust prompt as contents
                     config: {
                         responseMimeType: "application/json",
                         responseSchema: {

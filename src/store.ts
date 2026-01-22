@@ -416,7 +416,7 @@ export const useStore = create<AppState>()(
         sandwichesPerPerson: 1.5, 
         pastriesPerPerson: 1.0, 
         averageTrayCapacity: 10,
-        serviceRadiusKm: 25, // Default service radius
+        serviceRadiusKm: 25, // Default service radius for Feature 4
         minOrderFreeDelivery: 1500
       },
       advancedSettings: {
@@ -510,7 +510,7 @@ export const useStore = create<AppState>()(
       cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
     }),
     {
-      name: 'ayala-catering-storage-v8', // Bumped version to ensure new default settings are applied
+      name: 'ayala-catering-storage-v9', // Version bump to force new default settings
       partialize: (state) => ({ 
           cart: state.cart, 
           guestCount: state.guestCount,
@@ -528,8 +528,8 @@ export const useStore = create<AppState>()(
 );
 
 /**
- * Dynamic suggested quantity logic with Saturation (Diversity) Factor.
- * Feature 3: Dynamic "Hunger Multiplier"
+ * Feature 3: Dynamic "Hunger Multiplier" (Saturation Logic).
+ * Calculates recommended quantity based on guests and category diversity in the cart.
  */
 export const getSuggestedQuantity = (item: MenuItem, adultCount: number, childCount: number, settings: CalculationSettings, currentCart: CartItem[] = []): number => {
     const totalGuests = adultCount + childCount;
@@ -539,21 +539,16 @@ export const getSuggestedQuantity = (item: MenuItem, adultCount: number, childCo
     const weightedCount = adultCount + (childCount * 0.66);
 
     // Feature 3 Logic: Saturation/Crowding Factor
-    // 1. Calculate how many unique categories are already in the cart + the current item's category
+    // 1. Identify unique categories currently in cart + the new item's category
     const uniqueCategories = new Set(currentCart.map(i => i.category));
     uniqueCategories.add(item.category);
     const categoryCount = uniqueCategories.size;
     
     // 2. Damping Factor Calculation
-    // Logic: If CategoryCount > 1, Quantity scales down.
-    // Formula derived from prompt: (1 / (CategoryCount * 0.8)).
-    // To prevent aggressive reduction for 2 categories (1.6 -> 0.62), we clamp minimal multiplier.
-    // Adjusted logic for catering practicality: 
-    // 1 Cat = 1.0
-    // 2 Cats = ~0.85
-    // 3 Cats = ~0.75
-    // 4+ Cats = ~0.65
-    const saturationDamping = categoryCount <= 1 ? 1.0 : (1 / (1 + (categoryCount - 1) * 0.2));
+    // As category count increases, the damping factor decreases, suggesting less quantity per item.
+    // Formula: 1 / (1 + (Count - 1) * 0.25)
+    // 1 Cat -> 1.0, 2 Cats -> 0.8, 3 Cats -> 0.66, 4 Cats -> 0.57
+    const saturationDamping = categoryCount <= 1 ? 1.0 : (1 / (1 + (categoryCount - 1) * 0.25));
 
     let baseQty = 1;
     if (item.category === 'Sandwiches' && item.unit_type === 'unit') {
@@ -565,7 +560,7 @@ export const getSuggestedQuantity = (item: MenuItem, adultCount: number, childCo
         baseQty = weightedCount / capacity;
     }
 
-    // Apply damping and ceiling
+    // Apply damping and round up
     return Math.max(1, Math.ceil(baseQty * saturationDamping));
 };
 

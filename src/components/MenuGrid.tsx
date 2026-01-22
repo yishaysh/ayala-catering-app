@@ -19,15 +19,12 @@ const CATEGORY_ORDER: Category[] = [
   'Desserts'
 ];
 
-// תמונה גנרית איכותית (כהה ויוקרתית) למקרה שאין תמונת מנה
 const DEFAULT_PLACEHOLDER = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80";
 
 export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   const { addToCart, adultCount, childCount, language, calculationSettings, cart } = useStore();
   const t = translations[language];
   const totalGuests = adultCount + childCount;
-  
-  const [selectedImage, setSelectedImage] = useState<{name: string, url: string} | null>(null);
   
   const [itemToAdd, setItemToAdd] = useState<MenuItem | null>(null);
   const [addQuantity, setAddQuantity] = useState(1);
@@ -37,10 +34,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   // Feature 1: Zoom State
   const [isZoomed, setIsZoomed] = useState(false);
 
-  // Handle Back Button for Modals
-  useBackButton(!!selectedImage, () => setSelectedImage(null));
+  // Handle Back Button logic
   useBackButton(!!itemToAdd, () => {
-      // If zoomed, close zoom first
       if (isZoomed) {
           setIsZoomed(false);
       } else {
@@ -58,7 +53,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   }, [items]);
 
   const openAddModal = (item: MenuItem) => {
-    // Pass currentCart to calculate saturation logic correctly
+    // Feature 3: Pass 'cart' to apply saturation logic based on existing items
     const suggested = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings, cart) : 1;
     setAddQuantity(suggested);
     setNotes('');
@@ -109,8 +104,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
               {catItems.map((item) => {
                 const suggestedQty = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings, cart) : 1;
                 const localItem = getLocalizedItem(item, language);
-                
-                // שימוש בתמונה הגנרית אם אין תמונת מקור
                 const previewUrl = item.image_url || DEFAULT_PLACEHOLDER;
 
                 return (
@@ -121,7 +114,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                           ${!item.availability_status ? 'opacity-60 grayscale' : ''}
                       `}
                   >
-                    {/* Image Section - Top of Card */}
                     <div className="relative aspect-[4/3] bg-stone-100 overflow-hidden cursor-pointer" onClick={() => openAddModal(item)}>
                         <img 
                             src={previewUrl} 
@@ -148,7 +140,6 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                            <span className="text-[10px] md:text-xs text-stone-400 font-normal">/ {getUnitName(item.unit_type)}</span>
                       </div>
                       
-                      {/* Description hidden on mobile for compactness */}
                       <p className="hidden md:block text-stone-500 text-xs md:text-sm mb-3 leading-relaxed line-clamp-2">
                           {localItem.description}
                       </p>
@@ -199,7 +190,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                 src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
                 alt="zoomed"
                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-zoom-in"
-                onClick={(e) => e.stopPropagation()} // Prevent closing when clicking the image itself
+                onClick={(e) => e.stopPropagation()} 
             />
         </div>
     )}
@@ -219,15 +210,14 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
                         alt={getLocalizedItem(itemToAdd, language).name}
                         className="w-full h-full object-cover cursor-pointer"
-                        onClick={() => setIsZoomed(true)} // Clicking image zooms
+                        onClick={() => setIsZoomed(true)}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none"></div>
                     
-                    {/* Zoom Button */}
                     <button 
                         onClick={() => setIsZoomed(true)}
-                        className="absolute bottom-16 right-3 text-white bg-black/40 backdrop-blur-md p-2 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-20 hover:bg-black/60"
-                        title="Zoom Image"
+                        className="absolute bottom-3 right-3 text-white bg-black/40 backdrop-blur-md p-2 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-20 hover:bg-black/60"
+                        title="Zoom"
                     >
                         <Maximize2 size={16} />
                     </button>

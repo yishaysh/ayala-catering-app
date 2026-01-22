@@ -23,7 +23,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const MIN_ORDER = 500;
     
     // Feature 4: Location Based Delivery Logic
-    const isWithinRadius = customerDetails.distanceKm <= calculationSettings.serviceRadiusKm;
+    // Check if distance is valid (greater than 0) and within radius
+    const isWithinRadius = customerDetails.distanceKm > 0 && customerDetails.distanceKm <= calculationSettings.serviceRadiusKm;
     const FREE_DELIVERY_THRESHOLD = calculationSettings.minOrderFreeDelivery;
 
     if (!isOpen) return null;
@@ -135,7 +136,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
                 {/* Feature 4: Location Based Free Delivery Bar Logic */}
                 <div className="bg-stone-800 px-6 py-4 shadow-inner transition-all duration-300">
-                    {/* Only show progress bar if customer is within delivery radius */}
+                    {/* Show progress bar ONLY if customer is within delivery radius */}
                     {isWithinRadius ? (
                         <>
                             <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">
