@@ -151,8 +151,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             </div>
                         </>
                     ) : (
-                        <div className="text-[10px] uppercase font-bold tracking-widest text-gold-400 flex items-center gap-2 justify-center py-1">
-                            <MapPin size={14} />
+                        <div className="text-sm font-bold text-white flex items-center gap-2 justify-center py-2 bg-stone-700/50 rounded-lg border border-stone-600/50">
+                            <MapPin size={16} className="text-gold-500" />
                             {t.deliveryByDistance as string}
                         </div>
                     )}
