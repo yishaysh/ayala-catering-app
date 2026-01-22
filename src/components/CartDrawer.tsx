@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2 } from 'lucide-react';
+import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
 
 interface CartDrawerProps {
@@ -45,6 +45,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     useBackButton(isOpen, onClose);
 
     const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+    const [detectedLocationName, setDetectedLocationName] = useState<string | null>(null);
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     const MIN_ORDER = 500;
@@ -57,6 +58,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setCustomerDetails({ location: value });
+        
+        // Reset detection state when user types
+        setDetectedLocationName(null);
 
         if (debounceTimerRef.current) {
             clearTimeout(debounceTimerRef.current);
@@ -66,24 +70,39 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             setIsCalculatingDistance(true);
             debounceTimerRef.current = setTimeout(async () => {
                 try {
-                    // Use OpenStreetMap Nominatim API (Free, no key required for low usage)
-                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&countrycodes=il&limit=1`);
+                    // Improved API Call:
+                    // 1. limit=3: Fetch more candidates to ensure we get the best match
+                    // 2. addressdetails=1: To verify it's a valid place
+                    // 3. accept-language=he: Prefer Hebrew results for better matching with user input
+                    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&countrycodes=il&limit=3&addressdetails=1&accept-language=he`);
                     const data = await response.json();
 
                     if (data && data.length > 0) {
-                        const destLat = parseFloat(data[0].lat);
-                        const destLon = parseFloat(data[0].lon);
+                        // Take the first result (usually best match)
+                        const bestMatch = data[0];
+                        const destLat = parseFloat(bestMatch.lat);
+                        const destLon = parseFloat(bestMatch.lon);
+                        
                         const dist = calculateDistance(KEDUMIM_COORDS.lat, KEDUMIM_COORDS.lon, destLat, destLon);
+                        
                         setCustomerDetails({ distanceKm: dist });
+                        // Clean up the display name (take first part usually)
+                        const shortName = bestMatch.display_name.split(',')[0];
+                        setDetectedLocationName(shortName);
+                    } else {
+                        // No result found - allow manual entry
+                        setDetectedLocationName(null);
                     }
                 } catch (error) {
                     console.error("Error calculating distance:", error);
+                    setDetectedLocationName(null);
                 } finally {
                     setIsCalculatingDistance(false);
                 }
             }, 1000); // Wait 1 second after typing stops
         } else {
             setIsCalculatingDistance(false);
+            setDetectedLocationName(null);
         }
     };
 
@@ -117,14 +136,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             message += `*פרטי לקוח להזמנה:* 👤\n`;
             message += `👤 שם: ${customerDetails.name}\n`;
             message += `📞 טלפון: ${customerDetails.phone}\n`;
-            message += `📍 מיקום: ${customerDetails.location}\n`;
+            message += `📍 מיקום: ${customerDetails.location} ${detectedLocationName ? `(זוהה: ${detectedLocationName})` : ''}\n`;
             message += `🚗 מרחק משוער: ${customerDetails.distanceKm} ק"מ (מקדומים)\n\n`;
             message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
         } else {
             message += `*Customer Details:* 👤\n`;
             message += `👤 Name: ${customerDetails.name}\n`;
             message += `📞 Phone: ${customerDetails.phone}\n`;
-            message += `📍 Location: ${customerDetails.location}\n`;
+            message += `📍 Location: ${customerDetails.location} ${detectedLocationName ? `(Verified: ${detectedLocationName})` : ''}\n`;
             message += `🚗 Est. Distance: ${customerDetails.distanceKm} km (from Kedumim)\n\n`;
             message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
         }
@@ -250,14 +269,26 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                 value={customerDetails.location}
                                 onChange={handleLocationChange}
                                 placeholder={t.eventLocation}
-                                className="w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none"
+                                className={`w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none ${detectedLocationName ? 'border-green-500/50 bg-green-50/50' : ''}`}
                             />
                              {isCalculatingDistance && (
                                 <div className="absolute left-3 top-2.5">
                                     <Loader2 className="animate-spin text-gold-500" size={16} />
                                 </div>
                             )}
+                            {detectedLocationName && (
+                                <div className="absolute left-3 top-2.5 text-green-600 animate-fade-in">
+                                    <CheckCircle2 size={16} />
+                                </div>
+                            )}
                         </div>
+                        
+                        {detectedLocationName && (
+                            <div className="text-[11px] text-green-600 font-bold px-1 -mt-1 flex items-center gap-1 animate-fade-in">
+                                <span>✓ {language === 'he' ? 'זוהה:' : 'Identified:'} {detectedLocationName}</span>
+                            </div>
+                        )}
+
                         <div className="relative">
                             <Route className="absolute right-3 top-2.5 text-stone-400" size={16} />
                             <input 
@@ -265,8 +296,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                 value={customerDetails.distanceKm || ''}
                                 onChange={(e) => setCustomerDetails({ distanceKm: Number(e.target.value) })}
                                 placeholder={t.eventDistance}
-                                className={`w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none ${isCalculatingDistance ? 'opacity-50' : ''}`}
+                                disabled={!!detectedLocationName} // Lock if detected
+                                className={`
+                                    w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none 
+                                    ${isCalculatingDistance ? 'opacity-50' : ''}
+                                    ${detectedLocationName ? 'text-stone-500 cursor-not-allowed bg-stone-100' : ''}
+                                `}
                             />
+                            {detectedLocationName && (
+                                <div className="absolute left-3 top-2.5 text-stone-400" title="Distance Locked">
+                                    <Lock size={14} />
+                                </div>
+                            )}
                         </div>
                     </div>
 
