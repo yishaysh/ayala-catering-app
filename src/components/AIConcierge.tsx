@@ -6,7 +6,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { MenuItem } from '../types';
 
 export const AIConcierge: React.FC = () => {
-    const { language, menuItems, bulkAddToCart } = useStore();
+    const { language, menuItems, bulkAddToCart, calculationSettings } = useStore();
     const t: Translations = (translations[language] || translations['he']) as Translations;
     const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
@@ -50,6 +50,7 @@ export const AIConcierge: React.FC = () => {
 
         // Feature 5: AI Guardrails & Prompt Engineering
         // Enforce strict rules on budget, quantity, and context.
+        // Also inject Custom Admin Instructions if available.
         const systemInstruction = `
             You are "Ayala", an expert catering planner for a premium dairy catering business.
             Your goal is to build a PERFECT menu based on the user's event description.
@@ -64,6 +65,9 @@ export const AIConcierge: React.FC = () => {
             4. **Variety**: Select a realistic variety (5-8 distinct items max for small groups).
             5. **Language**: The user prompt is in Hebrew or English. Your 'explanation' MUST be in Hebrew (unless the prompt is explicitly English).
             
+            ADDITIONAL CHEF INSTRUCTIONS (Important):
+            ${calculationSettings.aiCustomInstructions || "None"}
+
             INPUT:
             - User Prompt: "${prompt}"
             - Menu Inventory: ${JSON.stringify(menuSummary)}

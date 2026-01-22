@@ -79,6 +79,7 @@ export interface Translations {
     category: string;
     price: string;
     status: string;
+    image: string;
     modifications: string;
     edit: string;
     active: string;
@@ -102,6 +103,8 @@ export interface Translations {
     trayCapacity: string;
     serviceRadius: string;
     minFreeDelivery: string;
+    aiInstructions: string;
+    aiInstructionsPlaceholder: string;
     advCalc: string;
     eventLogic: string;
     eventLogicExpl: string;
@@ -202,6 +205,7 @@ export const translations: Record<Language, Translations> = {
         category: "קטגוריה",
         price: "מחיר",
         status: "סטטוס",
+        image: "תמונה",
         modifications: "שינויים אפשריים",
         edit: "עריכה",
         active: "פעיל",
@@ -225,6 +229,8 @@ export const translations: Record<Language, Translations> = {
         trayCapacity: "קיבולת מגש ממוצעת",
         serviceRadius: "רדיוס משלוח (ק\"מ)",
         minFreeDelivery: "מינימום למשלוח חינם",
+        aiInstructions: "הנחיות שף ל-AI (Custom Prompt)",
+        aiInstructionsPlaceholder: "לדוגמה: אל תמליץ על יותר מ-2 סוגי קיש, תמיד תציע סלט ירוק...",
         advCalc: "הגדרות מחשבון מתקדמות",
         eventLogic: "לוגיקה לפי סוג אירוע",
         eventLogicExpl: "* המספרים מייצגים יחידות לאדם (כריכים/מאפים) או אחוז כיסוי מהאורחים (שאר הקטגוריות). 1.0 = יחידה לכל אורח.",
@@ -323,6 +329,7 @@ export const translations: Record<Language, Translations> = {
         category: "Category",
         price: "Price",
         status: "Status",
+        image: "Image",
         modifications: "Allowed Modifications",
         edit: "Edit",
         active: "Active",
@@ -346,6 +353,8 @@ export const translations: Record<Language, Translations> = {
         trayCapacity: "Avg. Tray Capacity",
         serviceRadius: "Service Radius (km)",
         minFreeDelivery: "Min Order Free Delivery",
+        aiInstructions: "Chef's AI Instructions (Custom Prompt)",
+        aiInstructionsPlaceholder: "e.g.: Don't suggest more than 2 quiches, always offer green salad...",
         advCalc: "Advanced Calculator Config",
         eventLogic: "Event Logic Matrix",
         eventLogicExpl: "* Values represent units per person (Sandwiches/Pastries) or coverage ratio (other categories). 1.0 = one unit per guest.",
@@ -416,8 +425,9 @@ export const useStore = create<AppState>()(
         sandwichesPerPerson: 1.5, 
         pastriesPerPerson: 1.0, 
         averageTrayCapacity: 10,
-        serviceRadiusKm: 25, // Default service radius for Feature 4
-        minOrderFreeDelivery: 1500
+        serviceRadiusKm: 25, 
+        minOrderFreeDelivery: 1500,
+        aiCustomInstructions: '' // Initialize new field
       },
       advancedSettings: {
         eventRatios: {
@@ -510,7 +520,7 @@ export const useStore = create<AppState>()(
       cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
     }),
     {
-      name: 'ayala-catering-storage-v9', // Version bump to force new default settings
+      name: 'ayala-catering-storage-v10', // Version bump to force new default settings
       partialize: (state) => ({ 
           cart: state.cart, 
           guestCount: state.guestCount,

@@ -264,6 +264,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </button>
                 {showAdvancedCalc && (
                     <div className="p-6 bg-stone-50 animate-slide-in-top">
+                        <div className="mb-8 border-b border-stone-200 pb-8">
+                            <h4 className="text-stone-900 font-bold mb-2 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.aiInstructions}</h4>
+                            <textarea 
+                                value={calculationSettings?.aiCustomInstructions || ''}
+                                onChange={(e) => updateCalculationSettings({ aiCustomInstructions: e.target.value })}
+                                placeholder={t.aiInstructionsPlaceholder}
+                                className="w-full h-32 p-3 border border-stone-300 rounded-lg focus:outline-none focus:border-gold-500 text-sm resize-none"
+                            />
+                        </div>
+
                         <div>
                             <h4 className="text-stone-900 font-bold mb-2 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.eventLogic}</h4>
                             <p className="text-[11px] text-stone-500 italic mb-4 px-2">{t.eventLogicExpl}</p>
@@ -309,7 +319,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         <thead className="bg-stone-50 text-stone-500 text-sm">
                             <tr>
                                 <th className="p-4 text-start">{t.productName}</th>
-                                <th className="p-4 text-start">IMG</th>
+                                <th className="p-4 text-start">{t.image}</th>
                                 <th className="p-4 text-start">{t.category}</th>
                                 <th className="p-4 text-start">{t.price}</th>
                                 <th className="p-4 text-start">{t.status}</th>

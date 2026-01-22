@@ -52,8 +52,9 @@ export interface CalculationSettings {
   sandwichesPerPerson: number;
   pastriesPerPerson: number;
   averageTrayCapacity: number;
-  serviceRadiusKm: number; // Feature 4: Delivery Radius
-  minOrderFreeDelivery: number; // Feature 4: Threshold
+  serviceRadiusKm: number;
+  minOrderFreeDelivery: number;
+  aiCustomInstructions: string; // New field for custom AI prompt rules
 }
 
 export interface EventRatioConfig {
