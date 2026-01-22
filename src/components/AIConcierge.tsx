@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useStore, translations, Translations, getLocalizedItem } from '../store';
-import { Sparkles, Loader2, Send, AlertCircle, RefreshCw, Check, Utensils } from 'lucide-react';
+import { Sparkles, Loader2, Send, AlertCircle, RefreshCw, Check, Utensils, Eye, X } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 import { MenuItem } from '../types';
+import { useBackButton } from '../hooks/useBackButton';
 
 export const AIConcierge: React.FC = () => {
     const { language, menuItems, bulkAddToCart, calculationSettings } = useStore();
@@ -13,6 +14,12 @@ export const AIConcierge: React.FC = () => {
     const [recommendation, setRecommendation] = useState<{ items: { id: string, quantity: number }[], explanation: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [needsKey, setNeedsKey] = useState(false);
+    
+    // State for Image Preview
+    const [previewItem, setPreviewItem] = useState<MenuItem | null>(null);
+
+    // Handle Back Button for Image Modal
+    useBackButton(!!previewItem, () => setPreviewItem(null));
 
     // Fetch API Key from Env
     const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
@@ -49,8 +56,6 @@ export const AIConcierge: React.FC = () => {
         }));
 
         // Feature 5: AI Guardrails & Prompt Engineering
-        // Enforce strict rules on budget, quantity, and context.
-        // Also inject Custom Admin Instructions if available.
         const systemInstruction = `
             You are "Ayala", the owner and head chef of a premium boutique dairy catering business.
             Your tone is warm, personal, inviting, and professional. You don't just list items; you curate an experience.
@@ -217,43 +222,9 @@ export const AIConcierge: React.FC = () => {
                         <div className="animate-fade-in relative z-10">
                             {recommendation.items.length > 0 ? (
                                 <div className="bg-stone-800/80 rounded-2xl border border-stone-700 overflow-hidden backdrop-blur-md">
-                                    {/* Header */}
-                                    <div className="bg-stone-950/50 p-4 border-b border-stone-700 flex justify-between items-center">
-                                        <h4 className="text-gold-500 font-bold flex items-center gap-2">
-                                            <Utensils size={16} />
-                                            {language === 'he' ? 'התפריט שהרכבתי לך' : 'My Menu Recommendation'}
-                                        </h4>
-                                        <span className="text-stone-300 font-serif font-bold text-lg">₪{recTotal}</span>
-                                    </div>
-
-                                    {/* Items List */}
-                                    <div className="p-2">
-                                        {recommendation.items.map((rec) => {
-                                            const item = menuItems.find(m => m.id === rec.id);
-                                            if (!item) return null;
-                                            const localItem = getLocalizedItem(item, language);
-                                            
-                                            return (
-                                                <div key={rec.id} className="flex justify-between items-center p-3 hover:bg-white/5 rounded-xl transition-colors border-b border-stone-700/50 last:border-0">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 bg-gold-500/20 rounded-lg flex items-center justify-center text-gold-500 font-bold text-sm shrink-0">
-                                                            {rec.quantity}
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="text-stone-200 font-bold text-sm">{localItem.name}</span>
-                                                            <span className="text-[10px] text-stone-500">{t.categories[item.category] || item.category}</span>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-stone-400 text-sm font-medium">
-                                                        ₪{item.price * rec.quantity}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Chef's Note */}
-                                    <div className="bg-gold-500/10 p-4 border-t border-gold-500/20">
+                                    
+                                    {/* 1. Chef's Note - Moved to Top */}
+                                    <div className="bg-gold-500/10 p-4 border-b border-gold-500/20">
                                         <div className="flex gap-2">
                                             <div className="w-1 h-full bg-gold-500 rounded-full shrink-0 min-h-[2rem]"></div>
                                             <p className="text-stone-300 text-sm italic leading-relaxed">
@@ -262,8 +233,55 @@ export const AIConcierge: React.FC = () => {
                                         </div>
                                     </div>
 
+                                    {/* 2. Header */}
+                                    <div className="bg-stone-950/50 p-4 border-b border-stone-700 flex justify-between items-center">
+                                        <h4 className="text-gold-500 font-bold flex items-center gap-2">
+                                            <Utensils size={16} />
+                                            {language === 'he' ? 'התפריט שהרכבתי לך' : 'My Menu Recommendation'}
+                                        </h4>
+                                        <span className="text-stone-300 font-serif font-bold text-lg">₪{recTotal}</span>
+                                    </div>
+
+                                    {/* 3. Items List */}
+                                    <div className="p-2">
+                                        {recommendation.items.map((rec) => {
+                                            const item = menuItems.find(m => m.id === rec.id);
+                                            if (!item) return null;
+                                            const localItem = getLocalizedItem(item, language);
+                                            
+                                            return (
+                                                <div key={rec.id} className="flex justify-between items-center p-3 hover:bg-white/5 rounded-xl transition-colors border-b border-stone-700/50 last:border-0">
+                                                    <div className="flex items-center gap-3 overflow-hidden">
+                                                        <div className="w-8 h-8 bg-gold-500/20 rounded-lg flex items-center justify-center text-gold-500 font-bold text-sm shrink-0">
+                                                            {rec.quantity}
+                                                        </div>
+                                                        <div className="flex flex-col min-w-0">
+                                                            <span className="text-stone-200 font-bold text-sm truncate">{localItem.name}</span>
+                                                            <span className="text-[10px] text-stone-500 truncate">{t.categories[item.category] || item.category}</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex items-center gap-3 shrink-0">
+                                                        {item.image_url && (
+                                                            <button 
+                                                                onClick={() => setPreviewItem(item)}
+                                                                className="p-1.5 text-stone-500 hover:text-gold-500 hover:bg-stone-700/50 rounded-full transition-colors"
+                                                                title={language === 'he' ? 'צפה בתמונה' : 'View Image'}
+                                                            >
+                                                                <Eye size={16} />
+                                                            </button>
+                                                        )}
+                                                        <div className="text-stone-400 text-sm font-medium w-16 text-end">
+                                                            ₪{item.price * rec.quantity}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
                                     {/* Action Button */}
-                                    <div className="p-4 bg-stone-950/30">
+                                    <div className="p-4 bg-stone-950/30 border-t border-stone-800">
                                         <button
                                             onClick={handleApply}
                                             className="w-full bg-gold-500 text-stone-900 font-bold py-3.5 rounded-xl hover:bg-gold-400 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2"
@@ -282,6 +300,32 @@ export const AIConcierge: React.FC = () => {
                         </div>
                     )}
                 </>
+            )}
+
+            {/* Image Preview Modal */}
+            {previewItem && (
+                <div 
+                    className="fixed inset-0 z-[200] flex items-center justify-center bg-stone-900/95 backdrop-blur-md animate-fade-in p-4"
+                    onClick={() => setPreviewItem(null)}
+                >
+                    <button 
+                        onClick={() => setPreviewItem(null)}
+                        className="absolute top-6 right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[210]"
+                    >
+                        <X size={32} />
+                    </button>
+                    <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}>
+                        <img 
+                            src={previewItem.image_url} 
+                            alt={getLocalizedItem(previewItem, language).name}
+                            className="w-full h-auto max-h-[80vh] object-contain rounded-xl shadow-2xl animate-zoom-in"
+                        />
+                         <div className="absolute bottom-0 left-0 right-0 bg-stone-900/80 backdrop-blur-sm p-4 rounded-b-xl text-center">
+                            <h3 className="text-white font-bold text-lg">{getLocalizedItem(previewItem, language).name}</h3>
+                            <p className="text-gold-500 font-serif">₪{previewItem.price}</p>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
