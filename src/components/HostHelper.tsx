@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { useStore, translations } from '../store';
 import { Minus, Plus, UtensilsCrossed, Wine, Sun, Sparkles, Users, Baby } from 'lucide-react';
-import { EventType } from '../types';
+import { EventType, Category } from '../types';
 
 export const HostHelper: React.FC = () => {
   const { 
@@ -37,6 +37,13 @@ export const HostHelper: React.FC = () => {
         desserts: Math.ceil((weightedCount * ratios.dessertsCoverage) / DESSERT_CAPACITY * 15),
     };
   }, [adultCount, childCount, eventType, advancedSettings]);
+
+  const scrollToSection = (cat: Category) => {
+    const element = document.getElementById(cat);
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   return (
     <div className="relative bg-stone-900 text-stone-50 rounded-3xl shadow-2xl mb-12 border border-stone-800 w-full overflow-hidden transition-all duration-500">
@@ -152,40 +159,64 @@ export const HostHelper: React.FC = () => {
                 
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                     {recommendations.sandwiches > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '0ms'}}>
-                            <span className="block text-3xl font-bold text-gold-500 mb-1">{recommendations.sandwiches}</span>
+                        <button 
+                            onClick={() => scrollToSection('Sandwiches')}
+                            className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/50 transition-all animate-zoom-in active:scale-95" 
+                            style={{animationDelay: '0ms'}}
+                        >
+                            <span className="block text-3xl font-bold text-gold-500 mb-1 group-hover:scale-110 transition-transform">{recommendations.sandwiches}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{t.sandwiches}</span>
-                        </div>
+                        </button>
                     )}
                     {recommendations.pastries > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '100ms'}}>
-                            <span className="block text-3xl font-bold text-white mb-1">{recommendations.pastries}</span>
+                        <button 
+                            onClick={() => scrollToSection('Pastries')}
+                            className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/50 transition-all animate-zoom-in active:scale-95" 
+                            style={{animationDelay: '100ms'}}
+                        >
+                            <span className="block text-3xl font-bold text-white mb-1 group-hover:scale-110 transition-transform">{recommendations.pastries}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{(t.categories as any)['Pastries']}</span>
-                        </div>
+                        </button>
                     )}
                      {recommendations.salads > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '200ms'}}>
-                            <span className="block text-3xl font-bold text-white mb-1">{recommendations.salads}</span>
+                        <button 
+                            onClick={() => scrollToSection('Salads')}
+                            className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/50 transition-all animate-zoom-in active:scale-95" 
+                            style={{animationDelay: '200ms'}}
+                        >
+                            <span className="block text-3xl font-bold text-white mb-1 group-hover:scale-110 transition-transform">{recommendations.salads}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{t.trays} {(t.categories as any)['Salads']}</span>
-                        </div>
+                        </button>
                     )}
                      {recommendations.mains > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '300ms'}}>
-                            <span className="block text-3xl font-bold text-white mb-1">{recommendations.mains}</span>
+                        <button 
+                            onClick={() => scrollToSection('Main Courses')}
+                            className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/50 transition-all animate-zoom-in active:scale-95" 
+                            style={{animationDelay: '300ms'}}
+                        >
+                            <span className="block text-3xl font-bold text-white mb-1 group-hover:scale-110 transition-transform">{recommendations.mains}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{t.trays} {(t.categories as any)['Main Courses']}</span>
-                        </div>
+                        </button>
                     )}
                      {recommendations.platters > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '400ms'}}>
-                            <span className="block text-3xl font-bold text-white mb-1">{recommendations.platters}</span>
+                        <button 
+                            onClick={() => scrollToSection('Cold Platters')}
+                            className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/50 transition-all animate-zoom-in active:scale-95" 
+                            style={{animationDelay: '400ms'}}
+                        >
+                            <span className="block text-3xl font-bold text-white mb-1 group-hover:scale-110 transition-transform">{recommendations.platters}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{(t.categories as any)['Cold Platters']}</span>
-                        </div>
+                        </button>
                     )}
                      {recommendations.desserts > 0 && (
-                        <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/30 transition-colors animate-zoom-in" style={{animationDelay: '500ms'}}>
-                            <span className="block text-3xl font-bold text-gold-500 mb-1">{recommendations.desserts}</span>
+                        <button 
+                            onClick={() => scrollToSection('Desserts')}
+                            className="bg-stone-800/50 rounded-xl p-4 border border-stone-800 text-center group hover:border-gold-500/50 transition-all animate-zoom-in active:scale-95" 
+                            style={{animationDelay: '500ms'}}
+                        >
+                            <span className="block text-3xl font-bold text-gold-500 mb-1 group-hover:scale-110 transition-transform">{recommendations.desserts}</span>
                             <span className="text-xs text-stone-400 uppercase tracking-wider">{(t.categories as any)['Desserts']}</span>
-                        </div>
+                        </button>
                     )}
                 </div>
             </div>
