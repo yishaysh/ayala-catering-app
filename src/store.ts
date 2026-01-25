@@ -29,6 +29,7 @@ export interface Translations {
   total: string;
   subtotal: string;
   discount: string;
+  delivery: string;
   finalTotal: string;
   couponCode: string;
   applyCoupon: string;
@@ -141,6 +142,10 @@ export interface Translations {
     usageLimit: string;
     unlimited: string;
     usage: string;
+    deliverySettings: string;
+    baseDeliveryFee: string;
+    pricePerKm: string;
+    includedRadius: string;
   };
 }
 
@@ -168,6 +173,7 @@ export const translations: Record<Language, Translations> = {
     total: "סה\"כ לתשלום",
     subtotal: "סכום ביניים",
     discount: "הנחה",
+    delivery: "משלוח",
     finalTotal: "סה\"כ סופי",
     couponCode: "קוד קופון",
     applyCoupon: "הפעל",
@@ -287,7 +293,11 @@ export const translations: Record<Language, Translations> = {
         activeCoupons: "קופונים פעילים",
         usageLimit: "מגבלת שימושים",
         unlimited: "ללא הגבלה",
-        usage: "נוצל"
+        usage: "נוצל",
+        deliverySettings: "הגדרות משלוח",
+        baseDeliveryFee: "עלות בסיס (עד רדיוס)",
+        pricePerKm: "מחיר לק\"מ נוסף",
+        includedRadius: "רדיוס כלול בבסיס (ק\"מ)"
     }
   },
   en: {
@@ -313,6 +323,7 @@ export const translations: Record<Language, Translations> = {
     total: "Total",
     subtotal: "Subtotal",
     discount: "Discount",
+    delivery: "Delivery",
     finalTotal: "Final Total",
     couponCode: "Coupon Code",
     applyCoupon: "Apply",
@@ -432,7 +443,11 @@ export const translations: Record<Language, Translations> = {
         tableDesserts: "Desserts",
         usageLimit: "Usage Limit",
         unlimited: "Unlimited",
-        usage: "Used"
+        usage: "Used",
+        deliverySettings: "Delivery Pricing",
+        baseDeliveryFee: "Base Fee (within radius)",
+        pricePerKm: "Price Per Km (Extra)",
+        includedRadius: "Radius Included (Km)"
     }
   }
 };
@@ -478,6 +493,7 @@ interface AppState {
   deleteCoupon: (code: string) => Promise<void>;
   getCoupons: () => Promise<Coupon[]>;
   incrementCouponUsage: (code: string) => Promise<void>;
+  getDeliveryFee: (distance: number, subtotal: number) => number;
 }
 
 export const useStore = create<AppState>()(
@@ -497,14 +513,17 @@ export const useStore = create<AppState>()(
         min_order_price: 500,
         lead_time_hours: 48,
         delivery_fee: 50,
-        is_shop_open: true
+        is_shop_open: true,
+        delivery_base_fee: 60,
+        delivery_price_per_km: 4,
+        delivery_min_radius_included: 15
       },
       calculationSettings: { 
         sandwichesPerPerson: 1.5, 
         pastriesPerPerson: 1.0, 
         averageTrayCapacity: 10,
-        serviceRadiusKm: 25, 
-        minOrderFreeDelivery: 1500,
+        serviceRadiusKm: 50, 
+        minOrderFreeDelivery: 2000,
         aiCustomInstructions: ''
       },
       advancedSettings: {
@@ -530,7 +549,19 @@ export const useStore = create<AppState>()(
 
         // Fetch Config
         const { data: configData } = await supabase.from('app_settings').select('*').eq('key', 'config').single();
-        if (configData && configData.value) set({ appConfig: configData.value as AppSettings });
+        if (configData && configData.value) {
+            // Merge with defaults to ensure new fields exist
+            const defaults = {
+                min_order_price: 500,
+                lead_time_hours: 48,
+                delivery_fee: 50,
+                is_shop_open: true,
+                delivery_base_fee: 60,
+                delivery_price_per_km: 4,
+                delivery_min_radius_included: 15
+            };
+            set({ appConfig: { ...defaults, ...configData.value } });
+        }
       },
 
       setLanguage: (lang) => set({ language: lang }),
@@ -650,6 +681,30 @@ export const useStore = create<AppState>()(
 
       incrementCouponUsage: async (code) => {
          await supabase.rpc('increment_coupon_usage', { coupon_code: code });
+      },
+
+      getDeliveryFee: (distance: number, subtotal: number) => {
+          const { appConfig, calculationSettings } = get();
+          
+          // Check for Free Delivery Threshold
+          if (subtotal >= calculationSettings.minOrderFreeDelivery) {
+              return 0;
+          }
+          
+          // No distance calculated
+          if (distance <= 0) return 0;
+
+          // Base calculation
+          let fee = appConfig.delivery_base_fee;
+
+          // If distance exceeds included radius, add per km charge
+          if (distance > appConfig.delivery_min_radius_included) {
+              const extraKm = distance - appConfig.delivery_min_radius_included;
+              fee += extraKm * appConfig.delivery_price_per_km;
+          }
+
+          // Round to nearest 5
+          return Math.ceil(fee / 5) * 5;
       }
     }),
     {

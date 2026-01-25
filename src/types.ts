@@ -97,8 +97,12 @@ export interface AdvancedCalculationSettings {
 export interface AppSettings {
   min_order_price: number;
   lead_time_hours: number;
-  delivery_fee: number;
+  delivery_fee: number; // Deprecated, kept for backward compatibility logic
   is_shop_open: boolean;
+  // New Delivery Logic
+  delivery_base_fee: number; 
+  delivery_price_per_km: number;
+  delivery_min_radius_included: number;
 }
 
 export interface GuestCalculationResult {

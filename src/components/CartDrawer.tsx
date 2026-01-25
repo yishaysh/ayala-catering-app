@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock, LocateFixed, Tag } from 'lucide-react';
+import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock, LocateFixed, Tag, Truck } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
 import { supabase } from '../lib/supabase';
@@ -39,7 +39,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         cart, updateQuantity, cartTotal, language, clearCart, 
         customerDetails, setCustomerDetails, calculationSettings,
         activeCoupon, validateCoupon, removeCoupon, incrementCouponUsage,
-        appConfig
+        appConfig, getDeliveryFee
     } = useStore();
     const t = translations[language] || translations['he'];
     
@@ -53,7 +53,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             discountAmount = activeCoupon.discount_value;
         }
     }
-    const finalTotal = Math.max(0, subtotal - discountAmount);
+    
+    const deliveryFee = getDeliveryFee(customerDetails.distanceKm, subtotal);
+    const finalTotal = Math.max(0, subtotal - discountAmount + deliveryFee);
 
     useBackButton(isOpen, onClose);
 
@@ -319,13 +321,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             });
 
             message += `${line}\n`;
+            
+            // Financial Summary
+            message += `${t.subtotal as string}: ₪${subtotal}\n`;
+            
             if (discountAmount > 0) {
-                message += `${t.subtotal as string}: ₪${subtotal}\n`;
                 message += `🏷️ ${t.discount as string} (${activeCoupon?.code}): -₪${discountAmount}\n`;
-                message += `*${t.finalTotal as string}: ₪${finalTotal}* 💰`;
-            } else {
-                message += `*${t.total as string}: ₪${finalTotal}* 💰`;
             }
+            
+            if (deliveryFee > 0) {
+                message += `🚚 ${t.delivery as string} (${customerDetails.distanceKm}km): ₪${deliveryFee}\n`;
+            } else if (customerDetails.distanceKm > 0 && subtotal >= FREE_DELIVERY_THRESHOLD) {
+                message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'חינם (הזמנה גדולה)' : 'Free (Large Order)'}\n`;
+            }
+
+            message += `*${t.finalTotal as string}: ₪${finalTotal}* 💰`;
             
             setIsSubmitting(false);
 
@@ -347,7 +357,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       return units[type] || type;
     };
 
-    const progress = Math.min((finalTotal / FREE_DELIVERY_THRESHOLD) * 100, 100);
+    const progress = Math.min((subtotal / FREE_DELIVERY_THRESHOLD) * 100, 100);
 
     return (
         <>
@@ -388,8 +398,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             <>
                                 <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">
                                     <span>{t.freeDeliveryAt as string} ₪{FREE_DELIVERY_THRESHOLD}</span>
-                                    {finalTotal < FREE_DELIVERY_THRESHOLD ? (
-                                        <span>{t.justMore as string} ₪{FREE_DELIVERY_THRESHOLD - finalTotal} {t.forVip as string}</span>
+                                    {subtotal < FREE_DELIVERY_THRESHOLD ? (
+                                        <span>{t.justMore as string} ₪{FREE_DELIVERY_THRESHOLD - subtotal} {t.forVip as string}</span>
                                     ) : (
                                         <span className="text-gold-500 flex items-center gap-1"><Sparkles size={10} /> {t.vipDelivery as string}</span>
                                     )}
@@ -570,26 +580,34 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         )}
 
                         <div className="space-y-1 mb-4">
+                            <div className="flex justify-between items-center text-sm text-stone-500">
+                                <span>{t.subtotal as string}:</span>
+                                <span>₪{subtotal}</span>
+                            </div>
+
                             {activeCoupon && (
-                                <>
-                                    <div className="flex justify-between items-center text-sm text-stone-500">
-                                        <span>{t.subtotal as string}:</span>
-                                        <span>₪{subtotal}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-sm text-green-600 font-bold">
-                                        <span>{t.discount as string}:</span>
-                                        <span>-₪{discountAmount.toFixed(0)}</span>
-                                    </div>
-                                    <div className="border-t border-stone-200 my-1"></div>
-                                </>
+                                <div className="flex justify-between items-center text-sm text-green-600 font-bold">
+                                    <span>{t.discount as string}:</span>
+                                    <span>-₪{discountAmount.toFixed(0)}</span>
+                                </div>
                             )}
+
+                            {deliveryFee > 0 && (
+                                <div className="flex justify-between items-center text-sm text-stone-600 font-bold">
+                                    <span className="flex items-center gap-1"><Truck size={12}/> {t.delivery as string}:</span>
+                                    <span>₪{deliveryFee}</span>
+                                </div>
+                            )}
+
+                            <div className="border-t border-stone-200 my-1"></div>
+                            
                             <div className="flex justify-between items-center">
-                                <span className="text-lg text-stone-600">{activeCoupon ? (t.finalTotal as string) : (t.total as string)}:</span>
+                                <span className="text-lg text-stone-600">{t.finalTotal as string}:</span>
                                 <span className="text-3xl font-bold font-serif text-stone-900">₪{finalTotal}</span>
                             </div>
                         </div>
                         
-                        {finalTotal < MIN_ORDER && finalTotal > 0 && (
+                        {subtotal < MIN_ORDER && subtotal > 0 && (
                             <div className="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs mb-3 border border-red-100 flex items-center justify-center gap-2">
                                 <span>⚠️</span>
                                 {t.minOrder as string}: ₪{MIN_ORDER}
@@ -610,7 +628,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             
                             <button 
                                 onClick={handleWhatsAppCheckout}
-                                disabled={finalTotal < MIN_ORDER || cart.length === 0 || !customerDetails.name || !customerDetails.phone || isSubmitting}
+                                disabled={subtotal < MIN_ORDER || cart.length === 0 || !customerDetails.name || !customerDetails.phone || isSubmitting}
                                 className="flex-[2] bg-green-600 text-white font-bold py-3.5 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 group text-sm sm:text-base"
                             >
                                 {isSubmitting ? (

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { MenuItem, Category, UnitType, EventType, Coupon } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
@@ -243,12 +243,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 text-start">
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.minOrder}</h3>
-                    <input 
-                        type="number" 
-                        value={appConfig.min_order_price} 
-                        onChange={(e) => updateAppConfig({ min_order_price: Number(e.target.value) })}
-                        className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" 
-                    />
+                    <div className="flex items-center gap-1">
+                        <span className="text-lg font-bold text-stone-800">₪</span>
+                        <input 
+                            type="number" 
+                            value={appConfig.min_order_price} 
+                            onChange={(e) => updateAppConfig({ min_order_price: Number(e.target.value) })}
+                            className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" 
+                        />
+                    </div>
                 </div>
                 
                 <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col justify-between">
@@ -293,30 +296,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
             </div>
 
-            {/* Feature 4: Delivery Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 text-start">
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gold-100">
-                    <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.serviceRadius}</h3>
-                    <div className="flex items-center gap-2">
-                        <input 
-                            type="number" 
-                            value={calculationSettings?.serviceRadiusKm || 25} 
-                            onChange={(e) => updateCalculationSettings({ serviceRadiusKm: Number(e.target.value) })}
-                            className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" 
-                        />
-                        <span className="text-stone-400 font-bold">KM</span>
-                    </div>
+            {/* Delivery Settings */}
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-100 mb-8 text-start relative overflow-hidden">
+                 <div className="flex items-center gap-2 mb-4">
+                    <div className="p-1.5 bg-stone-100 rounded text-stone-600"><Truck size={16} /></div>
+                    <h3 className="text-sm font-bold text-stone-900 uppercase">{t.deliverySettings}</h3>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow-sm border border-gold-100">
-                    <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.minFreeDelivery}</h3>
-                    <div className="flex items-center gap-2">
-                        <input 
-                            type="number" 
-                            value={calculationSettings?.minOrderFreeDelivery || 1500} 
-                            onChange={(e) => updateCalculationSettings({ minOrderFreeDelivery: Number(e.target.value) })}
-                            className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" 
-                        />
-                        <span className="text-stone-400 font-bold">₪</span>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="flex flex-col">
+                        <label className="text-[10px] text-stone-500 font-bold mb-1">{t.minFreeDelivery}</label>
+                        <div className="flex items-center gap-1">
+                             <span className="text-stone-400">₪</span>
+                             <input 
+                                type="number" 
+                                value={calculationSettings?.minOrderFreeDelivery || 1500} 
+                                onChange={(e) => updateCalculationSettings({ minOrderFreeDelivery: Number(e.target.value) })}
+                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500" 
+                            />
+                        </div>
+                    </div>
+                    <div className="flex flex-col">
+                         <label className="text-[10px] text-stone-500 font-bold mb-1">{t.baseDeliveryFee}</label>
+                         <div className="flex items-center gap-1">
+                             <span className="text-stone-400">₪</span>
+                             <input 
+                                type="number" 
+                                value={appConfig.delivery_base_fee ?? 60} 
+                                onChange={(e) => updateAppConfig({ delivery_base_fee: Number(e.target.value) })}
+                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500" 
+                            />
+                        </div>
+                    </div>
+                     <div className="flex flex-col">
+                         <label className="text-[10px] text-stone-500 font-bold mb-1">{t.pricePerKm}</label>
+                         <div className="flex items-center gap-1">
+                             <span className="text-stone-400">₪</span>
+                             <input 
+                                type="number" 
+                                value={appConfig.delivery_price_per_km ?? 4} 
+                                onChange={(e) => updateAppConfig({ delivery_price_per_km: Number(e.target.value) })}
+                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500" 
+                            />
+                        </div>
+                    </div>
+                     <div className="flex flex-col">
+                         <label className="text-[10px] text-stone-500 font-bold mb-1">{t.includedRadius}</label>
+                         <div className="flex items-center gap-1">
+                             <span className="text-stone-400">KM</span>
+                             <input 
+                                type="number" 
+                                value={appConfig.delivery_min_radius_included ?? 15} 
+                                onChange={(e) => updateAppConfig({ delivery_min_radius_included: Number(e.target.value) })}
+                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500" 
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
