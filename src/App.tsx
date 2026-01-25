@@ -12,6 +12,7 @@ import { useBackButton } from './hooks/useBackButton';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts'];
 const LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png";
+const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || '2024';
 
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -34,7 +35,7 @@ export default function App() {
 
   const handleAdminLogin = (e: React.FormEvent) => {
       e.preventDefault();
-      if (pin === '2024') {
+      if (pin === ADMIN_PIN) {
           setIsAdmin(true);
           setIsLoginOpen(false);
           setPin('');

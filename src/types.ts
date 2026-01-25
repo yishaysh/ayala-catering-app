@@ -48,6 +48,17 @@ export interface CustomerDetails {
   distanceKm: number;
 }
 
+export interface Order {
+    id?: string;
+    customer_name: string;
+    customer_phone: string;
+    event_date: string; // ISO string
+    total_price: number;
+    items: CartItem[]; // Stored as JSONB
+    status: 'pending' | 'approved' | 'completed' | 'cancelled';
+    created_at?: string;
+}
+
 export interface CalculationSettings {
   sandwichesPerPerson: number;
   pastriesPerPerson: number;

@@ -4,6 +4,7 @@ import { useStore, translations, getLocalizedItem } from '../store';
 import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock, LocateFixed } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
+import { supabase } from '../lib/supabase';
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -46,6 +47,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     useBackButton(isOpen, onClose);
 
     const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [detectedLocationName, setDetectedLocationName] = useState<string | null>(null);
     
     // Unified Feedback Modal State
@@ -219,7 +221,33 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         window.open(`https://wa.me/?text=${encoded}`, '_blank');
     };
 
-    const handleWhatsAppCheckout = () => {
+    const handleWhatsAppCheckout = async () => {
+        setIsSubmitting(true);
+
+        // 1. Save Order to Supabase
+        try {
+            const orderData = {
+                customer_name: customerDetails.name,
+                customer_phone: customerDetails.phone,
+                event_date: new Date().toISOString(), // In a real app, user would pick a date
+                total_price: total,
+                items: cart,
+                status: 'pending'
+            };
+
+            const { error } = await supabase.from('orders').insert([orderData]);
+            
+            if (error) {
+                console.error("Failed to save order:", error);
+                // We continue to WhatsApp even if save fails, but maybe alert the user?
+                // For now, we proceed to ensure the sale isn't blocked.
+            }
+
+        } catch (err) {
+            console.error("Unexpected error saving order:", err);
+        }
+
+        // 2. Build WhatsApp Message
         const line = "━━━━━━━━━━━━━━━━";
         let message = "";
 
@@ -255,8 +283,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         message += `${line}\n`;
         message += `*${t.total as string}: ₪${total}* 💰`;
         
+        setIsSubmitting(false);
+
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/972547474764?text=${encoded}`, '_blank');
+        
+        // Optional: Clear cart after successful send? 
+        // Typically better to leave it in case they need to correct and re-send.
     };
 
     const getUnitName = (type: string) => {
@@ -488,11 +521,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             
                             <button 
                                 onClick={handleWhatsAppCheckout}
-                                disabled={total < MIN_ORDER || cart.length === 0 || !customerDetails.name || !customerDetails.phone}
+                                disabled={total < MIN_ORDER || cart.length === 0 || !customerDetails.name || !customerDetails.phone || isSubmitting}
                                 className="flex-[2] bg-green-600 text-white font-bold py-3.5 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 group text-sm sm:text-base"
                             >
-                                <span>{t.checkout as string}</span>
-                                <Send size={18} className={`transition-transform ${language === 'he' ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
+                                {isSubmitting ? (
+                                    <Loader2 className="animate-spin" size={18} />
+                                ) : (
+                                    <>
+                                        <span>{t.checkout as string}</span>
+                                        <Send size={18} className={`transition-transform ${language === 'he' ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
+                                    </>
+                                )}
                             </button>
                         </div>
                         
