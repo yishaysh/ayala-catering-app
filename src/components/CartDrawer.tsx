@@ -38,7 +38,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const { 
         cart, updateQuantity, cartTotal, language, clearCart, 
         customerDetails, setCustomerDetails, calculationSettings,
-        activeCoupon, validateCoupon, removeCoupon, incrementCouponUsage
+        activeCoupon, validateCoupon, removeCoupon, incrementCouponUsage,
+        appConfig
     } = useStore();
     const t = translations[language] || translations['he'];
     
@@ -81,7 +82,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
     const closeFeedback = () => setFeedback(prev => ({ ...prev, isOpen: false }));
     const debounceTimerRef = useRef<number | null>(null);
-    const MIN_ORDER = 500;
+    const MIN_ORDER = appConfig.min_order_price;
     const FREE_DELIVERY_THRESHOLD = calculationSettings.minOrderFreeDelivery;
     const isWithinRadius = customerDetails.distanceKm > 0 && customerDetails.distanceKm <= calculationSettings.serviceRadiusKm;
 

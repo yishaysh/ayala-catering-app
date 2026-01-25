@@ -30,7 +30,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         calculationSettings, updateCalculationSettings, 
         advancedSettings, updateAdvancedSettings,
         featureFlags, updateFeatureFlags,
-        language, getCoupons, createCoupon, deleteCoupon
+        language, getCoupons, createCoupon, deleteCoupon,
+        appConfig, updateAppConfig
     } = useStore();
     
     // Ensure the view starts at the top when entering admin mode
@@ -242,7 +243,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 text-start">
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.minOrder}</h3>
-                    <input type="number" defaultValue={500} className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" />
+                    <input 
+                        type="number" 
+                        value={appConfig.min_order_price} 
+                        onChange={(e) => updateAppConfig({ min_order_price: Number(e.target.value) })}
+                        className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" 
+                    />
                 </div>
                 
                 <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col justify-between">

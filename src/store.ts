@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon, AppSettings } from './types';
 import { supabase } from './lib/supabase';
 
 type Language = 'he' | 'en';
@@ -451,6 +451,7 @@ interface AppState {
   calculationSettings: CalculationSettings;
   advancedSettings: AdvancedCalculationSettings;
   activeCoupon: Coupon | null;
+  appConfig: AppSettings;
 
   fetchMenuItems: () => Promise<void>;
   fetchSettings: () => Promise<void>;
@@ -468,6 +469,7 @@ interface AppState {
   updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
   updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
   updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
+  updateAppConfig: (config: Partial<AppSettings>) => Promise<void>;
   clearCart: () => void;
   cartTotal: () => number;
   validateCoupon: (code: string) => Promise<boolean>;
@@ -491,6 +493,12 @@ export const useStore = create<AppState>()(
       isLoading: false,
       eventType: 'snack',
       featureFlags: { showCalculator: true, showAI: false },
+      appConfig: {
+        min_order_price: 500,
+        lead_time_hours: 48,
+        delivery_fee: 50,
+        is_shop_open: true
+      },
       calculationSettings: { 
         sandwichesPerPerson: 1.5, 
         pastriesPerPerson: 1.0, 
@@ -516,8 +524,13 @@ export const useStore = create<AppState>()(
       },
 
       fetchSettings: async () => {
-        const { data } = await supabase.from('app_settings').select('*').eq('key', 'features').single();
-        if (data && data.value) set({ featureFlags: data.value as FeatureFlags });
+        // Fetch Features
+        const { data: featuresData } = await supabase.from('app_settings').select('*').eq('key', 'features').single();
+        if (featuresData && featuresData.value) set({ featureFlags: featuresData.value as FeatureFlags });
+
+        // Fetch Config
+        const { data: configData } = await supabase.from('app_settings').select('*').eq('key', 'config').single();
+        if (configData && configData.value) set({ appConfig: configData.value as AppSettings });
       },
 
       setLanguage: (lang) => set({ language: lang }),
@@ -587,6 +600,11 @@ export const useStore = create<AppState>()(
         set({ featureFlags: newFlags });
         await supabase.from('app_settings').upsert({ key: 'features', value: newFlags });
       },
+      updateAppConfig: async (config) => {
+        const newConfig = { ...get().appConfig, ...config };
+        set({ appConfig: newConfig });
+        await supabase.from('app_settings').upsert({ key: 'config', value: newConfig });
+      },
       clearCart: () => set({ cart: [], activeCoupon: null }),
       cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
 
@@ -635,7 +653,7 @@ export const useStore = create<AppState>()(
       }
     }),
     {
-      name: 'ayala-catering-storage-v12', // Version bump for coupons structure
+      name: 'ayala-catering-storage-v12', 
       partialize: (state) => ({ 
           cart: state.cart, 
           guestCount: state.guestCount,
@@ -647,7 +665,8 @@ export const useStore = create<AppState>()(
           eventType: state.eventType,
           featureFlags: state.featureFlags,
           customerDetails: state.customerDetails,
-          activeCoupon: state.activeCoupon
+          activeCoupon: state.activeCoupon,
+          appConfig: state.appConfig // Added appConfig to persistence
       }), 
     }
   )
