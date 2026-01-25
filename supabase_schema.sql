@@ -2,7 +2,7 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- 1. Create Tables (Safe: IF NOT EXISTS)
+-- 1. Create Tables
 
 CREATE TABLE IF NOT EXISTS menu_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -24,14 +24,13 @@ CREATE TABLE IF NOT EXISTS menu_items (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Updated Orders table with discount fields
 CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     customer_name VARCHAR(100),
     customer_phone VARCHAR(20),
     event_date TIMESTAMP NOT NULL,
-    total_price DECIMAL(10, 2), -- This is the final price after discount
-    subtotal DECIMAL(10, 2),    -- Price before discount
+    total_price DECIMAL(10, 2), 
+    subtotal DECIMAL(10, 2),    
     discount_amount DECIMAL(10, 2) DEFAULT 0,
     coupon_code VARCHAR(50),
     items JSONB,
@@ -44,13 +43,13 @@ CREATE TABLE IF NOT EXISTS app_settings (
     value JSONB
 );
 
--- New Coupons Table
 CREATE TABLE IF NOT EXISTS coupons (
     code VARCHAR(50) PRIMARY KEY,
     discount_type VARCHAR(20) CHECK (discount_type IN ('percentage', 'fixed')),
     discount_value DECIMAL(10, 2) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     usage_count INT DEFAULT 0,
+    usage_limit INT DEFAULT NULL, -- NULL means unlimited
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -60,7 +59,7 @@ ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
 
--- 3. Define Policies (Safe Update)
+-- 3. Define Policies
 
 -- Policies for menu_items
 DROP POLICY IF EXISTS "Enable read access for all users" ON menu_items;
@@ -83,12 +82,21 @@ CREATE POLICY "Enable insert access for all users" ON orders FOR INSERT WITH CHE
 -- Policies for coupons
 DROP POLICY IF EXISTS "Enable read access for all users" ON coupons;
 DROP POLICY IF EXISTS "Enable write access for all users" ON coupons;
--- Public can read coupons to validate them (you could restrict this to exact match via RPC, but SELECT is fine for this scale)
 CREATE POLICY "Enable read access for all users" ON coupons FOR SELECT USING (true); 
 CREATE POLICY "Enable write access for all users" ON coupons FOR ALL USING (true) WITH CHECK (true);
-
 
 -- 4. Initial Settings
 INSERT INTO app_settings (key, value)
 VALUES ('config', '{"min_order_price": 500, "lead_time_hours": 48, "delivery_fee": 50, "is_shop_open": true}'::jsonb)
 ON CONFLICT (key) DO NOTHING;
+
+-- 5. RPC Function to safely increment coupon usage
+-- This prevents race conditions and ensures logic runs on the server
+CREATE OR REPLACE FUNCTION increment_coupon_usage(coupon_code TEXT)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE coupons
+  SET usage_count = usage_count + 1
+  WHERE code = coupon_code;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

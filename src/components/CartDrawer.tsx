@@ -38,7 +38,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const { 
         cart, updateQuantity, cartTotal, language, clearCart, 
         customerDetails, setCustomerDetails, calculationSettings,
-        activeCoupon, validateCoupon, removeCoupon
+        activeCoupon, validateCoupon, removeCoupon, incrementCouponUsage
     } = useStore();
     const t = translations[language] || translations['he'];
     
@@ -98,7 +98,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 isOpen: true,
                 type: 'error',
                 title: t.couponInvalid as string,
-                message: language === 'he' ? 'אנא בדקו את הקוד ונסו שוב.' : 'Please check the code and try again.',
+                message: language === 'he' ? 'הקופון שגוי או שהגיע למכסת השימוש המקסימלית.' : 'Invalid code or usage limit reached.',
                 isConfirm: false
             });
         }
@@ -242,9 +242,30 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     };
 
     const handleWhatsAppCheckout = async () => {
+        // Prevent double submission
+        if (isSubmitting) return;
         setIsSubmitting(true);
 
         try {
+            // 1. If coupon exists, re-validate and increment
+            if (activeCoupon) {
+                const isValid = await validateCoupon(activeCoupon.code);
+                if (!isValid) {
+                     setFeedback({
+                        isOpen: true,
+                        type: 'error',
+                        title: t.couponInvalid as string,
+                        message: language === 'he' ? 'הקופון פג תוקף רגע לפני ההזמנה.' : 'Coupon expired just now.',
+                        isConfirm: false
+                    });
+                    setIsSubmitting(false);
+                    return;
+                }
+                // Increment Usage safely via RPC
+                await incrementCouponUsage(activeCoupon.code);
+            }
+
+            // 2. Save Order to Database
             const orderData = {
                 customer_name: customerDetails.name,
                 customer_phone: customerDetails.phone,
@@ -254,63 +275,65 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 discount_amount: discountAmount,
                 coupon_code: activeCoupon ? activeCoupon.code : null,
                 items: cart,
-                status: 'pending'
+                status: 'pending' // It remains pending until manual approval
             };
 
-            const { error } = await supabase.from('orders').insert([orderData]);
+            const { error, data } = await supabase.from('orders').insert([orderData]).select('id');
+            const orderId = data?.[0]?.id?.slice(0, 8); // Get partial ID for reference
+
             if (error) console.error("Failed to save order:", error);
-        } catch (err) {
-            console.error("Unexpected error saving order:", err);
-        }
 
-        // WhatsApp Message Construction
-        const line = "━━━━━━━━━━━━━━━━";
-        let message = "";
+            // 3. WhatsApp Message Construction
+            const line = "━━━━━━━━━━━━━━━━";
+            let message = "";
 
-        if (language === 'he') {
-            message += `*פרטי לקוח להזמנה:* 👤\n`;
-            message += `👤 שם: ${customerDetails.name}\n`;
-            message += `📞 טלפון: ${customerDetails.phone}\n`;
-            message += `📍 מיקום: ${customerDetails.location} ${detectedLocationName ? `(זוהה: ${detectedLocationName})` : ''}\n`;
-            message += `🚗 מרחק משוער: ${customerDetails.distanceKm} ק"מ (מקדומים)\n\n`;
-            message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
-        } else {
-            message += `*Customer Details:* 👤\n`;
-            message += `👤 Name: ${customerDetails.name}\n`;
-            message += `📞 Phone: ${customerDetails.phone}\n`;
-            message += `📍 Location: ${customerDetails.location} ${detectedLocationName ? `(Verified: ${detectedLocationName})` : ''}\n`;
-            message += `🚗 Est. Distance: ${customerDetails.distanceKm} km (from Kedumim)\n\n`;
-            message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
-        }
-        
-        cart.forEach(item => {
-            const displayItem = getLocalizedItem(item, language);
-            const itemTotal = item.price * item.quantity;
-            // Feature: Added item price
-            message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${itemTotal})\n`;
+            if (language === 'he') {
+                message += `*פרטי לקוח להזמנה #${orderId || 'NEW'}:* 👤\n`;
+                message += `👤 שם: ${customerDetails.name}\n`;
+                message += `📞 טלפון: ${customerDetails.phone}\n`;
+                message += `📍 מיקום: ${customerDetails.location} ${detectedLocationName ? `(זוהה: ${detectedLocationName})` : ''}\n`;
+                message += `🚗 מרחק משוער: ${customerDetails.distanceKm} ק"מ (מקדומים)\n\n`;
+                message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
+            } else {
+                message += `*Customer Details #${orderId || 'NEW'}:* 👤\n`;
+                message += `👤 Name: ${customerDetails.name}\n`;
+                message += `📞 Phone: ${customerDetails.phone}\n`;
+                message += `📍 Location: ${customerDetails.location} ${detectedLocationName ? `(Verified: ${detectedLocationName})` : ''}\n`;
+                message += `🚗 Est. Distance: ${customerDetails.distanceKm} km (from Kedumim)\n\n`;
+                message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
+            }
             
-            if (item.selected_modifications && item.selected_modifications.length > 0) {
-                 message += `   🔸 שינויים: ${item.selected_modifications.join(', ')}\n`;
-            }
-            if (item.notes) {
-                message += `   ✏️ הערות: ${item.notes}\n`;
-            }
-            message += `\n`; 
-        });
+            cart.forEach(item => {
+                const displayItem = getLocalizedItem(item, language);
+                const itemTotal = item.price * item.quantity;
+                message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${itemTotal})\n`;
+                
+                if (item.selected_modifications && item.selected_modifications.length > 0) {
+                    message += `   🔸 שינויים: ${item.selected_modifications.join(', ')}\n`;
+                }
+                if (item.notes) {
+                    message += `   ✏️ הערות: ${item.notes}\n`;
+                }
+                message += `\n`; 
+            });
 
-        message += `${line}\n`;
-        if (discountAmount > 0) {
-            message += `${t.subtotal as string}: ₪${subtotal}\n`;
-            message += `🏷️ ${t.discount as string} (${activeCoupon?.code}): -₪${discountAmount}\n`;
-            message += `*${t.finalTotal as string}: ₪${finalTotal}* 💰`;
-        } else {
-            message += `*${t.total as string}: ₪${finalTotal}* 💰`;
+            message += `${line}\n`;
+            if (discountAmount > 0) {
+                message += `${t.subtotal as string}: ₪${subtotal}\n`;
+                message += `🏷️ ${t.discount as string} (${activeCoupon?.code}): -₪${discountAmount}\n`;
+                message += `*${t.finalTotal as string}: ₪${finalTotal}* 💰`;
+            } else {
+                message += `*${t.total as string}: ₪${finalTotal}* 💰`;
+            }
+            
+            setIsSubmitting(false);
+
+            const encoded = encodeURIComponent(message);
+            window.open(`https://wa.me/972547474764?text=${encoded}`, '_blank');
+        } catch (err) {
+            console.error("Unexpected error process checkout:", err);
+            setIsSubmitting(false);
         }
-        
-        setIsSubmitting(false);
-
-        const encoded = encodeURIComponent(message);
-        window.open(`https://wa.me/972547474764?text=${encoded}`, '_blank');
     };
 
     const getUnitName = (type: string) => {

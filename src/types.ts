@@ -54,6 +54,7 @@ export interface Coupon {
     discount_value: number;
     is_active: boolean;
     usage_count?: number;
+    usage_limit?: number | null; // Added usage limit
     created_at?: string;
 }
 
@@ -77,16 +78,16 @@ export interface CalculationSettings {
   averageTrayCapacity: number;
   serviceRadiusKm: number;
   minOrderFreeDelivery: number;
-  aiCustomInstructions: string; // New field for custom AI prompt rules
+  aiCustomInstructions: string; 
 }
 
 export interface EventRatioConfig {
-    sandwiches: number;       // Units per person
-    pastries: number;         // Units per person
-    saladsCoverage: number;   // 0.0 - 2.0 (1.0 = 100% guests covered)
-    mainsCoverage: number;    // 0.0 - 2.0
-    plattersCoverage: number; // 0.0 - 2.0
-    dessertsCoverage: number; // 0.0 - 2.0
+    sandwiches: number;       
+    pastries: number;         
+    saladsCoverage: number;   
+    mainsCoverage: number;    
+    plattersCoverage: number; 
+    dessertsCoverage: number; 
 }
 
 export interface AdvancedCalculationSettings {

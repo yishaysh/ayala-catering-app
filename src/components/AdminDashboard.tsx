@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { MenuItem, Category, UnitType, EventType, Coupon } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2 } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
@@ -52,7 +52,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     // Coupon State
     const [coupons, setCoupons] = useState<Coupon[]>([]);
     const [newCoupon, setNewCoupon] = useState<Partial<Coupon>>({
-        code: '', discount_type: 'percentage', discount_value: 10, is_active: true
+        code: '', discount_type: 'percentage', discount_value: 10, is_active: true, usage_limit: null
     });
 
     const loadCoupons = async () => {
@@ -63,7 +63,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const handleCreateCoupon = async () => {
         if (!newCoupon.code || !newCoupon.discount_value) return;
         await createCoupon(newCoupon as Coupon);
-        setNewCoupon({ code: '', discount_type: 'percentage', discount_value: 10, is_active: true });
+        setNewCoupon({ code: '', discount_type: 'percentage', discount_value: 10, is_active: true, usage_limit: null });
         loadCoupons();
     };
 
@@ -323,8 +323,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </button>
                 {showCoupons && (
                     <div className="p-6 bg-stone-50 animate-slide-in-top">
-                        <div className="flex flex-col md:flex-row gap-4 mb-6 items-end border-b border-stone-200 pb-6">
-                            <div className="flex-1">
+                        <div className="flex flex-col lg:flex-row gap-4 mb-6 items-end border-b border-stone-200 pb-6">
+                            <div className="flex-1 w-full">
                                 <label className="block text-xs font-bold text-stone-500 mb-1">{t.couponCode}</label>
                                 <input 
                                     type="text" 
@@ -334,7 +334,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     placeholder="SALE2024"
                                 />
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 w-full">
                                 <label className="block text-xs font-bold text-stone-500 mb-1">{t.discountType}</label>
                                 <select 
                                     value={newCoupon.discount_type} 
@@ -345,7 +345,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     <option value="fixed">{t.fixedAmount}</option>
                                 </select>
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 w-full">
                                 <label className="block text-xs font-bold text-stone-500 mb-1">{t.discountValue}</label>
                                 <input 
                                     type="number" 
@@ -354,9 +354,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     className="w-full p-2 border rounded" 
                                 />
                             </div>
+                            <div className="flex-1 w-full">
+                                <label className="block text-xs font-bold text-stone-500 mb-1">{t.usageLimit}</label>
+                                <input 
+                                    type="number" 
+                                    value={newCoupon.usage_limit || ''} 
+                                    onChange={(e) => setNewCoupon({...newCoupon, usage_limit: e.target.value ? parseInt(e.target.value) : null})}
+                                    className="w-full p-2 border rounded" 
+                                    placeholder={t.unlimited}
+                                />
+                            </div>
                             <button 
                                 onClick={handleCreateCoupon}
-                                className="bg-gold-500 text-stone-900 font-bold px-6 py-2 rounded hover:bg-gold-400 transition"
+                                className="bg-gold-500 text-stone-900 font-bold px-6 py-2 rounded hover:bg-gold-400 transition w-full lg:w-auto"
                             >
                                 {t.createCoupon}
                             </button>
@@ -368,10 +378,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 {coupons.map(coupon => (
                                     <div key={coupon.code} className="bg-white p-3 rounded border border-stone-200 flex justify-between items-center shadow-sm">
                                         <div>
-                                            <span className="block font-bold text-stone-800">{coupon.code}</span>
-                                            <span className="text-xs text-stone-500">
-                                                {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₪${coupon.discount_value}`}
-                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="block font-bold text-stone-800">{coupon.code}</span>
+                                                <span className="text-[10px] bg-stone-100 px-1.5 rounded text-stone-500">
+                                                    {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₪${coupon.discount_value}`}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs text-stone-400 mt-1">
+                                                <Users size={12} />
+                                                <span>{t.usage}: {coupon.usage_count || 0} / {coupon.usage_limit || '∞'}</span>
+                                            </div>
                                         </div>
                                         <button 
                                             onClick={() => handleDeleteCoupon(coupon.code)}

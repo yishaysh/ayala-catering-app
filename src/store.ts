@@ -138,6 +138,9 @@ export interface Translations {
     fixedAmount: string;
     createCoupon: string;
     activeCoupons: string;
+    usageLimit: string;
+    unlimited: string;
+    usage: string;
   };
 }
 
@@ -169,7 +172,7 @@ export const translations: Record<Language, Translations> = {
     couponCode: "קוד קופון",
     applyCoupon: "הפעל",
     couponApplied: "קופון הופעל!",
-    couponInvalid: "קוד קופון שגוי",
+    couponInvalid: "קוד קופון שגוי או פג תוקף",
     removeCoupon: "הסר",
     minOrder: "מינימום הזמנה",
     checkout: "סיום הזמנה ב-WhatsApp",
@@ -281,7 +284,10 @@ export const translations: Record<Language, Translations> = {
         percentage: "אחוזים (%)",
         fixedAmount: "סכום קבוע (₪)",
         createCoupon: "צור קופון",
-        activeCoupons: "קופונים פעילים"
+        activeCoupons: "קופונים פעילים",
+        usageLimit: "מגבלת שימושים",
+        unlimited: "ללא הגבלה",
+        usage: "נוצל"
     }
   },
   en: {
@@ -311,7 +317,7 @@ export const translations: Record<Language, Translations> = {
     couponCode: "Coupon Code",
     applyCoupon: "Apply",
     couponApplied: "Coupon Applied!",
-    couponInvalid: "Invalid Code",
+    couponInvalid: "Invalid or Expired Code",
     removeCoupon: "Remove",
     minOrder: "Minimum Order",
     checkout: "Checkout via WhatsApp",
@@ -423,7 +429,10 @@ export const translations: Record<Language, Translations> = {
         tableSalads: "Salads",
         tableMains: "Mains",
         tablePlatters: "Platters",
-        tableDesserts: "Desserts"
+        tableDesserts: "Desserts",
+        usageLimit: "Usage Limit",
+        unlimited: "Unlimited",
+        usage: "Used"
     }
   }
 };
@@ -466,6 +475,7 @@ interface AppState {
   createCoupon: (coupon: Coupon) => Promise<void>;
   deleteCoupon: (code: string) => Promise<void>;
   getCoupons: () => Promise<Coupon[]>;
+  incrementCouponUsage: (code: string) => Promise<void>;
 }
 
 export const useStore = create<AppState>()(
@@ -592,7 +602,14 @@ export const useStore = create<AppState>()(
               if (error || !data) {
                   return false;
               }
-              set({ activeCoupon: data as Coupon });
+
+              // Check Usage Limit
+              const coupon = data as Coupon;
+              if (coupon.usage_limit !== null && (coupon.usage_count || 0) >= coupon.usage_limit) {
+                  return false;
+              }
+
+              set({ activeCoupon: coupon });
               return true;
           } catch (e) {
               return false;
@@ -611,10 +628,14 @@ export const useStore = create<AppState>()(
       getCoupons: async () => {
           const { data } = await supabase.from('coupons').select('*');
           return (data as Coupon[]) || [];
+      },
+
+      incrementCouponUsage: async (code) => {
+         await supabase.rpc('increment_coupon_usage', { coupon_code: code });
       }
     }),
     {
-      name: 'ayala-catering-storage-v11', // Version bump for coupons
+      name: 'ayala-catering-storage-v12', // Version bump for coupons structure
       partialize: (state) => ({ 
           cart: state.cart, 
           guestCount: state.guestCount,
