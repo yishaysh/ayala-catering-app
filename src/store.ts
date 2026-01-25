@@ -603,9 +603,9 @@ export const useStore = create<AppState>()(
                   return false;
               }
 
-              // Check Usage Limit
+              // Check Usage Limit - FIXED TYPE CHECK
               const coupon = data as Coupon;
-              if (coupon.usage_limit !== null && (coupon.usage_count || 0) >= coupon.usage_limit) {
+              if (typeof coupon.usage_limit === 'number' && (coupon.usage_count || 0) >= coupon.usage_limit) {
                   return false;
               }
 
