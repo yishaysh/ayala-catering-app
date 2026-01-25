@@ -48,12 +48,24 @@ export interface CustomerDetails {
   distanceKm: number;
 }
 
+export interface Coupon {
+    code: string;
+    discount_type: 'percentage' | 'fixed';
+    discount_value: number;
+    is_active: boolean;
+    usage_count?: number;
+    created_at?: string;
+}
+
 export interface Order {
     id?: string;
     customer_name: string;
     customer_phone: string;
     event_date: string; // ISO string
+    subtotal: number;
     total_price: number;
+    discount_amount: number;
+    coupon_code?: string;
     items: CartItem[]; // Stored as JSONB
     status: 'pending' | 'approved' | 'completed' | 'cancelled';
     created_at?: string;

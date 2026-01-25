@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { MenuItem, Category, UnitType, EventType } from '../types';
+import { MenuItem, Category, UnitType, EventType, Coupon } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
@@ -30,12 +30,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         calculationSettings, updateCalculationSettings, 
         advancedSettings, updateAdvancedSettings,
         featureFlags, updateFeatureFlags,
-        language 
+        language, getCoupons, createCoupon, deleteCoupon
     } = useStore();
     
     // Ensure the view starts at the top when entering admin mode
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
+        loadCoupons();
     }, []);
 
     const t = translations[language]?.admin || translations['he'].admin;
@@ -45,7 +46,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [showAdvancedCalc, setShowAdvancedCalc] = useState(false);
+    const [showCoupons, setShowCoupons] = useState(false);
     const [uploading, setUploading] = useState(false);
+    
+    // Coupon State
+    const [coupons, setCoupons] = useState<Coupon[]>([]);
+    const [newCoupon, setNewCoupon] = useState<Partial<Coupon>>({
+        code: '', discount_type: 'percentage', discount_value: 10, is_active: true
+    });
+
+    const loadCoupons = async () => {
+        const data = await getCoupons();
+        setCoupons(data);
+    };
+
+    const handleCreateCoupon = async () => {
+        if (!newCoupon.code || !newCoupon.discount_value) return;
+        await createCoupon(newCoupon as Coupon);
+        setNewCoupon({ code: '', discount_type: 'percentage', discount_value: 10, is_active: true });
+        loadCoupons();
+    };
+
+    const handleDeleteCoupon = async (code: string) => {
+        if (confirm(language === 'he' ? 'למחוק קופון זה?' : 'Delete this coupon?')) {
+            await deleteCoupon(code);
+            loadCoupons();
+        }
+    };
 
     // Feedback Modal State
     const [feedback, setFeedback] = useState<{
@@ -211,6 +238,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                  </div>
             </div>
             
+            {/* Top Stats & Feature Toggles */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 text-start">
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.minOrder}</h3>
@@ -287,6 +315,80 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </div>
             </div>
 
+             {/* Coupon Manager */}
+             <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
+                <button onClick={() => setShowCoupons(!showCoupons)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
+                    <div className="flex items-center gap-3"><Tag size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{t.coupons}</span></div>
+                    {showCoupons ? <ChevronUp /> : <ChevronDown />}
+                </button>
+                {showCoupons && (
+                    <div className="p-6 bg-stone-50 animate-slide-in-top">
+                        <div className="flex flex-col md:flex-row gap-4 mb-6 items-end border-b border-stone-200 pb-6">
+                            <div className="flex-1">
+                                <label className="block text-xs font-bold text-stone-500 mb-1">{t.couponCode}</label>
+                                <input 
+                                    type="text" 
+                                    value={newCoupon.code} 
+                                    onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})}
+                                    className="w-full p-2 border rounded uppercase" 
+                                    placeholder="SALE2024"
+                                />
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-xs font-bold text-stone-500 mb-1">{t.discountType}</label>
+                                <select 
+                                    value={newCoupon.discount_type} 
+                                    onChange={(e) => setNewCoupon({...newCoupon, discount_type: e.target.value as 'percentage' | 'fixed'})}
+                                    className="w-full p-2 border rounded bg-white"
+                                >
+                                    <option value="percentage">{t.percentage}</option>
+                                    <option value="fixed">{t.fixedAmount}</option>
+                                </select>
+                            </div>
+                            <div className="flex-1">
+                                <label className="block text-xs font-bold text-stone-500 mb-1">{t.discountValue}</label>
+                                <input 
+                                    type="number" 
+                                    value={newCoupon.discount_value} 
+                                    onChange={(e) => setNewCoupon({...newCoupon, discount_value: parseFloat(e.target.value)})}
+                                    className="w-full p-2 border rounded" 
+                                />
+                            </div>
+                            <button 
+                                onClick={handleCreateCoupon}
+                                className="bg-gold-500 text-stone-900 font-bold px-6 py-2 rounded hover:bg-gold-400 transition"
+                            >
+                                {t.createCoupon}
+                            </button>
+                        </div>
+
+                        <div>
+                            <h4 className="text-sm font-bold text-stone-400 uppercase mb-3">{t.activeCoupons}</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {coupons.map(coupon => (
+                                    <div key={coupon.code} className="bg-white p-3 rounded border border-stone-200 flex justify-between items-center shadow-sm">
+                                        <div>
+                                            <span className="block font-bold text-stone-800">{coupon.code}</span>
+                                            <span className="text-xs text-stone-500">
+                                                {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₪${coupon.discount_value}`}
+                                            </span>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleDeleteCoupon(coupon.code)}
+                                            className="text-stone-400 hover:text-red-500 transition-colors"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {coupons.length === 0 && <p className="text-sm text-stone-400 italic">No coupons yet.</p>}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Advanced Calculator Settings */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
                 <button onClick={() => setShowAdvancedCalc(!showAdvancedCalc)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
                     <div className="flex items-center gap-3"><Settings size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{t.advCalc}</span></div>
@@ -340,6 +442,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 )}
             </div>
 
+            {/* Menu Items Table */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden text-start">
                 <div className="p-4 border-b border-stone-200">
                     <input type="text" placeholder={t.searchPlaceholder} className="w-full p-2 border border-stone-200 rounded" onChange={(e) => setSearchTerm(e.target.value)} />

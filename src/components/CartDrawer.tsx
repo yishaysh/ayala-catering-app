@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock, LocateFixed } from 'lucide-react';
+import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock, LocateFixed, Tag } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
 import { supabase } from '../lib/supabase';
@@ -17,9 +17,8 @@ const KEDUMIM_COORDS = {
     lon: 35.1643
 };
 
-// Haversine formula to calculate distance + 25% buffer for road curvature
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // Radius of the earth in km
+    const R = 6371;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
     const a =
@@ -27,8 +26,8 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
         Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const d = R * c; // Distance in km
-    return Math.round(d * 1.25); // Add 25% for road vs air distance
+    const d = R * c; 
+    return Math.round(d * 1.25); 
 };
 
 const deg2rad = (deg: number) => {
@@ -38,17 +37,30 @@ const deg2rad = (deg: number) => {
 export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const { 
         cart, updateQuantity, cartTotal, language, clearCart, 
-        customerDetails, setCustomerDetails, calculationSettings 
+        customerDetails, setCustomerDetails, calculationSettings,
+        activeCoupon, validateCoupon, removeCoupon
     } = useStore();
     const t = translations[language] || translations['he'];
-    const total = cartTotal();
     
-    // Handle Android/iOS Back Button
+    // Calculate totals
+    const subtotal = cartTotal();
+    let discountAmount = 0;
+    if (activeCoupon) {
+        if (activeCoupon.discount_type === 'percentage') {
+            discountAmount = subtotal * (activeCoupon.discount_value / 100);
+        } else {
+            discountAmount = activeCoupon.discount_value;
+        }
+    }
+    const finalTotal = Math.max(0, subtotal - discountAmount);
+
     useBackButton(isOpen, onClose);
 
     const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [detectedLocationName, setDetectedLocationName] = useState<string | null>(null);
+    const [couponInput, setCouponInput] = useState('');
+    const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
     
     // Unified Feedback Modal State
     const [feedback, setFeedback] = useState<{
@@ -68,21 +80,33 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     });
 
     const closeFeedback = () => setFeedback(prev => ({ ...prev, isOpen: false }));
-    
-    // Use number | null for browser setTimeout return type
     const debounceTimerRef = useRef<number | null>(null);
-
     const MIN_ORDER = 500;
     const FREE_DELIVERY_THRESHOLD = calculationSettings.minOrderFreeDelivery;
-
-    // Feature 4: Location Based Delivery Logic
     const isWithinRadius = customerDetails.distanceKm > 0 && customerDetails.distanceKm <= calculationSettings.serviceRadiusKm;
+
+    const handleApplyCoupon = async () => {
+        if (!couponInput.trim()) return;
+        setIsValidatingCoupon(true);
+        const isValid = await validateCoupon(couponInput.trim());
+        setIsValidatingCoupon(false);
+        
+        if (isValid) {
+            setCouponInput('');
+        } else {
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: t.couponInvalid as string,
+                message: language === 'he' ? 'אנא בדקו את הקוד ונסו שוב.' : 'Please check the code and try again.',
+                isConfirm: false
+            });
+        }
+    };
 
     const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setCustomerDetails({ location: value });
-        
-        // Reset detection state when user types
         setDetectedLocationName(null);
 
         if (debounceTimerRef.current) {
@@ -100,9 +124,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         const bestMatch = data[0];
                         const destLat = parseFloat(bestMatch.lat);
                         const destLon = parseFloat(bestMatch.lon);
-                        
                         const dist = calculateDistance(KEDUMIM_COORDS.lat, KEDUMIM_COORDS.lon, destLat, destLon);
-                        
                         setCustomerDetails({ distanceKm: dist });
                         const shortName = bestMatch.display_name.split(',')[0];
                         setDetectedLocationName(shortName);
@@ -139,10 +161,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const { latitude, longitude } = position.coords;
-                // Calculate distance immediately
                 const dist = calculateDistance(KEDUMIM_COORDS.lat, KEDUMIM_COORDS.lon, latitude, longitude);
                 
-                // Reverse Geocode for display name
                 try {
                     const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=he`);
                     const data = await response.json();
@@ -214,9 +234,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         
         cart.forEach(item => {
             const displayItem = getLocalizedItem(item, language);
-            message += `🔹 *${item.quantity}x ${displayItem.name}*\n\n`;
+            message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${item.price * item.quantity})\n\n`;
         });
-        message += `*${t.total as string}: ₪${total}*`;
+        message += `*${t.total as string}: ₪${finalTotal}*`;
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/?text=${encoded}`, '_blank');
     };
@@ -224,30 +244,26 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const handleWhatsAppCheckout = async () => {
         setIsSubmitting(true);
 
-        // 1. Save Order to Supabase
         try {
             const orderData = {
                 customer_name: customerDetails.name,
                 customer_phone: customerDetails.phone,
-                event_date: new Date().toISOString(), // In a real app, user would pick a date
-                total_price: total,
+                event_date: new Date().toISOString(),
+                total_price: finalTotal,
+                subtotal: subtotal,
+                discount_amount: discountAmount,
+                coupon_code: activeCoupon ? activeCoupon.code : null,
                 items: cart,
                 status: 'pending'
             };
 
             const { error } = await supabase.from('orders').insert([orderData]);
-            
-            if (error) {
-                console.error("Failed to save order:", error);
-                // We continue to WhatsApp even if save fails, but maybe alert the user?
-                // For now, we proceed to ensure the sale isn't blocked.
-            }
-
+            if (error) console.error("Failed to save order:", error);
         } catch (err) {
             console.error("Unexpected error saving order:", err);
         }
 
-        // 2. Build WhatsApp Message
+        // WhatsApp Message Construction
         const line = "━━━━━━━━━━━━━━━━";
         let message = "";
 
@@ -269,7 +285,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         
         cart.forEach(item => {
             const displayItem = getLocalizedItem(item, language);
-            message += `🔹 *${item.quantity}x ${displayItem.name}*\n`;
+            const itemTotal = item.price * item.quantity;
+            // Feature: Added item price
+            message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${itemTotal})\n`;
             
             if (item.selected_modifications && item.selected_modifications.length > 0) {
                  message += `   🔸 שינויים: ${item.selected_modifications.join(', ')}\n`;
@@ -281,15 +299,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         });
 
         message += `${line}\n`;
-        message += `*${t.total as string}: ₪${total}* 💰`;
+        if (discountAmount > 0) {
+            message += `${t.subtotal as string}: ₪${subtotal}\n`;
+            message += `🏷️ ${t.discount as string} (${activeCoupon?.code}): -₪${discountAmount}\n`;
+            message += `*${t.finalTotal as string}: ₪${finalTotal}* 💰`;
+        } else {
+            message += `*${t.total as string}: ₪${finalTotal}* 💰`;
+        }
         
         setIsSubmitting(false);
 
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/972547474764?text=${encoded}`, '_blank');
-        
-        // Optional: Clear cart after successful send? 
-        // Typically better to leave it in case they need to correct and re-send.
     };
 
     const getUnitName = (type: string) => {
@@ -302,7 +323,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       return units[type] || type;
     };
 
-    const progress = Math.min((total / FREE_DELIVERY_THRESHOLD) * 100, 100);
+    const progress = Math.min((finalTotal / FREE_DELIVERY_THRESHOLD) * 100, 100);
 
     return (
         <>
@@ -343,8 +364,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             <>
                                 <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">
                                     <span>{t.freeDeliveryAt as string} ₪{FREE_DELIVERY_THRESHOLD}</span>
-                                    {total < FREE_DELIVERY_THRESHOLD ? (
-                                        <span>{t.justMore as string} ₪{FREE_DELIVERY_THRESHOLD - total} {t.forVip as string}</span>
+                                    {finalTotal < FREE_DELIVERY_THRESHOLD ? (
+                                        <span>{t.justMore as string} ₪{FREE_DELIVERY_THRESHOLD - finalTotal} {t.forVip as string}</span>
                                     ) : (
                                         <span className="text-gold-500 flex items-center gap-1"><Sparkles size={10} /> {t.vipDelivery as string}</span>
                                     )}
@@ -396,7 +417,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                         ${detectedLocationName ? 'border-green-500/50 bg-green-50/50' : ''}
                                     `}
                                 />
-                                
                                 <div className="absolute left-2 top-1.5 flex items-center">
                                     {isCalculatingDistance ? (
                                         <Loader2 className="animate-spin text-gold-500 m-1" size={16} />
@@ -413,13 +433,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                     )}
                                 </div>
                             </div>
-                            
                             {detectedLocationName && (
                                 <div className="text-[11px] text-green-600 font-bold px-1 -mt-1 flex items-center gap-1 animate-fade-in">
                                     <span>✓ {language === 'he' ? 'זוהה:' : 'Identified:'} {detectedLocationName}</span>
                                 </div>
                             )}
-
                             <div className="relative">
                                 <Route className="absolute right-3 top-2.5 text-stone-400" size={16} />
                                 <input 
@@ -495,12 +513,59 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     </div>
 
                     <div className="p-4 bg-white border-t border-stone-200 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-10 shrink-0 pb-safe">
-                        <div className="flex justify-between items-center mb-4">
-                            <span className="text-lg text-stone-600">{t.total as string}:</span>
-                            <span className="text-3xl font-bold font-serif text-stone-900">₪{total}</span>
+                        {/* Coupon Section */}
+                        {cart.length > 0 && (
+                             <div className="mb-4 bg-stone-50 p-3 rounded-xl border border-stone-200">
+                                {activeCoupon ? (
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2 text-green-600 font-bold">
+                                            <Tag size={16} />
+                                            <span>{t.couponApplied as string} ({activeCoupon.code})</span>
+                                        </div>
+                                        <button onClick={removeCoupon} className="text-xs text-red-500 hover:underline font-bold">{t.removeCoupon as string}</button>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <input 
+                                            type="text" 
+                                            value={couponInput}
+                                            onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                                            placeholder={t.couponCode as string}
+                                            className="flex-1 bg-white border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold-500 uppercase"
+                                        />
+                                        <button 
+                                            onClick={handleApplyCoupon}
+                                            disabled={!couponInput || isValidatingCoupon}
+                                            className="bg-stone-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-stone-800 disabled:opacity-50"
+                                        >
+                                            {isValidatingCoupon ? <Loader2 size={16} className="animate-spin" /> : (t.applyCoupon as string)}
+                                        </button>
+                                    </div>
+                                )}
+                             </div>
+                        )}
+
+                        <div className="space-y-1 mb-4">
+                            {activeCoupon && (
+                                <>
+                                    <div className="flex justify-between items-center text-sm text-stone-500">
+                                        <span>{t.subtotal as string}:</span>
+                                        <span>₪{subtotal}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm text-green-600 font-bold">
+                                        <span>{t.discount as string}:</span>
+                                        <span>-₪{discountAmount.toFixed(0)}</span>
+                                    </div>
+                                    <div className="border-t border-stone-200 my-1"></div>
+                                </>
+                            )}
+                            <div className="flex justify-between items-center">
+                                <span className="text-lg text-stone-600">{activeCoupon ? (t.finalTotal as string) : (t.total as string)}:</span>
+                                <span className="text-3xl font-bold font-serif text-stone-900">₪{finalTotal}</span>
+                            </div>
                         </div>
                         
-                        {total < MIN_ORDER && total > 0 && (
+                        {finalTotal < MIN_ORDER && finalTotal > 0 && (
                             <div className="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs mb-3 border border-red-100 flex items-center justify-center gap-2">
                                 <span>⚠️</span>
                                 {t.minOrder as string}: ₪{MIN_ORDER}
@@ -521,7 +586,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             
                             <button 
                                 onClick={handleWhatsAppCheckout}
-                                disabled={total < MIN_ORDER || cart.length === 0 || !customerDetails.name || !customerDetails.phone || isSubmitting}
+                                disabled={finalTotal < MIN_ORDER || cart.length === 0 || !customerDetails.name || !customerDetails.phone || isSubmitting}
                                 className="flex-[2] bg-green-600 text-white font-bold py-3.5 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 group text-sm sm:text-base"
                             >
                                 {isSubmitting ? (

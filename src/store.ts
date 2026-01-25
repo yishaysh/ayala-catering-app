@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon } from './types';
 import { supabase } from './lib/supabase';
 
 type Language = 'he' | 'en';
@@ -27,6 +27,14 @@ export interface Translations {
   myOrder: string;
   emptyCart: string;
   total: string;
+  subtotal: string;
+  discount: string;
+  finalTotal: string;
+  couponCode: string;
+  applyCoupon: string;
+  couponApplied: string;
+  couponInvalid: string;
+  removeCoupon: string;
   minOrder: string;
   checkout: string;
   shareDraft: string;
@@ -122,6 +130,14 @@ export interface Translations {
     featureMgmt: string;
     showCalc: string;
     showAI: string;
+    coupons: string;
+    couponCode: string;
+    discountType: string;
+    discountValue: string;
+    percentage: string;
+    fixedAmount: string;
+    createCoupon: string;
+    activeCoupons: string;
   };
 }
 
@@ -147,6 +163,14 @@ export const translations: Record<Language, Translations> = {
     myOrder: "ההזמנה שלי",
     emptyCart: "העגלה ריקה, זה הזמן להוסיף דברים טובים",
     total: "סה\"כ לתשלום",
+    subtotal: "סכום ביניים",
+    discount: "הנחה",
+    finalTotal: "סה\"כ סופי",
+    couponCode: "קוד קופון",
+    applyCoupon: "הפעל",
+    couponApplied: "קופון הופעל!",
+    couponInvalid: "קוד קופון שגוי",
+    removeCoupon: "הסר",
     minOrder: "מינימום הזמנה",
     checkout: "סיום הזמנה ב-WhatsApp",
     shareDraft: "שתף טיוטה לאישור",
@@ -249,7 +273,15 @@ export const translations: Record<Language, Translations> = {
         tableDesserts: "קינוחים",
         featureMgmt: "ניהול פיצ'רים",
         showCalc: "הצג מחשבון אירוח",
-        showAI: "הצג קונסיירז' AI"
+        showAI: "הצג קונסיירז' AI",
+        coupons: "ניהול קופונים",
+        couponCode: "קוד קופון",
+        discountType: "סוג הנחה",
+        discountValue: "ערך ההנחה",
+        percentage: "אחוזים (%)",
+        fixedAmount: "סכום קבוע (₪)",
+        createCoupon: "צור קופון",
+        activeCoupons: "קופונים פעילים"
     }
   },
   en: {
@@ -273,6 +305,14 @@ export const translations: Record<Language, Translations> = {
     myOrder: "My Order",
     emptyCart: "Cart is empty, time to add some goodies",
     total: "Total",
+    subtotal: "Subtotal",
+    discount: "Discount",
+    finalTotal: "Final Total",
+    couponCode: "Coupon Code",
+    applyCoupon: "Apply",
+    couponApplied: "Coupon Applied!",
+    couponInvalid: "Invalid Code",
+    removeCoupon: "Remove",
     minOrder: "Minimum Order",
     checkout: "Checkout via WhatsApp",
     shareDraft: "Share Draft for Approval",
@@ -369,6 +409,14 @@ export const translations: Record<Language, Translations> = {
         featureMgmt: "Feature Management",
         showCalc: "Show Event Calculator",
         showAI: "Show AI Concierge",
+        coupons: "Coupon Management",
+        couponCode: "Coupon Code",
+        discountType: "Discount Type",
+        discountValue: "Value",
+        percentage: "Percentage (%)",
+        fixedAmount: "Fixed Amount (NIS)",
+        createCoupon: "Create Coupon",
+        activeCoupons: "Active Coupons",
         tableEventType: "Event Type",
         tableSandwiches: "Sandwiches",
         tablePastries: "Pastries",
@@ -393,6 +441,7 @@ interface AppState {
   eventType: EventType;
   calculationSettings: CalculationSettings;
   advancedSettings: AdvancedCalculationSettings;
+  activeCoupon: Coupon | null;
 
   fetchMenuItems: () => Promise<void>;
   fetchSettings: () => Promise<void>;
@@ -412,6 +461,11 @@ interface AppState {
   updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
   clearCart: () => void;
   cartTotal: () => number;
+  validateCoupon: (code: string) => Promise<boolean>;
+  removeCoupon: () => void;
+  createCoupon: (coupon: Coupon) => Promise<void>;
+  deleteCoupon: (code: string) => Promise<void>;
+  getCoupons: () => Promise<Coupon[]>;
 }
 
 export const useStore = create<AppState>()(
@@ -433,7 +487,7 @@ export const useStore = create<AppState>()(
         averageTrayCapacity: 10,
         serviceRadiusKm: 25, 
         minOrderFreeDelivery: 1500,
-        aiCustomInstructions: '' // Initialize new field
+        aiCustomInstructions: ''
       },
       advancedSettings: {
         eventRatios: {
@@ -442,6 +496,7 @@ export const useStore = create<AppState>()(
             snack: { sandwiches: 2.0, pastries: 0.5, saladsCoverage: 0.3, mainsCoverage: 0.0, plattersCoverage: 0.8, dessertsCoverage: 0.3 },
         }
       },
+      activeCoupon: null,
 
       fetchMenuItems: async () => {
           set({ isLoading: true });
@@ -522,11 +577,44 @@ export const useStore = create<AppState>()(
         set({ featureFlags: newFlags });
         await supabase.from('app_settings').upsert({ key: 'features', value: newFlags });
       },
-      clearCart: () => set({ cart: [] }),
+      clearCart: () => set({ cart: [], activeCoupon: null }),
       cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
+
+      validateCoupon: async (code) => {
+          try {
+              const { data, error } = await supabase
+                  .from('coupons')
+                  .select('*')
+                  .eq('code', code)
+                  .eq('is_active', true)
+                  .single();
+
+              if (error || !data) {
+                  return false;
+              }
+              set({ activeCoupon: data as Coupon });
+              return true;
+          } catch (e) {
+              return false;
+          }
+      },
+      removeCoupon: () => set({ activeCoupon: null }),
+      
+      createCoupon: async (coupon) => {
+          await supabase.from('coupons').insert([coupon]);
+      },
+
+      deleteCoupon: async (code) => {
+          await supabase.from('coupons').delete().eq('code', code);
+      },
+
+      getCoupons: async () => {
+          const { data } = await supabase.from('coupons').select('*');
+          return (data as Coupon[]) || [];
+      }
     }),
     {
-      name: 'ayala-catering-storage-v10', // Version bump to force new default settings
+      name: 'ayala-catering-storage-v11', // Version bump for coupons
       partialize: (state) => ({ 
           cart: state.cart, 
           guestCount: state.guestCount,
@@ -537,33 +625,22 @@ export const useStore = create<AppState>()(
           advancedSettings: state.advancedSettings,
           eventType: state.eventType,
           featureFlags: state.featureFlags,
-          customerDetails: state.customerDetails
+          customerDetails: state.customerDetails,
+          activeCoupon: state.activeCoupon
       }), 
     }
   )
 );
 
-/**
- * Feature 3: Dynamic "Hunger Multiplier" (Saturation Logic).
- * Calculates recommended quantity based on guests and category diversity in the cart.
- */
 export const getSuggestedQuantity = (item: MenuItem, adultCount: number, childCount: number, settings: CalculationSettings, currentCart: CartItem[] = []): number => {
     const totalGuests = adultCount + childCount;
     if (totalGuests <= 0) return 1;
 
-    // Weight calculation: Adults = 1.0, Children (4-11) = 0.66
     const weightedCount = adultCount + (childCount * 0.66);
-
-    // Feature 3 Logic: Saturation/Crowding Factor
-    // 1. Identify unique categories currently in cart + the new item's category
     const uniqueCategories = new Set(currentCart.map(i => i.category));
     uniqueCategories.add(item.category);
     const categoryCount = uniqueCategories.size;
     
-    // 2. Damping Factor Calculation
-    // As category count increases, the damping factor decreases, suggesting less quantity per item.
-    // Formula: 1 / (1 + (Count - 1) * 0.25)
-    // 1 Cat -> 1.0, 2 Cats -> 0.8, 3 Cats -> 0.66, 4 Cats -> 0.57
     const saturationDamping = categoryCount <= 1 ? 1.0 : (1 / (1 + (categoryCount - 1) * 0.25));
 
     let baseQty = 1;
@@ -576,7 +653,6 @@ export const getSuggestedQuantity = (item: MenuItem, adultCount: number, childCo
         baseQty = weightedCount / capacity;
     }
 
-    // Apply damping and round up
     return Math.max(1, Math.ceil(baseQty * saturationDamping));
 };
 
