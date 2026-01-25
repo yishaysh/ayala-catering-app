@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock } from 'lucide-react';
+import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock, LocateFixed } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
-import { FeedbackModal } from './FeedbackModal';
+import { FeedbackModal, FeedbackType } from './FeedbackModal';
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -47,17 +47,34 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
     const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
     const [detectedLocationName, setDetectedLocationName] = useState<string | null>(null);
-    const [showClearConfirm, setShowClearConfirm] = useState(false);
     
-    // Use number | null for browser setTimeout return type to avoid NodeJS namespace requirement
+    // Unified Feedback Modal State
+    const [feedback, setFeedback] = useState<{
+        isOpen: boolean;
+        type: FeedbackType;
+        title: string;
+        message: string;
+        isConfirm: boolean;
+        onConfirm?: () => void;
+        confirmText?: string;
+    }>({ 
+        isOpen: false, 
+        type: 'info', 
+        title: '', 
+        message: '', 
+        isConfirm: false 
+    });
+
+    const closeFeedback = () => setFeedback(prev => ({ ...prev, isOpen: false }));
+    
+    // Use number | null for browser setTimeout return type
     const debounceTimerRef = useRef<number | null>(null);
 
     const MIN_ORDER = 500;
-    
-    // Feature 4: Location Based Delivery Logic
-    // Check if distance is valid (greater than 0) and within radius
-    const isWithinRadius = customerDetails.distanceKm > 0 && customerDetails.distanceKm <= calculationSettings.serviceRadiusKm;
     const FREE_DELIVERY_THRESHOLD = calculationSettings.minOrderFreeDelivery;
+
+    // Feature 4: Location Based Delivery Logic
+    const isWithinRadius = customerDetails.distanceKm > 0 && customerDetails.distanceKm <= calculationSettings.serviceRadiusKm;
 
     const handleLocationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -72,20 +89,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
         if (value.length > 2) {
             setIsCalculatingDistance(true);
-            // Explicitly use window.setTimeout to ensure we get a number return type in browser environment
             debounceTimerRef.current = window.setTimeout(async () => {
                 try {
-                    // Improved API Call:
-                    // 1. limit=3: Fetch more candidates.
-                    // 2. addressdetails=1: To verify validity.
-                    // 3. accept-language=he: Hebrew results.
-                    // 4. REMOVED countrycodes=il: This was filtering out settlements like Karnei Shomron.
-                    // 5. Changed to format=jsonv2 for better consistency.
                     const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(value)}&limit=3&addressdetails=1&accept-language=he`);
                     const data = await response.json();
 
                     if (data && data.length > 0) {
-                        // Take the first result (usually best match)
                         const bestMatch = data[0];
                         const destLat = parseFloat(bestMatch.lat);
                         const destLon = parseFloat(bestMatch.lon);
@@ -93,11 +102,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         const dist = calculateDistance(KEDUMIM_COORDS.lat, KEDUMIM_COORDS.lon, destLat, destLon);
                         
                         setCustomerDetails({ distanceKm: dist });
-                        // Clean up the display name (take first part usually)
                         const shortName = bestMatch.display_name.split(',')[0];
                         setDetectedLocationName(shortName);
                     } else {
-                        // No result found - allow manual entry
                         setDetectedLocationName(null);
                     }
                 } catch (error) {
@@ -106,22 +113,97 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 } finally {
                     setIsCalculatingDistance(false);
                 }
-            }, 1000); // Wait 1 second after typing stops
+            }, 1000); 
         } else {
             setIsCalculatingDistance(false);
             setDetectedLocationName(null);
         }
     };
 
+    const handleUseCurrentLocation = () => {
+        if (!navigator.geolocation) {
+             setFeedback({
+                isOpen: true,
+                type: 'warning',
+                title: language === 'he' ? 'שגיאה' : 'Error',
+                message: language === 'he' ? 'הדפדפן שלך אינו תומך בזיהוי מיקום GPS.' : 'Geolocation is not supported by your browser.',
+                isConfirm: false
+            });
+            return;
+        }
+
+        setIsCalculatingDistance(true);
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const { latitude, longitude } = position.coords;
+                // Calculate distance immediately
+                const dist = calculateDistance(KEDUMIM_COORDS.lat, KEDUMIM_COORDS.lon, latitude, longitude);
+                
+                // Reverse Geocode for display name
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&accept-language=he`);
+                    const data = await response.json();
+                    
+                    let displayName = language === 'he' ? 'המיקום שלי' : 'My Location';
+                    if (data && data.address) {
+                        const city = data.address.city || data.address.town || data.address.village || data.address.settlement || '';
+                        const road = data.address.road || '';
+                        if (city && road) displayName = `${city}, ${road}`;
+                        else if (city) displayName = city;
+                        else if (data.display_name) displayName = data.display_name.split(',')[0];
+                    }
+
+                    setCustomerDetails({ location: displayName, distanceKm: dist });
+                    setDetectedLocationName(displayName);
+
+                } catch (error) {
+                    console.error('Reverse geocoding failed', error);
+                    const fallback = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+                    setCustomerDetails({ 
+                        location: fallback, 
+                        distanceKm: dist 
+                    });
+                    setDetectedLocationName(language === 'he' ? 'מיקום GPS' : 'GPS Location');
+                } finally {
+                    setIsCalculatingDistance(false);
+                }
+            },
+            (error) => {
+                console.error('Geolocation error', error);
+                setIsCalculatingDistance(false);
+                let msg = language === 'he' ? 'לא ניתן לאתר את המיקום.' : 'Unable to retrieve location.';
+                if (error.code === 1) msg = language === 'he' ? 'יש לאשר גישה למיקום בדפדפן.' : 'Please allow location access in your browser.';
+                
+                setFeedback({
+                    isOpen: true,
+                    type: 'error',
+                    title: language === 'he' ? 'שגיאת מיקום' : 'Location Error',
+                    message: msg,
+                    isConfirm: false
+                });
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
+
     if (!isOpen) return null;
 
     const handleClearCartClick = () => {
-        setShowClearConfirm(true);
+         setFeedback({
+            isOpen: true,
+            type: 'error',
+            title: t.clearCart as string,
+            message: t.clearCartConfirm as string,
+            isConfirm: true,
+            confirmText: language === 'he' ? 'כן, רוקן עגלה' : 'Yes, Empty Cart',
+            onConfirm: performClearCart
+        });
     };
 
     const performClearCart = () => {
         clearCart();
-        setShowClearConfirm(false);
+        closeFeedback();
     };
 
     const handleShareDraft = () => {
@@ -141,7 +223,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         const line = "━━━━━━━━━━━━━━━━";
         let message = "";
 
-        // Feature 2: Format Customer Info at the top
         if (language === 'he') {
             message += `*פרטי לקוח להזמנה:* 👤\n`;
             message += `👤 שם: ${customerDetails.name}\n`;
@@ -224,9 +305,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         </div>
                     </div>
 
-                    {/* Feature 4: Location Based Free Delivery Bar Logic */}
                     <div className="bg-stone-800 px-6 py-4 shadow-inner transition-all duration-300">
-                        {/* Only show progress bar if customer is within delivery radius */}
                         {isWithinRadius ? (
                             <>
                                 <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">
@@ -250,7 +329,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        {/* Feature 2: Customer Info Inputs */}
                         <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm space-y-3">
                             <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">{language === 'he' ? 'פרטי המשלוח' : 'Delivery Details'}</h3>
                             <div className="relative">
@@ -280,18 +358,27 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                     value={customerDetails.location}
                                     onChange={handleLocationChange}
                                     placeholder={t.eventLocation}
-                                    className={`w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none ${detectedLocationName ? 'border-green-500/50 bg-green-50/50' : ''}`}
+                                    className={`
+                                        w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 pl-9 text-sm focus:border-gold-500 outline-none 
+                                        ${detectedLocationName ? 'border-green-500/50 bg-green-50/50' : ''}
+                                    `}
                                 />
-                                {isCalculatingDistance && (
-                                    <div className="absolute left-3 top-2.5">
-                                        <Loader2 className="animate-spin text-gold-500" size={16} />
-                                    </div>
-                                )}
-                                {detectedLocationName && (
-                                    <div className="absolute left-3 top-2.5 text-green-600 animate-fade-in">
-                                        <CheckCircle2 size={16} />
-                                    </div>
-                                )}
+                                
+                                <div className="absolute left-2 top-1.5 flex items-center">
+                                    {isCalculatingDistance ? (
+                                        <Loader2 className="animate-spin text-gold-500 m-1" size={16} />
+                                    ) : detectedLocationName ? (
+                                         <CheckCircle2 size={16} className="text-green-600 m-1 animate-fade-in" />
+                                    ) : (
+                                        <button 
+                                            onClick={handleUseCurrentLocation}
+                                            className="p-1.5 bg-stone-200 text-stone-600 rounded-full hover:bg-gold-500 hover:text-white transition-colors shadow-sm"
+                                            title={language === 'he' ? 'השתמש במיקום הנוכחי' : 'Use Current Location'}
+                                        >
+                                            <LocateFixed size={14} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             
                             {detectedLocationName && (
@@ -307,7 +394,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                     value={customerDetails.distanceKm || ''}
                                     onChange={(e) => setCustomerDetails({ distanceKm: Number(e.target.value) })}
                                     placeholder={t.eventDistance}
-                                    disabled={!!detectedLocationName} // Lock if detected
+                                    disabled={!!detectedLocationName}
                                     className={`
                                         w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none 
                                         ${isCalculatingDistance ? 'opacity-50' : ''}
@@ -416,17 +503,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 </div>
             </div>
 
-            {/* Confirmation Modal for Clearing Cart */}
             <FeedbackModal
-                isOpen={showClearConfirm}
-                onClose={() => setShowClearConfirm(false)}
-                onConfirm={performClearCart}
-                title={t.clearCart as string}
-                message={t.clearCartConfirm as string}
-                type="error"
-                confirmText={language === 'he' ? 'כן, רוקן עגלה' : 'Yes, Empty Cart'}
+                isOpen={feedback.isOpen}
+                onClose={closeFeedback}
+                onConfirm={feedback.onConfirm}
+                title={feedback.title}
+                message={feedback.message}
+                type={feedback.type}
+                confirmText={feedback.confirmText}
                 cancelText={language === 'he' ? 'ביטול' : 'Cancel'}
-                isConfirm={true}
+                isConfirm={feedback.isConfirm}
             />
         </>
     );
