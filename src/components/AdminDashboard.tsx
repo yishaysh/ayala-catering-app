@@ -6,34 +6,35 @@ import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, Chevr
 import { supabase } from '../lib/supabase';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface AdminDashboardProps {
     onExit: () => void;
 }
 
 const CATEGORY_OPTIONS: Category[] = [
-  'Salads',
-  'Cold Platters',
-  'Sandwiches',
-  'Dips',
-  'Main Courses',
-  'Pastries',
-  'Desserts'
+    'Salads',
+    'Cold Platters',
+    'Sandwiches',
+    'Dips',
+    'Main Courses',
+    'Pastries',
+    'Desserts'
 ];
 
 const UNIT_OPTIONS: UnitType[] = ['tray', 'unit', 'liter', 'weight'];
 const EVENT_TYPES: EventType[] = ['brunch', 'dinner', 'snack'];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
-    const { 
+    const {
         menuItems, updateMenuItem, addMenuItem, deleteMenuItem,
-        calculationSettings, updateCalculationSettings, 
+        calculationSettings, updateCalculationSettings,
         advancedSettings, updateAdvancedSettings,
         featureFlags, updateFeatureFlags,
         language, getCoupons, createCoupon, deleteCoupon,
         appConfig, updateAppConfig
     } = useStore();
-    
+
     // Ensure the view starts at the top when entering admin mode
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -49,7 +50,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [showAdvancedCalc, setShowAdvancedCalc] = useState(false);
     const [showCoupons, setShowCoupons] = useState(false);
     const [uploading, setUploading] = useState(false);
-    
+
     // Coupon State
     const [coupons, setCoupons] = useState<Coupon[]>([]);
     const [newCoupon, setNewCoupon] = useState<Partial<Coupon>>({
@@ -68,11 +69,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         loadCoupons();
     };
 
-    const handleDeleteCoupon = async (code: string) => {
-        if (confirm(language === 'he' ? 'למחוק קופון זה?' : 'Delete this coupon?')) {
-            await deleteCoupon(code);
-            loadCoupons();
-        }
+    // Confirmation Modal State
+    const [confirmation, setConfirmation] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        isDestructive?: boolean;
+    }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
+
+    const closeConfirmation = () => setConfirmation(prev => ({ ...prev, isOpen: false }));
+
+    const handleDeleteCoupon = (code: string) => {
+        setConfirmation({
+            isOpen: true,
+            title: language === 'he' ? 'מחיקת קופון' : 'Delete Coupon',
+            message: language === 'he' ? 'האם אתה בטוח שברצונך למחוק קופון זה? פעולה זו אינה הפיכה.' : 'Are you sure you want to delete this coupon? This action cannot be undone.',
+            isDestructive: true,
+            onConfirm: async () => {
+                await deleteCoupon(code);
+                loadCoupons();
+            }
+        });
     };
 
     // Feedback Modal State
@@ -102,8 +120,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     });
     const [addMods, setAddMods] = useState('');
 
-    const filteredItems = (menuItems || []).filter(i => 
-        (i.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+    const filteredItems = (menuItems || []).filter(i =>
+        (i.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (i.name_en?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
 
@@ -136,7 +154,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
             let mimeType = file.type;
             let ext = 'jpg';
-            
+
             if (mimeType === 'image/png') {
                 ext = 'png';
             } else if (mimeType === 'image/webp') {
@@ -191,8 +209,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const handleEditSave = () => {
         if (!editingItem) return;
         const modsArray = editMods.split(',').map(s => s.trim()).filter(s => s.length > 0);
-        const updateData: Partial<MenuItem> = { 
-            price: editPrice, 
+        const updateData: Partial<MenuItem> = {
+            price: editPrice,
             availability_status: editStatus,
             is_premium: editIsPremium,
             image_url: editImageUrl
@@ -203,12 +221,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         setEditingItem(null);
     };
 
-    const handleDeleteItem = async () => {
+    const handleDeleteItem = () => {
         if (!editingItem) return;
-        if (confirm(t.deleteItemConfirm)) {
-            await deleteMenuItem(editingItem.id);
-            setEditingItem(null);
-        }
+        setConfirmation({
+            isOpen: true,
+            title: language === 'he' ? 'מחיקת מנה' : 'Delete Item',
+            message: language === 'he' ? `האם אתה בטוח שברצונך למחוק את "${editingItem.name}"? פעולה זו אינה הפיכה.` : `Are you sure you want to delete "${getLocalizedItem(editingItem, language).name}"? This action cannot be undone.`,
+            isDestructive: true,
+            onConfirm: async () => {
+                await deleteMenuItem(editingItem.id);
+                setEditingItem(null);
+            }
+        });
     };
 
     const handleAddSave = async () => {
@@ -230,7 +254,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
     return (
         <div className="p-8 bg-stone-100 min-h-screen font-sans animate-fade-in" dir={language === 'he' ? 'rtl' : 'ltr'}>
-            
+
             <FeedbackModal
                 isOpen={feedback.isOpen}
                 onClose={closeFeedback}
@@ -239,40 +263,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 type={feedback.type}
             />
 
+            <ConfirmationModal
+                isOpen={confirmation.isOpen}
+                onClose={closeConfirmation}
+                onConfirm={confirmation.onConfirm}
+                title={confirmation.title}
+                message={confirmation.message}
+                isDestructive={confirmation.isDestructive}
+                confirmText={language === 'he' ? 'מחק' : 'Delete'}
+                cancelText={language === 'he' ? 'ביטול' : 'Cancel'}
+            />
+
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 text-start">
-                 <h1 className="text-3xl font-serif font-bold text-stone-900">{t.title}</h1>
-                 <div className="flex gap-4">
-                     <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 bg-gold-500 text-stone-900 px-4 py-2 rounded-lg hover:bg-gold-400 transition font-bold shadow-md"><Plus size={18} /><span>{t.addItem}</span></button>
-                     <button onClick={onExit} className="flex items-center gap-2 bg-stone-900 text-white px-4 py-2 rounded-lg hover:bg-stone-800 transition shadow-md"><LogOut size={18} /><span>{t.exit}</span></button>
-                 </div>
+                <h1 className="text-3xl font-serif font-bold text-stone-900">{t.title}</h1>
+                <div className="flex gap-4">
+                    <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 bg-gold-500 text-stone-900 px-4 py-2 rounded-lg hover:bg-gold-400 transition font-bold shadow-md"><Plus size={18} /><span>{t.addItem}</span></button>
+                    <button onClick={onExit} className="flex items-center gap-2 bg-stone-900 text-white px-4 py-2 rounded-lg hover:bg-stone-800 transition shadow-md"><LogOut size={18} /><span>{t.exit}</span></button>
+                </div>
             </div>
-            
+
             {/* Top Stats & Feature Toggles */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 text-start">
                 <div className="bg-white p-6 rounded-lg shadow-sm">
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.minOrder}</h3>
                     <div className="flex items-center gap-1">
                         <span className="text-lg font-bold text-stone-800">₪</span>
-                        <input 
-                            type="number" 
-                            value={appConfig.min_order_price} 
+                        <input
+                            type="number"
+                            value={appConfig.min_order_price}
                             onChange={(e) => updateAppConfig({ min_order_price: Number(e.target.value) })}
-                            className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500" 
+                            className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500"
                         />
                     </div>
                 </div>
-                
+
                 <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col justify-between">
                     <h3 className="text-sm font-bold text-stone-400 uppercase mb-4">{t.featureMgmt}</h3>
                     <div className="space-y-3">
-                        <button 
+                        <button
                             onClick={() => updateFeatureFlags({ showCalculator: !featureFlags?.showCalculator })}
                             className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags?.showCalculator ? 'bg-gold-50 border-gold-200 text-gold-900' : 'bg-stone-50 border-stone-200 text-stone-400'}`}
                         >
                             <span className="text-xs font-bold">{t.showCalc}</span>
                             {featureFlags?.showCalculator ? <ToggleRight className="text-gold-500" /> : <ToggleLeft />}
                         </button>
-                        <button 
+                        <button
                             onClick={() => updateFeatureFlags({ showAI: !featureFlags?.showAI })}
                             className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags?.showAI ? 'bg-gold-50 border-gold-200 text-gold-900' : 'bg-stone-50 border-stone-200 text-stone-400'}`}
                         >
@@ -281,7 +316,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         </button>
                     </div>
                 </div>
-                
+
                 <div className="bg-white p-6 rounded-lg shadow-sm md:col-span-2 relative overflow-hidden">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="p-1.5 bg-gold-100 rounded text-gold-600"><Calculator size={16} /></div>
@@ -289,16 +324,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     </div>
                     <div className="grid grid-cols-3 gap-3 md:gap-6 items-end">
                         <div className="flex flex-col">
-                             <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.sandwichesPerPerson}</label>
-                             <input type="number" step="0.1" value={calculationSettings?.sandwichesPerPerson || 1.5} onChange={(e) => updateCalculationSettings({ sandwichesPerPerson: parseFloat(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
+                            <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.sandwichesPerPerson}</label>
+                            <input type="number" step="0.1" value={calculationSettings?.sandwichesPerPerson || 1.5} onChange={(e) => updateCalculationSettings({ sandwichesPerPerson: parseFloat(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
                         </div>
                         <div className="flex flex-col">
-                             <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.pastriesPerPerson}</label>
-                             <input type="number" step="0.1" value={calculationSettings?.pastriesPerPerson || 1.0} onChange={(e) => updateCalculationSettings({ pastriesPerPerson: parseFloat(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
+                            <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.pastriesPerPerson}</label>
+                            <input type="number" step="0.1" value={calculationSettings?.pastriesPerPerson || 1.0} onChange={(e) => updateCalculationSettings({ pastriesPerPerson: parseFloat(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
                         </div>
-                         <div className="flex flex-col">
-                             <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.trayCapacity}</label>
-                             <input type="number" value={calculationSettings?.averageTrayCapacity || 10} onChange={(e) => updateCalculationSettings({ averageTrayCapacity: parseInt(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
+                        <div className="flex flex-col">
+                            <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.trayCapacity}</label>
+                            <input type="number" value={calculationSettings?.averageTrayCapacity || 10} onChange={(e) => updateCalculationSettings({ averageTrayCapacity: parseInt(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
                         </div>
                     </div>
                 </div>
@@ -306,7 +341,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
             {/* Delivery Settings */}
             <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-100 mb-8 text-start relative overflow-hidden">
-                 <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-4">
                     <div className="p-1.5 bg-stone-100 rounded text-stone-600"><Truck size={16} /></div>
                     <h3 className="text-sm font-bold text-stone-900 uppercase">{t.deliverySettings}</h3>
                 </div>
@@ -314,56 +349,56 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     <div className="flex flex-col">
                         <label className="text-[10px] text-stone-500 font-bold mb-1">{t.minFreeDelivery}</label>
                         <div className="flex items-center gap-1">
-                             <span className="text-stone-400">₪</span>
-                             <input 
-                                type="number" 
-                                value={calculationSettings?.minOrderFreeDelivery || 1500} 
+                            <span className="text-stone-400">₪</span>
+                            <input
+                                type="number"
+                                value={calculationSettings?.minOrderFreeDelivery || 1500}
                                 onChange={(e) => updateCalculationSettings({ minOrderFreeDelivery: Number(e.target.value) })}
-                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500" 
+                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500"
                             />
                         </div>
                     </div>
                     <div className="flex flex-col">
-                         <label className="text-[10px] text-stone-500 font-bold mb-1">{t.baseDeliveryFee}</label>
-                         <div className="flex items-center gap-1">
-                             <span className="text-stone-400">₪</span>
-                             <input 
-                                type="number" 
-                                value={appConfig.delivery_base_fee ?? 60} 
+                        <label className="text-[10px] text-stone-500 font-bold mb-1">{t.baseDeliveryFee}</label>
+                        <div className="flex items-center gap-1">
+                            <span className="text-stone-400">₪</span>
+                            <input
+                                type="number"
+                                value={appConfig.delivery_base_fee ?? 60}
                                 onChange={(e) => updateAppConfig({ delivery_base_fee: Number(e.target.value) })}
-                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500" 
+                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500"
                             />
                         </div>
                     </div>
-                     <div className="flex flex-col">
-                         <label className="text-[10px] text-stone-500 font-bold mb-1">{t.pricePerKm}</label>
-                         <div className="flex items-center gap-1">
-                             <span className="text-stone-400">₪</span>
-                             <input 
-                                type="number" 
-                                value={appConfig.delivery_price_per_km ?? 4} 
+                    <div className="flex flex-col">
+                        <label className="text-[10px] text-stone-500 font-bold mb-1">{t.pricePerKm}</label>
+                        <div className="flex items-center gap-1">
+                            <span className="text-stone-400">₪</span>
+                            <input
+                                type="number"
+                                value={appConfig.delivery_price_per_km ?? 4}
                                 onChange={(e) => updateAppConfig({ delivery_price_per_km: Number(e.target.value) })}
-                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500" 
+                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500"
                             />
                         </div>
                     </div>
-                     <div className="flex flex-col">
-                         <label className="text-[10px] text-stone-500 font-bold mb-1">{t.includedRadius}</label>
-                         <div className="flex items-center gap-1">
-                             <span className="text-stone-400">KM</span>
-                             <input 
-                                type="number" 
-                                value={appConfig.delivery_min_radius_included ?? 15} 
+                    <div className="flex flex-col">
+                        <label className="text-[10px] text-stone-500 font-bold mb-1">{t.includedRadius}</label>
+                        <div className="flex items-center gap-1">
+                            <span className="text-stone-400">KM</span>
+                            <input
+                                type="number"
+                                value={appConfig.delivery_min_radius_included ?? 15}
                                 onChange={(e) => updateAppConfig({ delivery_min_radius_included: Number(e.target.value) })}
-                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500" 
+                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500"
                             />
                         </div>
                     </div>
                 </div>
             </div>
 
-             {/* Coupon Manager */}
-             <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
+            {/* Coupon Manager */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
                 <button onClick={() => setShowCoupons(!showCoupons)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
                     <div className="flex items-center gap-3"><Tag size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{t.coupons}</span></div>
                     {showCoupons ? <ChevronUp /> : <ChevronDown />}
@@ -373,19 +408,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         <div className="flex flex-col lg:flex-row gap-4 mb-6 items-end border-b border-stone-200 pb-6">
                             <div className="flex-1 w-full">
                                 <label className="block text-xs font-bold text-stone-500 mb-1">{t.couponCode}</label>
-                                <input 
-                                    type="text" 
-                                    value={newCoupon.code} 
-                                    onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})}
-                                    className="w-full p-2 border rounded uppercase" 
+                                <input
+                                    type="text"
+                                    value={newCoupon.code}
+                                    onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
+                                    className="w-full p-2 border rounded uppercase"
                                     placeholder="SALE2024"
                                 />
                             </div>
                             <div className="flex-1 w-full">
                                 <label className="block text-xs font-bold text-stone-500 mb-1">{t.discountType}</label>
-                                <select 
-                                    value={newCoupon.discount_type} 
-                                    onChange={(e) => setNewCoupon({...newCoupon, discount_type: e.target.value as 'percentage' | 'fixed'})}
+                                <select
+                                    value={newCoupon.discount_type}
+                                    onChange={(e) => setNewCoupon({ ...newCoupon, discount_type: e.target.value as 'percentage' | 'fixed' })}
                                     className="w-full p-2 border rounded bg-white"
                                 >
                                     <option value="percentage">{t.percentage}</option>
@@ -394,24 +429,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             </div>
                             <div className="flex-1 w-full">
                                 <label className="block text-xs font-bold text-stone-500 mb-1">{t.discountValue}</label>
-                                <input 
-                                    type="number" 
-                                    value={newCoupon.discount_value} 
-                                    onChange={(e) => setNewCoupon({...newCoupon, discount_value: parseFloat(e.target.value)})}
-                                    className="w-full p-2 border rounded" 
+                                <input
+                                    type="number"
+                                    value={newCoupon.discount_value}
+                                    onChange={(e) => setNewCoupon({ ...newCoupon, discount_value: parseFloat(e.target.value) })}
+                                    className="w-full p-2 border rounded"
                                 />
                             </div>
                             <div className="flex-1 w-full">
                                 <label className="block text-xs font-bold text-stone-500 mb-1">{t.usageLimit}</label>
-                                <input 
-                                    type="number" 
-                                    value={newCoupon.usage_limit || ''} 
-                                    onChange={(e) => setNewCoupon({...newCoupon, usage_limit: e.target.value ? parseInt(e.target.value) : null})}
-                                    className="w-full p-2 border rounded" 
+                                <input
+                                    type="number"
+                                    value={newCoupon.usage_limit || ''}
+                                    onChange={(e) => setNewCoupon({ ...newCoupon, usage_limit: e.target.value ? parseInt(e.target.value) : null })}
+                                    className="w-full p-2 border rounded"
                                     placeholder={t.unlimited}
                                 />
                             </div>
-                            <button 
+                            <button
                                 onClick={handleCreateCoupon}
                                 className="bg-gold-500 text-stone-900 font-bold px-6 py-2 rounded hover:bg-gold-400 transition w-full lg:w-auto"
                             >
@@ -436,7 +471,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                 <span>{t.usage}: {coupon.usage_count || 0} / {coupon.usage_limit || '∞'}</span>
                                             </div>
                                         </div>
-                                        <button 
+                                        <button
                                             onClick={() => handleDeleteCoupon(coupon.code)}
                                             className="text-stone-400 hover:text-red-500 transition-colors"
                                         >
@@ -461,7 +496,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     <div className="p-6 bg-stone-50 animate-slide-in-top">
                         <div className="mb-8 border-b border-stone-200 pb-8">
                             <h4 className="text-stone-900 font-bold mb-2 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.aiInstructions}</h4>
-                            <textarea 
+                            <textarea
                                 value={calculationSettings?.aiCustomInstructions || ''}
                                 onChange={(e) => updateCalculationSettings({ aiCustomInstructions: e.target.value })}
                                 placeholder={t.aiInstructionsPlaceholder}
@@ -711,7 +746,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             </div>
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label><input type="number" value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" /></div>
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.status}</label><div className="flex items-center gap-4"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={editStatus} onChange={() => setEditStatus(true)} className="w-4 h-4 text-gold-500" /><span>{t.inStock}</span></label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={!editStatus} onChange={() => setEditStatus(false)} className="w-4 h-4 text-red-500" /><span>{t.outOfStockLabel}</span></label></div></div>
-                             <div>
+                            <div>
                                 <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50 w-full">
                                     <input type="checkbox" checked={editIsPremium} onChange={(e) => setEditIsPremium(e.target.checked)} className="w-4 h-4 text-gold-500 rounded" />
                                     <span className="font-bold text-sm text-stone-700">{t.premium}</span>
@@ -724,7 +759,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 <button onClick={handleEditSave} className="flex-1 bg-gold-500 text-stone-900 font-bold py-3 rounded-lg hover:bg-gold-400 flex items-center justify-center gap-2"><Save size={18} />{t.save}</button>
                                 <button onClick={() => setEditingItem(null)} className="flex-1 bg-stone-100 text-stone-600 font-bold py-3 px-6 rounded-lg hover:bg-stone-200">{t.cancelBtn}</button>
                             </div>
-                            <button 
+                            <button
                                 onClick={handleDeleteItem}
                                 className="w-full bg-red-50 text-red-600 font-bold py-3 rounded-lg hover:bg-red-100 flex items-center justify-center gap-2 mt-2 transition-colors"
                             >
