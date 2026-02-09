@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- Primary Meta Tags -->
+    <title>Ayala - Simply Delicious Catering</title>
+    <meta name="title" content="איילה פשוט טעים - קייטרינג חלבי בוטיק">
+    <meta name="description" content="תפריט אירוח עשיר, מחשבון כמויות חכם והזמנה מהירה לאירועים מושלמים. מגשי אירוח, סלטים, קישים וקינוחים.">
+    <meta name="theme-color" content="#1c1917">
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ayala-catering.vercel.app/">
+    <meta property="og:title" content="איילה פשוט טעים - קייטרינג חלבי בוטיק">
+    <meta property="og:description" content="תכנון אירוע מעולם לא היה פשוט יותר. היכנסו לתפריט, היעזרו במחשבון הכמויות והזמינו בקלות.">
+    <meta property="og:image" content="https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/og-image.jpg">
+    <meta property="og:site_name" content="Ayala Catering">
+    <meta property="og:locale" content="he_IL">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://ayala-catering.vercel.app/">
+    <meta property="twitter:title" content="איילה פשוט טעים - קייטרינג חלבי בוטיק">
+    <meta property="twitter:description" content="תפריט אירוח עשיר, מחשבון כמויות חכם והזמנה מהירה לאירועים מושלמים.">
+    <meta property="twitter:image" content="https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/og-image.jpg">
+
+    <link rel="icon" type="image/png" href="https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png" />
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=David+Libre:wght@400;500;700&family=Heebo:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CDN for robust preview rendering -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              stone: {
+                50: '#fafaf9',
+                100: '#f5f5f4',
+                200: '#e7e5e4',
+                300: '#d6d3d1',
+                400: '#a8a29e',
+                500: '#78716c',
+                600: '#57534e',
+                700: '#44403c',
+                800: '#292524',
+                900: '#1c1917',
+              },
+              gold: {
+                500: '#d4af37',
+                600: '#b4941f',
+              }
+            },
+            fontFamily: {
+              sans: ['Heebo', 'system-ui', 'sans-serif'],
+              serif: ['David Libre', 'Georgia', 'serif'],
+            },
+            keyframes: {
+                "fade-in": {
+                    from: { opacity: "0" },
+                    to: { opacity: "1" },
+                },
+                "zoom-in": {
+                    from: { transform: "scale(0.95)", opacity: "0" },
+                    to: { transform: "scale(1)", opacity: "1" },
+                },
+                "slide-in-bottom": {
+                    from: { transform: "translateY(20px)", opacity: "0" },
+                    to: { transform: "translateY(0)", opacity: "1" },
+                },
+                "slide-in-top": {
+                    from: { transform: "translateY(-20px)", opacity: "0" },
+                    to: { transform: "translateY(0)", opacity: "1" },
+                },
+                "slide-in-right": {
+                    from: { transform: "translateX(100%)" },
+                    to: { transform: "translateX(0)" },
+                },
+                "slide-in-left": {
+                    from: { transform: "translateX(-100%)" },
+                    to: { transform: "translateX(0)" },
+                }
+            },
+            animation: {
+                "fade-in": "fade-in 0.3s ease-out forwards",
+                "zoom-in": "zoom-in 0.2s ease-out forwards",
+                "slide-in-bottom": "slide-in-bottom 0.5s ease-out forwards",
+                "slide-in-top": "slide-in-top 0.5s ease-out forwards",
+                "slide-in-right": "slide-in-right 0.3s ease-out forwards",
+                "slide-in-left": "slide-in-left 0.3s ease-out forwards",
+            },
+          }
+        }
+      }
+    </script>
+
+    <script>
+       // Safe Area Variables
+       document.documentElement.style.setProperty('--vh', window.innerHeight * 0.01 + 'px');
+    </script>
+    <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "zustand": "https://esm.sh/zustand@^5.0.10",
+    "zustand/": "https://esm.sh/zustand@^5.0.10/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.48.1",
+    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "url": "https://esm.sh/url@^0.11.4"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

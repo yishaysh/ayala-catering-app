@@ -1,0 +1,772 @@
+
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon, AppSettings } from './types';
+import { supabase } from './lib/supabase';
+
+type Language = 'he' | 'en';
+
+export interface Translations {
+  title: string;
+  subtitle: string;
+  guestsQuestion: string;
+  guestsSub: string;
+  autoRecommend: string;
+  sandwiches: string;
+  trays: string;
+  perCategory: string;
+  addToCart: string;
+  add: string;
+  added: string;
+  outOfStock: string;
+  premium: string;
+  serves: string;
+  people: string;
+  adults: string;
+  children: string;
+  myOrder: string;
+  emptyCart: string;
+  total: string;
+  subtotal: string;
+  discount: string;
+  delivery: string;
+  finalTotal: string;
+  couponCode: string;
+  applyCoupon: string;
+  couponApplied: string;
+  couponInvalid: string;
+  removeCoupon: string;
+  minOrder: string;
+  checkout: string;
+  shareDraft: string;
+  freeDeliveryAt: string;
+  vipDelivery: string;
+  deliveryByDistance: string;
+  justMore: string;
+  forVip: string;
+  checkoutSub: string;
+  search: string;
+  customizeTitle: string;
+  description: string;
+  notesPlaceholder: string;
+  modifications: string;
+  cancel: string;
+  confirmAdd: string;
+  tray: string;
+  liter: string;
+  unit: string;
+  weight: string;
+  clearCart: string;
+  clearCartConfirm: string;
+  planEvent: string;
+  eventType: string;
+  calcResults: string;
+  aiTitle: string;
+  aiPlaceholder: string;
+  aiGenerate: string;
+  aiApplying: string;
+  aiApply: string;
+  aiExplanation: string;
+  brunch: string;
+  dinner: string;
+  snack: string;
+  customerName: string;
+  customerPhone: string;
+  eventLocation: string;
+  eventDistance: string;
+  categories: Record<string, string>;
+  admin: {
+    title: string;
+    exit: string;
+    minOrder: string;
+    prepTime: string;
+    storeStatus: string;
+    open: string;
+    closed: string;
+    searchPlaceholder: string;
+    productName: string;
+    category: string;
+    price: string;
+    status: string;
+    image: string;
+    upload: string;
+    imageHint: string;
+    modifications: string;
+    edit: string;
+    active: string;
+    outOfStock: string;
+    editItemTitle: string;
+    inStock: string;
+    outOfStockLabel: string;
+    modsHint: string;
+    modsPlaceholder: string;
+    save: string;
+    cancelBtn: string;
+    addItem: string;
+    createItemTitle: string;
+    description: string;
+    unitType: string;
+    create: string;
+    premium: string;
+    calcSettings: string;
+    sandwichesPerPerson: string;
+    pastriesPerPerson: string;
+    trayCapacity: string;
+    serviceRadius: string;
+    minFreeDelivery: string;
+    aiInstructions: string;
+    aiInstructionsPlaceholder: string;
+    advCalc: string;
+    eventLogic: string;
+    eventLogicExpl: string;
+    unitsPerPerson: string;
+    coverage: string;
+    tableEventType: string;
+    tableSandwiches: string;
+    tablePastries: string;
+    tableSalads: string;
+    tableMains: string;
+    tablePlatters: string;
+    tableDesserts: string;
+    featureMgmt: string;
+    showCalc: string;
+    showAI: string;
+    coupons: string;
+    couponCode: string;
+    discountType: string;
+    discountValue: string;
+    percentage: string;
+    fixedAmount: string;
+    createCoupon: string;
+    activeCoupons: string;
+    usageLimit: string;
+    unlimited: string;
+    usage: string;
+    deliverySettings: string;
+    baseDeliveryFee: string;
+    pricePerKm: string;
+    includedRadius: string;
+    deleteItem: string;
+    deleteItemConfirm: string;
+  };
+}
+
+export const translations: Record<Language, Translations> = {
+  he: {
+    title: "איילה פשוט טעים",
+    subtitle: "קייטרינג חלבי פרימיום",
+    guestsQuestion: "כמה אורחים מגיעים?",
+    guestsSub: "תכנון אירוע מעולם לא היה פשוט יותר",
+    autoRecommend: "התמהיל המומלץ עבורך:",
+    sandwiches: "סנדוויצ'ים",
+    trays: "מגשי אירוח",
+    perCategory: "לכל קטגוריה",
+    addToCart: "הוסף להזמנה",
+    add: "הוסף",
+    added: "נוסף",
+    outOfStock: "אזל מהמלאי",
+    premium: "מומלץ",
+    serves: "מספיק ל-",
+    people: "סועדים",
+    adults: "מבוגרים (12+)",
+    children: "ילדים (4-11)",
+    myOrder: "ההזמנה שלי",
+    emptyCart: "העגלה ריקה, זה הזמן להוסיף דברים טובים",
+    total: "סה\"כ לתשלום",
+    subtotal: "סכום ביניים",
+    discount: "הנחה",
+    delivery: "משלוח",
+    finalTotal: "סה\"כ סופי",
+    couponCode: "קוד קופון",
+    applyCoupon: "הפעל",
+    couponApplied: "קופון הופעל!",
+    couponInvalid: "קוד קופון שגוי או פג תוקף",
+    removeCoupon: "הסר",
+    minOrder: "מינימום הזמנה",
+    checkout: "סיום הזמנה ב-WhatsApp",
+    shareDraft: "שתף טיוטה לאישור",
+    freeDeliveryAt: "משלוח חינם מעל",
+    vipDelivery: "משלוח חינם עלינו!",
+    deliveryByDistance: "עלות משלוח לפי מיקום",
+    justMore: "רק עוד",
+    forVip: "למשלוח חינם",
+    checkoutSub: "ההזמנה תשלח לאישור סופי מול איילה",
+    search: "חיפוש בתפריט...",
+    customizeTitle: "התאמה אישית",
+    description: "תיאור",
+    notesPlaceholder: "הערות מיוחדות למנה...",
+    modifications: "שינויים:",
+    cancel: "ביטול",
+    confirmAdd: "הוסף לעגלה",
+    tray: 'מגש',
+    liter: 'ליטר',
+    unit: 'יחידה',
+    weight: 'משקל',
+    clearCart: "רוקן עגלה",
+    clearCartConfirm: "האם לרוקן את העגלה?",
+    planEvent: "בואו נתכנן את האירוע המושלם",
+    eventType: "סוג האירוע",
+    calcResults: "המלצות להרכב האירוע",
+    aiTitle: "השף הדיגיטלי (AI)",
+    aiPlaceholder: "תארו לנו את האירוע... (לדוגמה: יום הולדת ל-20 איש בשישי בצהריים, אוהבים מתוקים)",
+    aiGenerate: "בני לי תפריט",
+    aiApplying: "מנתח...",
+    aiApply: "החל המלצה על העגלה",
+    aiExplanation: "למה בחרתי את זה?",
+    brunch: "בראנץ'",
+    dinner: "ארוחת ערב",
+    snack: "אירוח קליל",
+    customerName: "שם מלא",
+    customerPhone: "טלפון ליצירת קשר",
+    eventLocation: "מיקום האירוע (עיר/כתובת)",
+    eventDistance: "מרחק מהמטבח (ק\"מ)",
+    categories: {
+      'Salads': 'סלטים טריים',
+      'Cold Platters': 'מגשי אירוח',
+      'Sandwiches': 'כריכים וביסים',
+      'Dips': 'מטבלים',
+      'Main Courses': 'עיקריות',
+      'Pastries': 'מאפים',
+      'Desserts': 'קינוחים'
+    },
+    admin: {
+        title: "ניהול תפריט ומלאי",
+        exit: "יציאה למערכת",
+        minOrder: "מינימום הזמנה",
+        prepTime: "זמן הכנה (שעות)",
+        storeStatus: "סטטוס חנות",
+        open: "פתוח להזמנות",
+        closed: "סגור זמנית",
+        searchPlaceholder: "חיפוש מוצר...",
+        productName: "שם המוצר",
+        category: "קטגוריה",
+        price: "מחיר",
+        status: "סטטוס",
+        image: "תמונה",
+        upload: "העלאת תמונה",
+        imageHint: "מומלץ: קובץ JPG/PNG עד 5MB",
+        modifications: "שינויים אפשריים",
+        edit: "עריכה",
+        active: "פעיל",
+        outOfStock: "חסר",
+        editItemTitle: "עריכת מנה",
+        inStock: "פעיל במלאי",
+        outOfStockLabel: "חסר במלאי",
+        modsHint: "אלו האפשרויות שיוצגו ללקוח לבחירה מהירה.",
+        modsPlaceholder: "לדוגמה: בלי בצל, רוטב בצד",
+        save: "שמור שינויים",
+        cancelBtn: "ביטול",
+        addItem: "הוסף מנה חדשה",
+        createItemTitle: "יצירת מנה חדשה",
+        description: "תיאור המנה",
+        unitType: "סוג יחידה",
+        create: "צור מנה",
+        premium: "פרימיום",
+        calcSettings: "הגדרות מחשבון כמויות",
+        sandwichesPerPerson: "כריכים לאדם",
+        pastriesPerPerson: "מאפים לאדם",
+        trayCapacity: "קיבולת מגש ממוצעת",
+        serviceRadius: "רדיוס משלוח (ק\"מ)",
+        minFreeDelivery: "מינימום למשלוח חינם",
+        aiInstructions: "הנחיות שף ל-AI (Custom Prompt)",
+        aiInstructionsPlaceholder: "לדוגמה: אל תמליץ על יותר מ-2 סוגי קיש, תמיד תציע סלט ירוק...",
+        advCalc: "הגדרות מחשבון מתקדמות",
+        eventLogic: "לוגיקה לפי סוג אירוע",
+        eventLogicExpl: "* המספרים מייצגים יחידות לאדם (כריכים/מאפים) או אחוז כיסוי מהאורחים (שאר הקטגוריות). 1.0 = יחידה לכל אורח.",
+        unitsPerPerson: "יח' לאדם",
+        coverage: "כיסוי",
+        tableEventType: "סוג אירוע",
+        tableSandwiches: "כריכים",
+        tablePastries: "מאפים",
+        tableSalads: "סלטים",
+        tableMains: "עיקריות",
+        tablePlatters: "מגשים",
+        tableDesserts: "קינוחים",
+        featureMgmt: "ניהול פיצ'רים",
+        showCalc: "הצג מחשבון אירוח",
+        showAI: "הצג קונסיירז' AI",
+        coupons: "ניהול קופונים",
+        couponCode: "קוד קופון",
+        discountType: "סוג הנחה",
+        discountValue: "ערך ההנחה",
+        percentage: "אחוזים (%)",
+        fixedAmount: "סכום קבוע (₪)",
+        createCoupon: "צור קופון",
+        activeCoupons: "קופונים פעילים",
+        usageLimit: "מגבלת שימושים",
+        unlimited: "ללא הגבלה",
+        usage: "נוצל",
+        deliverySettings: "הגדרות משלוח",
+        baseDeliveryFee: "עלות בסיס (עד רדיוס)",
+        pricePerKm: "מחיר לק\"מ נוסף",
+        includedRadius: "רדיוס כלול בבסיס (ק\"מ)",
+        deleteItem: "מחק מנה",
+        deleteItemConfirm: "האם למחוק את המנה לצמיתות?",
+    }
+  },
+  en: {
+    title: "Ayala Simply Delicious",
+    subtitle: "Premium Dairy Catering",
+    guestsQuestion: "How many guests?",
+    guestsSub: "Planning your event made simple",
+    autoRecommend: "Your recommended mix:",
+    sandwiches: "Sandwiches",
+    trays: "Trays",
+    perCategory: "per category",
+    addToCart: "Add to Order",
+    add: "Add",
+    added: "Added",
+    outOfStock: "Out of Stock",
+    premium: "Premium",
+    serves: "Serves",
+    people: "people",
+    adults: "Adults (12+)",
+    children: "Children (4-11)",
+    myOrder: "My Order",
+    emptyCart: "Cart is empty, time to add some goodies",
+    total: "Total",
+    subtotal: "Subtotal",
+    discount: "Discount",
+    delivery: "Delivery",
+    finalTotal: "Final Total",
+    couponCode: "Coupon Code",
+    applyCoupon: "Apply",
+    couponApplied: "Coupon Applied!",
+    couponInvalid: "Invalid or Expired Code",
+    removeCoupon: "Remove",
+    minOrder: "Minimum Order",
+    checkout: "Checkout via WhatsApp",
+    shareDraft: "Share Draft for Approval",
+    freeDeliveryAt: "Free Delivery over",
+    vipDelivery: "Free Delivery included!",
+    deliveryByDistance: "Delivery fee based on location",
+    justMore: "Just",
+    forVip: "more for Free Delivery",
+    checkoutSub: "Order will be sent for final approval",
+    search: "Search menu...",
+    customizeTitle: "Customize Item",
+    description: "Description",
+    notesPlaceholder: "Special requests...",
+    modifications: "Modifications:",
+    cancel: "Cancel",
+    confirmAdd: "Add to Cart",
+    tray: 'Tray',
+    liter: 'Liter',
+    unit: 'Unit',
+    weight: 'Weight',
+    clearCart: "Clear Cart",
+    clearCartConfirm: "Clear the cart?",
+    planEvent: "Let's plan the perfect event",
+    eventType: "Event Type",
+    calcResults: "Recommended Menu Composition",
+    aiTitle: "AI Chef",
+    aiPlaceholder: "Describe your event... (e.g. Birthday party for 20 people, we love sweets)",
+    aiGenerate: "Plan for me",
+    aiApplying: "Analyzing...",
+    aiApply: "Apply Recommendation",
+    aiExplanation: "Why this choice?",
+    brunch: "Brunch",
+    dinner: "Dinner",
+    snack: "Light / Cocktail",
+    customerName: "Full Name",
+    customerPhone: "Contact Phone",
+    eventLocation: "Event Location (City/Address)",
+    eventDistance: "Distance from Kitchen (km)",
+    categories: {
+      'Salads': 'Fresh Salads',
+      'Cold Platters': 'Cold Platters',
+      'Sandwiches': 'Sandwiches',
+      'Dips': 'Dips & Spreads',
+      'Main Courses': 'Main Courses',
+      'Pastries': 'Pastries',
+      'Desserts': 'Desserts'
+    },
+    admin: {
+        title: "Menu & Inventory Management",
+        exit: "Exit Admin",
+        minOrder: "Minimum Order",
+        prepTime: "Prep Time (Hours)",
+        storeStatus: "Store Status",
+        open: "Open for Orders",
+        closed: "Temporarily Closed",
+        searchPlaceholder: "Search item...",
+        productName: "Product Name",
+        category: "Category",
+        price: "Price",
+        status: "Status",
+        image: "Image",
+        upload: "Upload Image",
+        imageHint: "Recommended: JPG/PNG up to 5MB",
+        modifications: "Allowed Modifications",
+        edit: "Edit",
+        active: "Active",
+        outOfStock: "OOS",
+        editItemTitle: "Edit Item",
+        inStock: "In Stock",
+        outOfStockLabel: "Out of Stock",
+        modsHint: "Options displayed to customer for quick selection.",
+        modsPlaceholder: "e.g.: No Onion, Sauce on side",
+        save: "Save Changes",
+        cancelBtn: "Cancel",
+        addItem: "Add New Item",
+        createItemTitle: "Create New Item",
+        description: "Description",
+        unitType: "Unit Type",
+        create: "Create Item",
+        premium: "Premium",
+        calcSettings: "Smart Calculator Logic",
+        sandwichesPerPerson: "Sandwiches Per Person",
+        pastriesPerPerson: "Pastries Per Person",
+        trayCapacity: "Avg. Tray Capacity",
+        serviceRadius: "Service Radius (km)",
+        minFreeDelivery: "Min Order Free Delivery",
+        aiInstructions: "Chef's AI Instructions (Custom Prompt)",
+        aiInstructionsPlaceholder: "e.g.: Don't suggest more than 2 quiches, always offer green salad...",
+        advCalc: "Advanced Calculator Config",
+        eventLogic: "Event Logic Matrix",
+        eventLogicExpl: "* Values represent units per person (Sandwiches/Pastries) or coverage ratio (other categories). 1.0 = one unit per guest.",
+        unitsPerPerson: "Units/Prsn",
+        coverage: "Coverage",
+        featureMgmt: "Feature Management",
+        showCalc: "Show Event Calculator",
+        showAI: "Show AI Concierge",
+        coupons: "Coupon Management",
+        couponCode: "Coupon Code",
+        discountType: "Discount Type",
+        discountValue: "Value",
+        percentage: "Percentage (%)",
+        fixedAmount: "Fixed Amount (NIS)",
+        createCoupon: "Create Coupon",
+        activeCoupons: "Active Coupons",
+        tableEventType: "Event Type",
+        tableSandwiches: "Sandwiches",
+        tablePastries: "Pastries",
+        tableSalads: "Salads",
+        tableMains: "Mains",
+        tablePlatters: "Platters",
+        tableDesserts: "Desserts",
+        usageLimit: "Usage Limit",
+        unlimited: "Unlimited",
+        usage: "Used",
+        deliverySettings: "Delivery Pricing",
+        baseDeliveryFee: "Base Fee (within radius)",
+        pricePerKm: "Price Per Km (Extra)",
+        includedRadius: "Radius Included (Km)",
+        deleteItem: "Delete Item",
+        deleteItemConfirm: "Delete this item permanently?",
+    }
+  }
+};
+
+interface AppState {
+  cart: CartItem[];
+  menuItems: MenuItem[];
+  adultCount: number;
+  childCount: number;
+  guestCount: number;
+  customerDetails: CustomerDetails;
+  language: Language;
+  isLoading: boolean;
+  featureFlags: FeatureFlags;
+  eventType: EventType;
+  calculationSettings: CalculationSettings;
+  advancedSettings: AdvancedCalculationSettings;
+  activeCoupon: Coupon | null;
+  appConfig: AppSettings;
+
+  fetchMenuItems: () => Promise<void>;
+  fetchSettings: () => Promise<void>;
+  setAdultCount: (count: number) => void;
+  setChildCount: (count: number) => void;
+  setCustomerDetails: (details: Partial<CustomerDetails>) => void;
+  setEventType: (type: EventType) => void;
+  setLanguage: (lang: Language) => void;
+  addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
+  bulkAddToCart: (items: { item: MenuItem, quantity: number }[]) => void;
+  removeFromCart: (itemId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
+  updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
+  addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
+  deleteMenuItem: (id: string) => Promise<void>;
+  updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
+  updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
+  updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
+  updateAppConfig: (config: Partial<AppSettings>) => Promise<void>;
+  clearCart: () => void;
+  cartTotal: () => number;
+  validateCoupon: (code: string) => Promise<boolean>;
+  removeCoupon: () => void;
+  createCoupon: (coupon: Coupon) => Promise<void>;
+  deleteCoupon: (code: string) => Promise<void>;
+  getCoupons: () => Promise<Coupon[]>;
+  incrementCouponUsage: (code: string) => Promise<void>;
+  getDeliveryFee: (distance: number, subtotal: number) => number;
+}
+
+export const useStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      cart: [],
+      menuItems: [],
+      adultCount: 0,
+      childCount: 0,
+      guestCount: 0,
+      customerDetails: { name: '', phone: '', location: '', distanceKm: 0 },
+      language: 'he',
+      isLoading: false,
+      eventType: 'snack',
+      featureFlags: { showCalculator: true, showAI: false },
+      appConfig: {
+        min_order_price: 500,
+        lead_time_hours: 48,
+        delivery_fee: 50,
+        is_shop_open: true,
+        delivery_base_fee: 60,
+        delivery_price_per_km: 4,
+        delivery_min_radius_included: 15
+      },
+      calculationSettings: { 
+        sandwichesPerPerson: 1.5, 
+        pastriesPerPerson: 1.0, 
+        averageTrayCapacity: 10,
+        serviceRadiusKm: 50, 
+        minOrderFreeDelivery: 2000,
+        aiCustomInstructions: ''
+      },
+      advancedSettings: {
+        eventRatios: {
+            brunch: { sandwiches: 1.0, pastries: 1.5, saladsCoverage: 0.8, mainsCoverage: 0.5, plattersCoverage: 0.6, dessertsCoverage: 0.4 },
+            dinner: { sandwiches: 0.5, pastries: 0.5, saladsCoverage: 1.0, mainsCoverage: 1.0, plattersCoverage: 0.4, dessertsCoverage: 0.5 },
+            snack: { sandwiches: 2.0, pastries: 0.5, saladsCoverage: 0.3, mainsCoverage: 0.0, plattersCoverage: 0.8, dessertsCoverage: 0.3 },
+        }
+      },
+      activeCoupon: null,
+
+      fetchMenuItems: async () => {
+          set({ isLoading: true });
+          const { data } = await supabase.from('menu_items').select('*').order('category', { ascending: true });
+          if (data) set({ menuItems: data as MenuItem[] });
+          set({ isLoading: false });
+      },
+
+      fetchSettings: async () => {
+        // Fetch Features
+        const { data: featuresData } = await supabase.from('app_settings').select('*').eq('key', 'features').single();
+        if (featuresData && featuresData.value) set({ featureFlags: featuresData.value as FeatureFlags });
+
+        // Fetch Config
+        const { data: configData } = await supabase.from('app_settings').select('*').eq('key', 'config').single();
+        if (configData && configData.value) {
+            // Merge with defaults to ensure new fields exist
+            const defaults = {
+                min_order_price: 500,
+                lead_time_hours: 48,
+                delivery_fee: 50,
+                is_shop_open: true,
+                delivery_base_fee: 60,
+                delivery_price_per_km: 4,
+                delivery_min_radius_included: 15
+            };
+            set({ appConfig: { ...defaults, ...configData.value } });
+        }
+      },
+
+      setLanguage: (lang) => set({ language: lang }),
+      
+      setAdultCount: (count) => set((state) => ({ 
+          adultCount: count, 
+          guestCount: count + state.childCount 
+      })),
+      
+      setChildCount: (count) => set((state) => ({ 
+          childCount: count, 
+          guestCount: state.adultCount + count 
+      })),
+
+      setCustomerDetails: (details) => set((state) => ({
+          customerDetails: { ...state.customerDetails, ...details }
+      })),
+
+      setEventType: (type) => set({ eventType: type }),
+
+      addToCart: (item, quantity = 1, notes = '', modifications = []) => {
+        const currentCart = get().cart;
+        const existingItemIndex = currentCart.findIndex((i) => 
+            i.id === item.id && i.notes === notes && JSON.stringify(i.selected_modifications) === JSON.stringify(modifications)
+        );
+
+        if (existingItemIndex > -1) {
+          const newCart = [...currentCart];
+          newCart[existingItemIndex].quantity += quantity;
+          set({ cart: newCart });
+        } else {
+          set({ cart: [...currentCart, { ...item, quantity, notes, selected_modifications: modifications }] });
+        }
+      },
+
+      bulkAddToCart: (items) => {
+          const newItems = items.map(({ item, quantity }) => ({
+              ...item,
+              quantity,
+              notes: '',
+              selected_modifications: []
+          }));
+          set({ cart: [...get().cart, ...newItems] });
+      },
+
+      removeFromCart: (itemId) => set({ cart: get().cart.filter((i) => i.id !== itemId) }),
+
+      updateQuantity: (itemId, quantity) => {
+        if (quantity <= 0) { get().removeFromCart(itemId); return; }
+        set({ cart: get().cart.map((i) => (i.id === itemId ? { ...i, quantity } : i)) });
+      },
+
+      updateMenuItem: async (id, updates) => {
+          set({ menuItems: get().menuItems.map(item => item.id === id ? { ...item, ...updates } : item) });
+          await supabase.from('menu_items').update(updates).eq('id', id);
+      },
+
+      addMenuItem: async (item) => {
+          const { data } = await supabase.from('menu_items').insert([item]).select();
+          if (data) set({ menuItems: [...get().menuItems, data[0] as MenuItem] });
+      },
+
+      deleteMenuItem: async (id) => {
+          set({ menuItems: get().menuItems.filter(item => item.id !== id) });
+          await supabase.from('menu_items').delete().eq('id', id);
+      },
+
+      updateCalculationSettings: (settings) => set((state) => ({ calculationSettings: { ...state.calculationSettings, ...settings } })),
+      updateAdvancedSettings: (settings) => set((state) => ({ advancedSettings: { ...state.advancedSettings, ...settings } })),
+      updateFeatureFlags: async (flags) => {
+        const newFlags = { ...get().featureFlags, ...flags };
+        set({ featureFlags: newFlags });
+        await supabase.from('app_settings').upsert({ key: 'features', value: newFlags });
+      },
+      updateAppConfig: async (config) => {
+        const newConfig = { ...get().appConfig, ...config };
+        set({ appConfig: newConfig });
+        await supabase.from('app_settings').upsert({ key: 'config', value: newConfig });
+      },
+      clearCart: () => set({ cart: [], activeCoupon: null }),
+      cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
+
+      validateCoupon: async (code) => {
+          try {
+              const { data, error } = await supabase
+                  .from('coupons')
+                  .select('*')
+                  .eq('code', code)
+                  .eq('is_active', true)
+                  .single();
+
+              if (error || !data) {
+                  return false;
+              }
+
+              // Check Usage Limit - FIXED TYPE CHECK
+              const coupon = data as Coupon;
+              if (typeof coupon.usage_limit === 'number' && (coupon.usage_count || 0) >= coupon.usage_limit) {
+                  return false;
+              }
+
+              set({ activeCoupon: coupon });
+              return true;
+          } catch (e) {
+              return false;
+          }
+      },
+      removeCoupon: () => set({ activeCoupon: null }),
+      
+      createCoupon: async (coupon) => {
+          await supabase.from('coupons').insert([coupon]);
+      },
+
+      deleteCoupon: async (code) => {
+          await supabase.from('coupons').delete().eq('code', code);
+      },
+
+      getCoupons: async () => {
+          const { data } = await supabase.from('coupons').select('*');
+          return (data as Coupon[]) || [];
+      },
+
+      incrementCouponUsage: async (code) => {
+         await supabase.rpc('increment_coupon_usage', { coupon_code: code });
+      },
+
+      getDeliveryFee: (distance: number, subtotal: number) => {
+          const { appConfig, calculationSettings } = get();
+          
+          // Check for Free Delivery Threshold
+          if (subtotal >= calculationSettings.minOrderFreeDelivery) {
+              return 0;
+          }
+          
+          // No distance calculated
+          if (distance <= 0) return 0;
+
+          // Base calculation
+          let fee = appConfig.delivery_base_fee;
+
+          // If distance exceeds included radius, add per km charge
+          if (distance > appConfig.delivery_min_radius_included) {
+              const extraKm = distance - appConfig.delivery_min_radius_included;
+              fee += extraKm * appConfig.delivery_price_per_km;
+          }
+
+          // Round to nearest 5
+          return Math.ceil(fee / 5) * 5;
+      }
+    }),
+    {
+      name: 'ayala-catering-storage-v12', 
+      partialize: (state) => ({ 
+          cart: state.cart, 
+          guestCount: state.guestCount,
+          adultCount: state.adultCount,
+          childCount: state.childCount,
+          language: state.language,
+          calculationSettings: state.calculationSettings,
+          advancedSettings: state.advancedSettings,
+          eventType: state.eventType,
+          featureFlags: state.featureFlags,
+          customerDetails: state.customerDetails,
+          activeCoupon: state.activeCoupon,
+          appConfig: state.appConfig // Added appConfig to persistence
+      }), 
+    }
+  )
+);
+
+export const getSuggestedQuantity = (item: MenuItem, adultCount: number, childCount: number, settings: CalculationSettings, currentCart: CartItem[] = []): number => {
+    const totalGuests = adultCount + childCount;
+    if (totalGuests <= 0) return 1;
+
+    const weightedCount = adultCount + (childCount * 0.66);
+    const uniqueCategories = new Set(currentCart.map(i => i.category));
+    uniqueCategories.add(item.category);
+    const categoryCount = uniqueCategories.size;
+    
+    const saturationDamping = categoryCount <= 1 ? 1.0 : (1 / (1 + (categoryCount - 1) * 0.25));
+
+    let baseQty = 1;
+    if (item.category === 'Sandwiches' && item.unit_type === 'unit') {
+        baseQty = weightedCount * settings.sandwichesPerPerson;
+    } else if (item.category === 'Pastries' && item.unit_type === 'unit') {
+        baseQty = weightedCount * settings.pastriesPerPerson;
+    } else if (item.unit_type === 'tray' || item.unit_type === 'liter') {
+        const capacity = item.serves_max || settings.averageTrayCapacity;
+        baseQty = weightedCount / capacity;
+    }
+
+    return Math.max(1, Math.ceil(baseQty * saturationDamping));
+};
+
+export const getLocalizedItem = (item: MenuItem, lang: Language) => {
+    return {
+        name: lang === 'he' ? item.name : (item.name_en || item.name),
+        description: lang === 'he' ? item.description : (item.description_en || item.description),
+        modifications: lang === 'he' ? (item.allowed_modifications || []) : (item.allowed_modifications_en || item.allowed_modifications || [])
+    };
+};

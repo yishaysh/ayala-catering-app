@@ -1,0 +1,7 @@
+{
+  "name": "Ayala - Simply Delicious",
+  "description": "A premium catering management app with smart quantity calculation, dynamic menu generation, and order management.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
