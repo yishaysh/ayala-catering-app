@@ -311,6 +311,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 const itemTotal = item.price * item.quantity;
                 message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${itemTotal})\n`;
                 
+                if (item.is_tray && item.units_per_tray) {
+                    message += `   📦 ${language === 'he' ? `${item.units_per_tray} יחידות במגש` : `${item.units_per_tray} units per tray`}\n`;
+                }
+
                 if (item.selected_modifications && item.selected_modifications.length > 0) {
                     message += `   🔸 שינויים: ${item.selected_modifications.join(', ')}\n`;
                 }
@@ -509,6 +513,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                         <div className="flex-1">
                                             <h4 className="font-bold text-stone-800 text-lg">{localItem.name}</h4>
                                             <p className="text-sm text-stone-500 font-medium">₪{item.price} / {getUnitName(item.unit_type)}</p>
+                                            {item.is_tray && item.units_per_tray && (
+                                                <p className="text-xs text-gold-600 font-bold mt-0.5">
+                                                    {language === 'he' ? `${item.units_per_tray} יחידות במגש` : `${item.units_per_tray} units per tray`}
+                                                </p>
+                                            )}
                                             
                                             {(item.selected_modifications && item.selected_modifications.length > 0) && (
                                                 <div className="text-xs text-stone-500 mt-1">

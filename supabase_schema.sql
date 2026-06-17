@@ -36,6 +36,8 @@ CREATE TABLE menu_items (
     image_url TEXT,
     allowed_modifications TEXT[],
     allowed_modifications_en TEXT[],
+    is_tray BOOLEAN DEFAULT FALSE,
+    units_per_tray INT DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

@@ -113,10 +113,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [editIsPremium, setEditIsPremium] = useState(false);
     const [editMods, setEditMods] = useState('');
     const [editImageUrl, setEditImageUrl] = useState('');
+    const [editName, setEditName] = useState('');
+    const [editIsTray, setEditIsTray] = useState(false);
+    const [editUnitsPerTray, setEditUnitsPerTray] = useState<number | null>(null);
 
     // New Item State
     const [newItem, setNewItem] = useState<Partial<MenuItem>>({
-        name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], image_url: ''
+        name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], image_url: '', is_tray: false, units_per_tray: null
     });
     const [addMods, setAddMods] = useState('');
 
@@ -131,6 +134,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         setEditStatus(item.availability_status);
         setEditIsPremium(item.is_premium);
         setEditImageUrl(item.image_url || '');
+        setEditName(item.name);
+        setEditIsTray(item.is_tray || false);
+        setEditUnitsPerTray(item.units_per_tray ?? null);
         const mods = language === 'he' ? item.allowed_modifications : (item.allowed_modifications_en || item.allowed_modifications);
         setEditMods(mods ? mods.join(', ') : '');
     };
@@ -213,7 +219,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             price: editPrice,
             availability_status: editStatus,
             is_premium: editIsPremium,
-            image_url: editImageUrl
+            image_url: editImageUrl,
+            name: editName,
+            is_tray: editIsTray,
+            units_per_tray: editIsTray ? editUnitsPerTray : null
         };
         if (language === 'he') updateData.allowed_modifications = modsArray;
         else updateData.allowed_modifications_en = modsArray;
@@ -239,11 +248,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         if (!newItem.name || !newItem.price) return;
         const modsArray = addMods.split(',').map(s => s.trim()).filter(s => s.length > 0);
         const itemToSave: Omit<MenuItem, 'id'> = {
-            name: newItem.name || '', category: (newItem.category as Category) || 'Salads', price: Number(newItem.price), unit_type: (newItem.unit_type as UnitType) || 'tray', description: newItem.description || '', serves_min: Number(newItem.serves_min) || 1, serves_max: Number(newItem.serves_max) || 1, is_premium: newItem.is_premium || false, availability_status: true, tags: [], allowed_modifications: modsArray, allowed_modifications_en: modsArray, image_url: newItem.image_url
+            name: newItem.name || '', category: (newItem.category as Category) || 'Salads', price: Number(newItem.price), unit_type: (newItem.unit_type as UnitType) || 'tray', description: newItem.description || '', serves_min: Number(newItem.serves_min) || 1, serves_max: Number(newItem.serves_max) || 1, is_premium: newItem.is_premium || false, availability_status: true, tags: [], allowed_modifications: modsArray, allowed_modifications_en: modsArray, image_url: newItem.image_url, is_tray: newItem.is_tray || false, units_per_tray: newItem.is_tray ? (newItem.units_per_tray ?? null) : null
         };
         await addMenuItem(itemToSave);
         setIsAddModalOpen(false);
-        setNewItem({ name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], image_url: '' });
+        setNewItem({ name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], image_url: '', is_tray: false, units_per_tray: null });
     };
 
     const handleEventRatioChange = (eType: EventType, field: string, value: string) => {
@@ -684,6 +693,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 </label>
                             </div>
 
+                            {/* Tray Toggle */}
+                            <div>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50 w-full">
+                                    <input type="checkbox" checked={newItem.is_tray || false} onChange={(e) => setNewItem({ ...newItem, is_tray: e.target.checked, units_per_tray: e.target.checked ? newItem.units_per_tray : null })} className="w-4 h-4 text-gold-500 rounded" />
+                                    <span className="font-bold text-sm text-stone-700">{t.isTray}</span>
+                                </label>
+                            </div>
+                            {/* Units Per Tray (conditional) */}
+                            {newItem.is_tray && (
+                                <div>
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.unitsPerTray}</label>
+                                    <input type="number" min="1" value={newItem.units_per_tray ?? ''} onChange={(e) => setNewItem({ ...newItem, units_per_tray: e.target.value ? Number(e.target.value) : null })} placeholder={language === 'he' ? 'לדוגמה: 10' : 'e.g. 10'} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                </div>
+                            )}
+
                             {/* Modifications */}
                             <div>
                                 <label className="block text-sm font-bold text-stone-700 mb-1">{t.modifications}</label>
@@ -714,6 +738,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             <button onClick={() => setEditingItem(null)} className="text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full"><X size={20} /></button>
                         </div>
                         <div className="space-y-4 flex-1 overflow-y-auto">
+                            {/* Dish Name */}
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.dishName}</label>
+                                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                            </div>
                             <div>
                                 <label className="block text-sm font-bold text-stone-700 mb-2">{t.image}</label>
                                 <div className="flex items-center gap-4">
@@ -752,6 +781,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     <span className="font-bold text-sm text-stone-700">{t.premium}</span>
                                 </label>
                             </div>
+                            {/* Tray Checkbox */}
+                            <div>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50 w-full">
+                                    <input type="checkbox" checked={editIsTray} onChange={(e) => { setEditIsTray(e.target.checked); if (!e.target.checked) setEditUnitsPerTray(null); }} className="w-4 h-4 text-gold-500 rounded" />
+                                    <span className="font-bold text-sm text-stone-700">{t.isTray}</span>
+                                </label>
+                            </div>
+                            {/* Units Per Tray */}
+                            {editIsTray && (
+                                <div>
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.unitsPerTray}</label>
+                                    <input type="number" min="1" value={editUnitsPerTray ?? ''} onChange={(e) => setEditUnitsPerTray(e.target.value ? Number(e.target.value) : null)} placeholder={language === 'he' ? 'לדוגמה: 10' : 'e.g. 10'} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                </div>
+                            )}
                             <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.modifications}</label><textarea value={editMods} onChange={(e) => setEditMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-24" /></div>
                         </div>
                         <div className="mt-8 flex flex-col gap-3 shrink-0">

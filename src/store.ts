@@ -148,6 +148,9 @@ export interface Translations {
     includedRadius: string;
     deleteItem: string;
     deleteItemConfirm: string;
+    dishName: string;
+    isTray: string;
+    unitsPerTray: string;
   };
 }
 
@@ -302,6 +305,9 @@ export const translations: Record<Language, Translations> = {
         includedRadius: "רדיוס כלול בבסיס (ק\"מ)",
         deleteItem: "מחק מנה",
         deleteItemConfirm: "האם למחוק את המנה לצמיתות?",
+        dishName: "שם המנה",
+        isTray: "המנה היא מגש",
+        unitsPerTray: "כמות יחידות במגש",
     }
   },
   en: {
@@ -454,6 +460,9 @@ export const translations: Record<Language, Translations> = {
         includedRadius: "Radius Included (Km)",
         deleteItem: "Delete Item",
         deleteItemConfirm: "Delete this item permanently?",
+        dishName: "Dish Name",
+        isTray: "This item is a tray",
+        unitsPerTray: "Units per tray",
     }
   }
 };

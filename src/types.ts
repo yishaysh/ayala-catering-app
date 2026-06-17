@@ -33,6 +33,8 @@ export interface MenuItem {
   image_url?: string;
   allowed_modifications?: string[];
   allowed_modifications_en?: string[];
+  is_tray?: boolean;
+  units_per_tray?: number | null;
 }
 
 export interface CartItem extends MenuItem {

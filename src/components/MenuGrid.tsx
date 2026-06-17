@@ -136,6 +136,9 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                       <div className="flex items-baseline gap-1 mb-2">
                            <span className="text-base md:text-xl font-bold text-stone-800">₪{item.price}</span>
                            <span className="text-[10px] md:text-xs text-stone-400 font-normal">/ {getUnitName(item.unit_type)}</span>
+                           {item.is_tray && item.units_per_tray && (
+                               <span className="text-[10px] md:text-xs text-gold-600 font-bold">({item.units_per_tray} {language === 'he' ? 'יח\'' : 'pcs'})</span>
+                           )}
                       </div>
                       
                       <p className="hidden md:block text-stone-500 text-xs md:text-sm mb-3 leading-relaxed line-clamp-2">
