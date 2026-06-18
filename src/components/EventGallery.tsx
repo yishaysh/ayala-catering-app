@@ -70,12 +70,22 @@ export const EventGallery: React.FC = () => {
                             onClick={() => setSelectedMedia({ type: item.type, url: item.url, caption: item.caption })}
                             className="group relative aspect-[4/3] bg-themeCardBg rounded-xl overflow-hidden border border-themeText/5 hover:border-themePrimary/40 hover:shadow-xl transition-all duration-300 cursor-pointer shadow-sm"
                         >
-                            <img
-                                src={thumbUrl}
-                                alt={item.caption || "gallery item"}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                loading="lazy"
-                            />
+                            {item.type === 'video' && !ytId ? (
+                                <video
+                                    src={item.url}
+                                    preload="metadata"
+                                    muted
+                                    playsInline
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                />
+                            ) : (
+                                <img
+                                    src={thumbUrl}
+                                    alt={item.caption || "gallery item"}
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    loading="lazy"
+                                />
+                            )}
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
                                 {item.caption && (
                                     <p className="text-white text-xs font-bold truncate w-full">{item.caption}</p>

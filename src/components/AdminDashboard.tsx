@@ -133,6 +133,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         url: string;
         caption: string;
     }>({ type: 'image', url: '', caption: '' });
+    const [videoSourceType, setVideoSourceType] = useState<'url' | 'file'>('file');
 
     // New Item State
     const [newItem, setNewItem] = useState<Partial<MenuItem>>({
@@ -264,6 +265,64 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             setNewGalleryItem(prev => ({ ...prev, url: data.publicUrl }));
         } catch (error: any) {
             console.error('Error uploading gallery image:', error);
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: 'שגיאה',
+                message: error.message
+            });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const getYoutubeId = (url: string) => {
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const match = url.match(regExp);
+        return (match && match[2].length === 11) ? match[2] : null;
+    };
+
+    const handleGalleryVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            // Size limit: 50MB
+            const maxSize = 50 * 1024 * 1024;
+            if (file.size > maxSize) {
+                setFeedback({
+                    isOpen: true,
+                    type: 'warning',
+                    title: language === 'he' ? 'קובץ גדול מדי' : 'File Too Large',
+                    message: language === 'he' ? 'אנא בחר סרטון קטן מ-50MB.' : 'Please choose a video smaller than 50MB.'
+                });
+                return;
+            }
+
+            setUploading(true);
+            const randomName = `gallery_vid_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+            const ext = file.name.split('.').pop() || 'mp4';
+            const cleanFileName = `${randomName}.${ext}`;
+            const arrayBuffer = await file.arrayBuffer();
+            const fileData = new Uint8Array(arrayBuffer);
+
+            const { error: uploadError } = await supabase.storage
+                .from('menu-images')
+                .upload(cleanFileName, fileData, {
+                    cacheControl: '3600',
+                    upsert: false,
+                    contentType: file.type
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('menu-images')
+                .getPublicUrl(cleanFileName);
+
+            setNewGalleryItem(prev => ({ ...prev, url: data.publicUrl }));
+        } catch (error: any) {
+            console.error('Error uploading gallery video:', error);
             setFeedback({
                 isOpen: true,
                 type: 'error',
@@ -836,16 +895,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 </div>
                                 <div className="md:col-span-2">
                                     <label className="block text-xs font-bold text-stone-500 mb-1">
-                                        {newGalleryItem.type === 'video' ? t.videoUrl : (language === 'he' ? 'תמונה' : 'Image')}
+                                        {newGalleryItem.type === 'video' 
+                                            ? (language === 'he' ? 'סרטון' : 'Video') 
+                                            : (language === 'he' ? 'תמונה' : 'Image')}
                                     </label>
                                     {newGalleryItem.type === 'video' ? (
-                                        <input
-                                            type="text"
-                                            value={newGalleryItem.url}
-                                            onChange={(e) => setNewGalleryItem({ ...newGalleryItem, url: e.target.value })}
-                                            className="w-full p-2 border rounded text-sm"
-                                            placeholder="https://www.youtube.com/watch?v=..."
-                                        />
+                                        <div className="space-y-2">
+                                            <div className="flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setVideoSourceType('file'); setNewGalleryItem(prev => ({ ...prev, url: '' })); }}
+                                                    className={`px-3 py-1 text-xs font-bold rounded-full border transition-all ${videoSourceType === 'file' ? 'bg-stone-900 text-white border-stone-900 shadow-sm' : 'bg-white text-stone-600 hover:border-stone-300'}`}
+                                                >
+                                                    {language === 'he' ? 'העלאת קובץ' : 'Upload File'}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => { setVideoSourceType('url'); setNewGalleryItem(prev => ({ ...prev, url: '' })); }}
+                                                    className={`px-3 py-1 text-xs font-bold rounded-full border transition-all ${videoSourceType === 'url' ? 'bg-stone-900 text-white border-stone-900 shadow-sm' : 'bg-white text-stone-600 hover:border-stone-300'}`}
+                                                >
+                                                    {language === 'he' ? 'קישור URL' : 'URL Link'}
+                                                </button>
+                                            </div>
+                                            {videoSourceType === 'url' ? (
+                                                <input
+                                                    type="text"
+                                                    value={newGalleryItem.url}
+                                                    onChange={(e) => setNewGalleryItem({ ...newGalleryItem, url: e.target.value })}
+                                                    className="w-full p-2 border rounded text-sm bg-white"
+                                                    placeholder="https://www.youtube.com/watch?v=..."
+                                                />
+                                            ) : (
+                                                <div className="flex items-center gap-4">
+                                                    {newGalleryItem.url && (
+                                                        <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200 truncate max-w-[150px]">
+                                                            {language === 'he' ? 'סרטון הועלה' : 'Video uploaded'}
+                                                        </span>
+                                                    )}
+                                                    <label className="flex items-center justify-center gap-2 flex-1 p-2 border-2 border-dashed border-stone-300 rounded cursor-pointer hover:border-gold-500 transition text-stone-500 font-bold text-xs bg-stone-50">
+                                                        <Upload size={14} />
+                                                        <span>{uploading ? '...' : (language === 'he' ? 'העלאת סרטון' : 'Upload Video')}</span>
+                                                        <input type="file" accept="video/*" onChange={handleGalleryVideoUpload} className="hidden" disabled={uploading} />
+                                                    </label>
+                                                </div>
+                                            )}
+                                        </div>
                                     ) : (
                                         <div className="flex items-center gap-4">
                                             {newGalleryItem.url && (
@@ -889,10 +983,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     <div key={item.id} className="relative group bg-white border border-stone-200 rounded-lg overflow-hidden shadow-sm aspect-square flex flex-col justify-between">
                                         <div className="relative flex-1 w-full bg-stone-100 flex items-center justify-center overflow-hidden">
                                             {item.type === 'video' ? (
-                                                <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-xs text-stone-500">
-                                                    <span className="font-bold text-red-500 text-[10px] uppercase border border-red-500 px-1 rounded mb-1">VIDEO</span>
-                                                    <span className="truncate w-full">{item.url}</span>
-                                                </div>
+                                                getYoutubeId(item.url) ? (
+                                                    <div className="relative w-full h-full">
+                                                        <img src={`https://img.youtube.com/vi/${getYoutubeId(item.url)}/hqdefault.jpg`} className="w-full h-full object-cover" alt="YouTube Preview" />
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                                            <span className="font-bold text-red-500 text-[10px] uppercase border border-red-500 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">YouTube</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="relative w-full h-full font-bold">
+                                                        <video src={item.url} className="w-full h-full object-cover" preload="metadata" muted playsInline />
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                                            <span className="font-bold text-emerald-500 text-[10px] uppercase border border-emerald-500 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">Video</span>
+                                                        </div>
+                                                    </div>
+                                                )
                                             ) : (
                                                 <img src={item.url} alt={item.caption} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" />
                                             )}
