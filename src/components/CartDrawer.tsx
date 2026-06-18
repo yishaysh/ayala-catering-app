@@ -54,7 +54,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         }
     }
     
-    const deliveryFee = getDeliveryFee(customerDetails.distanceKm, subtotal);
+    const [isDelivery, setIsDelivery] = useState(true);
+    const [wantsSetup, setWantsSetup] = useState(false);
+    
+    const deliveryFee = isDelivery ? getDeliveryFee(customerDetails.distanceKm, subtotal) : 0;
     const finalTotal = Math.max(0, subtotal - discountAmount + deliveryFee);
 
     useBackButton(isOpen, onClose);
@@ -86,7 +89,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const debounceTimerRef = useRef<number | null>(null);
     const MIN_ORDER = appConfig.min_order_price;
     const FREE_DELIVERY_THRESHOLD = calculationSettings.minOrderFreeDelivery;
-    const isWithinRadius = customerDetails.distanceKm > 0 && customerDetails.distanceKm <= calculationSettings.serviceRadiusKm;
+    const isWithinRadius = isDelivery && customerDetails.distanceKm > 0 && customerDetails.distanceKm <= calculationSettings.serviceRadiusKm;
 
     const handleApplyCoupon = async () => {
         if (!couponInput.trim()) return;
@@ -294,15 +297,25 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 message += `*פרטי לקוח להזמנה #${orderId || 'NEW'}:* 👤\n`;
                 message += `👤 שם: ${customerDetails.name}\n`;
                 message += `📞 טלפון: ${customerDetails.phone}\n`;
-                message += `📍 מיקום: ${customerDetails.location} ${detectedLocationName ? `(זוהה: ${detectedLocationName})` : ''}\n`;
-                message += `🚗 מרחק משוער: ${customerDetails.distanceKm} ק"מ (מקדומים)\n\n`;
+                if (isDelivery) {
+                    message += `📍 מיקום: ${customerDetails.location} ${detectedLocationName ? `(זוהה: ${detectedLocationName})` : ''}\n`;
+                    message += `🚗 מרחק משוער: ${customerDetails.distanceKm} ק"מ (מקדומים)\n`;
+                } else {
+                    message += `📍 אופן קבלה: איסוף עצמי ממקדומים 🚗\n`;
+                }
+                message += `✨ שירותי עריכה ופינוי: ${wantsSetup ? 'כן (בתיאום מראש) ✅' : 'לא ❌'}\n\n`;
                 message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
             } else {
                 message += `*Customer Details #${orderId || 'NEW'}:* 👤\n`;
                 message += `👤 Name: ${customerDetails.name}\n`;
                 message += `📞 Phone: ${customerDetails.phone}\n`;
-                message += `📍 Location: ${customerDetails.location} ${detectedLocationName ? `(Verified: ${detectedLocationName})` : ''}\n`;
-                message += `🚗 Est. Distance: ${customerDetails.distanceKm} km (from Kedumim)\n\n`;
+                if (isDelivery) {
+                    message += `📍 Location: ${customerDetails.location} ${detectedLocationName ? `(Verified: ${detectedLocationName})` : ''}\n`;
+                    message += `🚗 Est. Distance: ${customerDetails.distanceKm} km (from Kedumim)\n`;
+                } else {
+                    message += `📍 Option: Self Pickup from Kedumim 🚗\n`;
+                }
+                message += `✨ Setup & Cleanup Service: ${wantsSetup ? 'Yes, interested ✅' : 'No ❌'}\n\n`;
                 message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
             }
             
@@ -333,10 +346,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 message += `🏷️ ${t.discount as string} (${activeCoupon?.code}): -₪${discountAmount}\n`;
             }
             
-            if (deliveryFee > 0) {
+            if (isDelivery && deliveryFee > 0) {
                 message += `🚚 ${t.delivery as string} (${customerDetails.distanceKm}km): ₪${deliveryFee}\n`;
-            } else if (customerDetails.distanceKm > 0 && subtotal >= FREE_DELIVERY_THRESHOLD) {
+            } else if (isDelivery && customerDetails.distanceKm > 0 && subtotal >= FREE_DELIVERY_THRESHOLD) {
                 message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'חינם (הזמנה גדולה)' : 'Free (Large Order)'}\n`;
+            } else if (!isDelivery) {
+                message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'איסוף עצמי (₪0)' : 'Self Pickup (NIS 0)'}\n`;
             }
 
             message += `*${t.finalTotal as string}: ₪${finalTotal}* 💰`;
@@ -372,12 +387,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 ></div>
 
                 <div className={`
-                    relative w-full max-w-md bg-stone-50 h-full shadow-2xl flex flex-col 
+                    relative w-full max-w-md bg-themeBg h-full shadow-2xl flex flex-col 
                     ${language === 'he' ? 'animate-slide-in-left' : 'animate-slide-in-right'}
                 `}>
-                    <div className="p-6 bg-stone-900 text-white flex items-center justify-between shadow-md z-10 shrink-0">
+                    <div className="p-6 bg-themeHeaderBg text-themeHeaderTxt flex items-center justify-between shadow-md z-10 shrink-0">
                         <div className="flex items-center gap-3">
-                            <ShoppingBag className="text-gold-500" />
+                            <ShoppingBag className="text-themePrimary" />
                             <h2 className="text-xl font-serif font-bold tracking-wide">{t.myOrder as string}</h2>
                         </div>
                         
@@ -385,121 +400,165 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             {cart.length > 0 && (
                                 <button 
                                     onClick={handleClearCartClick}
-                                    className="text-stone-400 hover:text-red-400 transition-colors p-1"
+                                    className="text-themeHeaderTxt/60 hover:text-red-400 transition-colors p-1"
                                     title={t.clearCart as string}
                                 >
                                     <Trash2 size={20} />
                                 </button>
                             )}
-                            <button onClick={onClose} className="hover:text-gold-500 transition hover:rotate-90 duration-200">
+                            <button onClick={onClose} className="hover:text-themePrimary text-themeHeaderTxt transition hover:rotate-90 duration-200">
                                 <X />
                             </button>
                         </div>
                     </div>
 
-                    <div className="bg-stone-800 px-6 py-4 shadow-inner transition-all duration-300">
+                    <div className="bg-themeHeaderBg/90 px-6 py-4 shadow-inner transition-all duration-300">
                         {isWithinRadius ? (
                             <>
-                                <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-stone-400 mb-2">
+                                <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-themeHeaderTxt/60 mb-2">
                                     <span>{t.freeDeliveryAt as string} ₪{FREE_DELIVERY_THRESHOLD}</span>
                                     {subtotal < FREE_DELIVERY_THRESHOLD ? (
                                         <span>{t.justMore as string} ₪{FREE_DELIVERY_THRESHOLD - subtotal} {t.forVip as string}</span>
                                     ) : (
-                                        <span className="text-gold-500 flex items-center gap-1"><Sparkles size={10} /> {t.vipDelivery as string}</span>
+                                        <span className="text-themePrimary flex items-center gap-1"><Sparkles size={10} /> {t.vipDelivery as string}</span>
                                     )}
                                 </div>
-                                <div className="h-2 bg-stone-700 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-gold-600 to-gold-400 transition-all duration-700 ease-out" style={{ width: `${progress}%` }}></div>
+                                <div className="h-2 bg-themeHeaderBg/50 rounded-full overflow-hidden">
+                                    <div className="h-full bg-themePrimary transition-all duration-700 ease-out" style={{ width: `${progress}%` }}></div>
                                 </div>
                             </>
                         ) : (
-                            <div className="text-sm font-bold text-white flex items-center gap-2 justify-center py-2 bg-stone-700/50 rounded-lg border border-stone-600/50">
-                                <MapPin size={16} className="text-gold-500" />
+                            <div className="text-sm font-bold text-themeHeaderTxt flex items-center gap-2 justify-center py-2 bg-themeHeaderBg/50 rounded-lg border border-themeHeaderTxt/10">
+                                <MapPin size={16} className="text-themePrimary" />
                                 {t.deliveryByDistance as string}
                             </div>
                         )}
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                        <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm space-y-3">
-                            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-1">{language === 'he' ? 'פרטי המשלוח' : 'Delivery Details'}</h3>
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-themeBg text-themeText">
+                        <div className="bg-themeCardBg p-4 rounded-xl border border-themeText/10 shadow-sm space-y-3">
+                            <h3 className="text-xs font-bold text-themeText/50 uppercase tracking-widest mb-1">{language === 'he' ? 'פרטי הזמנה ומשלוח' : 'Order & Delivery Details'}</h3>
+                            
+                            {/* Delivery Options */}
+                            <div className="flex gap-2 p-1 bg-themeBg rounded-lg border border-themeText/10">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsDelivery(true)}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${isDelivery ? 'bg-themeHeaderBg text-themePrimary shadow-sm' : 'text-themeText/60 hover:text-themeText'}`}
+                                >
+                                    {language === 'he' ? 'משלוח לכתובת' : 'Delivery'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsDelivery(false)}
+                                    className={`flex-1 py-2 text-xs font-bold rounded-md transition-all ${!isDelivery ? 'bg-themeHeaderBg text-themePrimary shadow-sm' : 'text-themeText/60 hover:text-themeText'}`}
+                                >
+                                    {language === 'he' ? 'איסוף עצמי' : 'Self Pickup'}
+                                </button>
+                            </div>
+
                             <div className="relative">
-                                <User className="absolute right-3 top-2.5 text-stone-400" size={16} />
+                                <User className="absolute right-3 top-2.5 text-themeText/40" size={16} />
                                 <input 
                                     type="text"
                                     value={customerDetails.name}
                                     onChange={(e) => setCustomerDetails({ name: e.target.value })}
                                     placeholder={t.customerName}
-                                    className="w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none"
+                                    className="w-full bg-themeBg border border-themeText/10 rounded-lg p-2 pr-9 text-sm focus:border-themePrimary outline-none text-themeText"
                                 />
                             </div>
+                            
                             <div className="relative">
-                                <Phone className="absolute right-3 top-2.5 text-stone-400" size={16} />
+                                <Phone className="absolute right-3 top-2.5 text-themeText/40" size={16} />
                                 <input 
                                     type="tel"
                                     value={customerDetails.phone}
                                     onChange={(e) => setCustomerDetails({ phone: e.target.value })}
                                     placeholder={t.customerPhone}
-                                    className="w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none"
+                                    className="w-full bg-themeBg border border-themeText/10 rounded-lg p-2 pr-9 text-sm focus:border-themePrimary outline-none text-themeText"
                                 />
                             </div>
-                            <div className="relative">
-                                <MapPin className="absolute right-3 top-2.5 text-stone-400" size={16} />
-                                <input 
-                                    type="text"
-                                    value={customerDetails.location}
-                                    onChange={handleLocationChange}
-                                    placeholder={t.eventLocation}
-                                    className={`
-                                        w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 pl-9 text-sm focus:border-gold-500 outline-none 
-                                        ${detectedLocationName ? 'border-green-500/50 bg-green-50/50' : ''}
-                                    `}
-                                />
-                                <div className="absolute left-2 top-1.5 flex items-center">
-                                    {isCalculatingDistance ? (
-                                        <Loader2 className="animate-spin text-gold-500 m-1" size={16} />
-                                    ) : detectedLocationName ? (
-                                         <CheckCircle2 size={16} className="text-green-600 m-1 animate-fade-in" />
-                                    ) : (
-                                        <button 
-                                            onClick={handleUseCurrentLocation}
-                                            className="p-1.5 bg-stone-200 text-stone-600 rounded-full hover:bg-gold-500 hover:text-white transition-colors shadow-sm"
-                                            title={language === 'he' ? 'השתמש במיקום הנוכחי' : 'Use Current Location'}
-                                        >
-                                            <LocateFixed size={14} />
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                            {detectedLocationName && (
-                                <div className="text-[11px] text-green-600 font-bold px-1 -mt-1 flex items-center gap-1 animate-fade-in">
-                                    <span>✓ {language === 'he' ? 'זוהה:' : 'Identified:'} {detectedLocationName}</span>
-                                </div>
-                            )}
-                            <div className="relative">
-                                <Route className="absolute right-3 top-2.5 text-stone-400" size={16} />
-                                <input 
-                                    type="number"
-                                    value={customerDetails.distanceKm || ''}
-                                    onChange={(e) => setCustomerDetails({ distanceKm: Number(e.target.value) })}
-                                    placeholder={t.eventDistance}
-                                    disabled={!!detectedLocationName}
-                                    className={`
-                                        w-full bg-stone-50 border border-stone-100 rounded-lg p-2 pr-9 text-sm focus:border-gold-500 outline-none 
-                                        ${isCalculatingDistance ? 'opacity-50' : ''}
-                                        ${detectedLocationName ? 'text-stone-500 cursor-not-allowed bg-stone-100' : ''}
-                                    `}
-                                />
-                                {detectedLocationName && (
-                                    <div className="absolute left-3 top-2.5 text-stone-400" title="Distance Locked">
-                                        <Lock size={14} />
+
+                            {isDelivery && (
+                                <>
+                                    <div className="relative">
+                                        <MapPin className="absolute right-3 top-2.5 text-themeText/40" size={16} />
+                                        <input 
+                                            type="text"
+                                            value={customerDetails.location}
+                                            onChange={handleLocationChange}
+                                            placeholder={t.eventLocation}
+                                            className={`
+                                                w-full bg-themeBg border border-themeText/10 rounded-lg p-2 pr-9 pl-9 text-sm focus:border-themePrimary outline-none text-themeText
+                                                ${detectedLocationName ? 'border-green-500/50 bg-green-50/10' : ''}
+                                            `}
+                                        />
+                                        <div className="absolute left-2 top-1.5 flex items-center">
+                                            {isCalculatingDistance ? (
+                                                <Loader2 className="animate-spin text-themePrimary m-1" size={16} />
+                                            ) : detectedLocationName ? (
+                                                 <CheckCircle2 size={16} className="text-green-600 m-1 animate-fade-in" />
+                                            ) : (
+                                                <button 
+                                                    onClick={handleUseCurrentLocation}
+                                                    type="button"
+                                                    className="p-1.5 bg-themeBg border border-themeText/10 text-themeText rounded-full hover:bg-themePrimary hover:text-themeHeaderBg transition-colors shadow-sm"
+                                                    title={language === 'he' ? 'השתמש במיקום הנוכחי' : 'Use Current Location'}
+                                                >
+                                                    <LocateFixed size={14} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                )}
-                            </div>
+                                    {detectedLocationName && (
+                                        <div className="text-[11px] text-green-600 font-bold px-1 -mt-1 flex items-center gap-1 animate-fade-in">
+                                            <span>✓ {language === 'he' ? 'זוהה:' : 'Identified:'} {detectedLocationName}</span>
+                                        </div>
+                                    )}
+                                    <div className="relative">
+                                        <Route className="absolute right-3 top-2.5 text-themeText/40" size={16} />
+                                        <input 
+                                            type="number"
+                                            value={customerDetails.distanceKm || ''}
+                                            onChange={(e) => setCustomerDetails({ distanceKm: Number(e.target.value) })}
+                                            placeholder={t.eventDistance}
+                                            disabled={!!detectedLocationName}
+                                            className={`
+                                                w-full bg-themeBg border border-themeText/10 rounded-lg p-2 pr-9 text-sm focus:border-themePrimary outline-none text-themeText
+                                                ${isCalculatingDistance ? 'opacity-50' : ''}
+                                                ${detectedLocationName ? 'text-themeText/50 cursor-not-allowed bg-themeBg/70' : ''}
+                                            `}
+                                        />
+                                        {detectedLocationName && (
+                                            <div className="absolute left-3 top-2.5 text-themeText/40" title="Distance Locked">
+                                                <Lock size={14} />
+                                            </div>
+                                        )}
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Setup & Cleanup services option */}
+                            <label className="flex items-center gap-3 p-2.5 border border-themeText/10 rounded-lg cursor-pointer hover:bg-themeBg/30 transition-colors w-full mt-2">
+                                <input
+                                    type="checkbox"
+                                    checked={wantsSetup}
+                                    onChange={(e) => setWantsSetup(e.target.checked)}
+                                    className="w-4 h-4 text-themePrimary rounded accent-themePrimary focus:ring-themePrimary"
+                                />
+                                <div className="text-start">
+                                    <span className="font-bold text-xs text-themeText block">
+                                        {language === 'he' ? 'תוספת שירותי עריכה ופינוי' : 'Add Setup & Cleanup Services'}
+                                    </span>
+                                    <span className="text-[10px] text-themeText/60 block leading-tight">
+                                        {language === 'he' ? 'שירות מקצועי לאירוע ללא דאגות (בתיאום מראש)' : 'Professional setup and cleanup (coordinated in advance)'}
+                                    </span>
+                                </div>
+                            </label>
                         </div>
 
                         {cart.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-10 text-center text-stone-400 space-y-4">
+                            <div className="flex flex-col items-center justify-center py-10 text-center text-themeText/40 space-y-4">
                                 <ShoppingBag size={64} strokeWidth={1} className="opacity-20" />
                                 <div>
                                     <p className="text-lg font-medium">{t.emptyCart as string}</p>
@@ -509,41 +568,41 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             cart.map((item) => {
                                 const localItem = getLocalizedItem(item, language);
                                 return (
-                                    <div key={item.id + (item.notes || '') + (item.selected_modifications?.join('') || '')} className="flex gap-4 border-b border-stone-200 pb-4 last:border-0 animate-fade-in">
+                                    <div key={item.id + (item.notes || '') + (item.selected_modifications?.join('') || '')} className="flex gap-4 border-b border-themeText/10 pb-4 last:border-0 animate-fade-in">
                                         <div className="flex-1">
-                                            <h4 className="font-bold text-stone-800 text-lg">{localItem.name}</h4>
-                                            <p className="text-sm text-stone-500 font-medium">₪{item.price} / {getUnitName(item.unit_type)}</p>
+                                            <h4 className="font-bold text-themeText text-lg">{localItem.name}</h4>
+                                            <p className="text-sm text-themeText/70 font-medium">₪{item.price} / {getUnitName(item.unit_type)}</p>
                                             {item.is_tray && item.units_per_tray && (
-                                                <p className="text-xs text-gold-600 font-bold mt-0.5">
+                                                <p className="text-xs text-themePrimary font-bold mt-0.5">
                                                     {language === 'he' ? `${item.units_per_tray} יחידות במגש` : `${item.units_per_tray} units per tray`}
                                                 </p>
                                             )}
                                             
                                             {(item.selected_modifications && item.selected_modifications.length > 0) && (
-                                                <div className="text-xs text-stone-500 mt-1">
+                                                <div className="text-xs text-themeText/70 mt-1">
                                                     {item.selected_modifications.join(', ')}
                                                 </div>
                                             )}
                                             {item.notes && (
-                                                <div className="text-xs text-stone-400 italic mt-0.5">
+                                                <div className="text-xs text-themeText/50 italic mt-0.5">
                                                     "{item.notes}"
                                                 </div>
                                             )}
                                         </div>
                                         
                                         <div className="flex flex-col items-end gap-3">
-                                            <div className="font-bold text-stone-900 text-lg">₪{item.price * item.quantity}</div>
-                                            <div className="flex items-center gap-1 bg-white border border-stone-200 rounded-lg p-1 shadow-sm">
+                                            <div className="font-bold text-themeText text-lg">₪{item.price * item.quantity}</div>
+                                            <div className="flex items-center gap-1 bg-themeCardBg border border-themeText/15 rounded-lg p-1 shadow-sm">
                                                 <button 
                                                     onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                                    className="w-8 h-8 grid place-items-center hover:bg-stone-100 rounded text-stone-600 transition"
+                                                    className="w-8 h-8 grid place-items-center hover:bg-themeBg/20 rounded text-themeText transition"
                                                 >
                                                     <Minus size={14} />
                                                 </button>
-                                                <span className="text-sm font-bold w-6 text-center">{item.quantity}</span>
+                                                <span className="text-sm font-bold w-6 text-center text-themeText">{item.quantity}</span>
                                                 <button 
                                                     onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                                    className="w-8 h-8 grid place-items-center hover:bg-stone-100 rounded text-stone-600 transition"
+                                                    className="w-8 h-8 grid place-items-center hover:bg-themeBg/20 rounded text-themeText transition"
                                                 >
                                                     <Plus size={14} />
                                                 </button>
@@ -555,10 +614,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         )}
                     </div>
 
-                    <div className="p-4 bg-white border-t border-stone-200 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-10 shrink-0 pb-safe">
+                    <div className="p-4 bg-themeCardBg border-t border-themeText/15 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-10 shrink-0 pb-safe text-themeCardTxt">
                         {/* Coupon Section */}
                         {cart.length > 0 && (
-                             <div className="mb-4 bg-stone-50 p-3 rounded-xl border border-stone-200">
+                             <div className="mb-4 bg-themeBg/50 p-3 rounded-xl border border-themeText/15">
                                 {activeCoupon ? (
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2 text-green-600 font-bold">
@@ -574,12 +633,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                             value={couponInput}
                                             onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                                             placeholder={t.couponCode as string}
-                                            className="flex-1 bg-white border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-gold-500 uppercase"
+                                            className="flex-1 bg-themeBg border border-themeText/20 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-themePrimary text-themeText uppercase"
                                         />
                                         <button 
                                             onClick={handleApplyCoupon}
                                             disabled={!couponInput || isValidatingCoupon}
-                                            className="bg-stone-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-stone-800 disabled:opacity-50"
+                                            className="bg-themePrimary text-themeHeaderTxt px-4 py-2 rounded-lg text-sm font-bold hover:opacity-90 disabled:opacity-50"
                                         >
                                             {isValidatingCoupon ? <Loader2 size={16} className="animate-spin" /> : (t.applyCoupon as string)}
                                         </button>
@@ -589,7 +648,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         )}
 
                         <div className="space-y-1 mb-4">
-                            <div className="flex justify-between items-center text-sm text-stone-500">
+                            <div className="flex justify-between items-center text-sm text-themeCardTxt/70">
                                 <span>{t.subtotal as string}:</span>
                                 <span>₪{subtotal}</span>
                             </div>
@@ -602,17 +661,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             )}
 
                             {deliveryFee > 0 && (
-                                <div className="flex justify-between items-center text-sm text-stone-600 font-bold">
+                                <div className="flex justify-between items-center text-sm text-themeCardTxt/80 font-bold">
                                     <span className="flex items-center gap-1"><Truck size={12}/> {t.delivery as string}:</span>
                                     <span>₪{deliveryFee}</span>
                                 </div>
                             )}
 
-                            <div className="border-t border-stone-200 my-1"></div>
+                            <div className="border-t border-themeText/10 my-1"></div>
                             
                             <div className="flex justify-between items-center">
-                                <span className="text-lg text-stone-600">{t.finalTotal as string}:</span>
-                                <span className="text-3xl font-bold font-serif text-stone-900">₪{finalTotal}</span>
+                                <span className="text-lg text-themeCardTxt/80">{t.finalTotal as string}:</span>
+                                <span className="text-3xl font-bold font-serif text-themeCardTxt">₪{finalTotal}</span>
                             </div>
                         </div>
                         
@@ -627,7 +686,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             {cart.length > 0 && (
                                 <button 
                                     onClick={handleShareDraft} 
-                                    className="flex-1 border border-stone-200 text-stone-600 font-bold py-3.5 rounded-xl hover:bg-stone-50 transition flex items-center justify-center gap-2 text-sm"
+                                    className="flex-1 border border-themeText/20 text-themeCardTxt font-bold py-3.5 rounded-xl hover:bg-themeBg/20 transition flex items-center justify-center gap-2 text-sm"
                                 >
                                     <Share2 size={16} /> 
                                     <span className="hidden sm:inline">{t.shareDraft as string}</span>
@@ -651,7 +710,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             </button>
                         </div>
                         
-                        <p className="text-center text-[10px] text-stone-400 mt-3 font-medium">
+                        <p className="text-center text-[10px] text-themeCardTxt/50 mt-3 font-medium">
                             {t.checkoutSub as string}
                         </p>
                     </div>

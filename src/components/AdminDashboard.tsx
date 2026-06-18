@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { MenuItem, Category, UnitType, EventType, Coupon } from '../types';
+import { MenuItem, Category, UnitType, EventType, Coupon, ThemeConfig, GalleryItem } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Video } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
@@ -19,7 +19,9 @@ const CATEGORY_OPTIONS: Category[] = [
     'Dips',
     'Main Courses',
     'Pastries',
-    'Desserts'
+    'Desserts',
+    'Picnic Baskets',
+    'Breakfast & Dinner'
 ];
 
 const UNIT_OPTIONS: UnitType[] = ['tray', 'unit', 'liter', 'weight'];
@@ -32,7 +34,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         advancedSettings, updateAdvancedSettings,
         featureFlags, updateFeatureFlags,
         language, getCoupons, createCoupon, deleteCoupon,
-        appConfig, updateAppConfig
+        appConfig, updateAppConfig,
+        theme, updateTheme, gallery, updateGallery, kosherCertUrl, updateKosherCertUrl
     } = useStore();
 
     // Ensure the view starts at the top when entering admin mode
@@ -49,6 +52,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [showAdvancedCalc, setShowAdvancedCalc] = useState(false);
     const [showCoupons, setShowCoupons] = useState(false);
+    const [showThemeSettings, setShowThemeSettings] = useState(false);
+    const [showGallerySettings, setShowGallerySettings] = useState(false);
     const [uploading, setUploading] = useState(false);
 
     // Coupon State
@@ -116,6 +121,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [editName, setEditName] = useState('');
     const [editIsTray, setEditIsTray] = useState(false);
     const [editUnitsPerTray, setEditUnitsPerTray] = useState<number | null>(null);
+    const [editDescription, setEditDescription] = useState('');
+    const [editCategory, setEditCategory] = useState<Category>('Salads');
+    const [editUnitType, setEditUnitType] = useState<UnitType>('tray');
+    const [editServesMin, setEditServesMin] = useState(10);
+    const [editServesMax, setEditServesMax] = useState(10);
+
+    // Gallery state
+    const [newGalleryItem, setNewGalleryItem] = useState<{
+        type: 'image' | 'video';
+        url: string;
+        caption: string;
+    }>({ type: 'image', url: '', caption: '' });
 
     // New Item State
     const [newItem, setNewItem] = useState<Partial<MenuItem>>({
@@ -137,8 +154,149 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         setEditName(item.name);
         setEditIsTray(item.is_tray || false);
         setEditUnitsPerTray(item.units_per_tray ?? null);
+        setEditDescription(item.description || '');
+        setEditCategory(item.category);
+        setEditUnitType(item.unit_type);
+        setEditServesMin(item.serves_min);
+        setEditServesMax(item.serves_max);
         const mods = language === 'he' ? item.allowed_modifications : (item.allowed_modifications_en || item.allowed_modifications);
         setEditMods(mods ? mods.join(', ') : '');
+    };
+
+    const applyThemePreset = async (preset: 'classic' | 'olive') => {
+        if (preset === 'classic') {
+            await updateTheme({
+                bg_color: '#fafaf9',
+                text_color: '#1c1917',
+                primary_color: '#d4af37',
+                secondary_color: '#b4941f',
+                header_bg_color: '#1c1917',
+                header_text_color: '#ffffff',
+                hero_bg_color: '#1c1917',
+                card_bg_color: '#ffffff',
+                card_text_color: '#1c1917'
+            });
+        } else {
+            await updateTheme({
+                bg_color: '#f4f6f0',
+                text_color: '#2d3a1a',
+                primary_color: '#5f7a36',
+                secondary_color: '#8fa86b',
+                header_bg_color: '#3d4b24',
+                header_text_color: '#fcfbf7',
+                hero_bg_color: '#3d4b24',
+                card_bg_color: '#ffffff',
+                card_text_color: '#2d3a1a'
+            });
+        }
+    };
+
+    const handleKosherUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            setUploading(true);
+            const randomName = `kosher_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+            const ext = file.name.split('.').pop() || 'jpg';
+            const cleanFileName = `${randomName}.${ext}`;
+            const arrayBuffer = await file.arrayBuffer();
+            const fileData = new Uint8Array(arrayBuffer);
+
+            const { error: uploadError } = await supabase.storage
+                .from('menu-images')
+                .upload(cleanFileName, fileData, {
+                    cacheControl: '3600',
+                    upsert: false,
+                    contentType: file.type
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('menu-images')
+                .getPublicUrl(cleanFileName);
+
+            await updateKosherCertUrl(data.publicUrl);
+            setFeedback({
+                isOpen: true,
+                type: 'info',
+                title: language === 'he' ? 'העלאה הושלמה' : 'Upload Complete',
+                message: language === 'he' ? 'תעודת הכשרות עודכנה בהצלחה.' : 'Kosher certificate updated successfully.'
+            });
+        } catch (error: any) {
+            console.error('Error uploading kosher cert:', error);
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: 'שגיאה',
+                message: error.message
+            });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleGalleryImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            setUploading(true);
+            const randomName = `gallery_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+            const ext = file.name.split('.').pop() || 'jpg';
+            const cleanFileName = `${randomName}.${ext}`;
+            const arrayBuffer = await file.arrayBuffer();
+            const fileData = new Uint8Array(arrayBuffer);
+
+            const { error: uploadError } = await supabase.storage
+                .from('menu-images')
+                .upload(cleanFileName, fileData, {
+                    cacheControl: '3600',
+                    upsert: false,
+                    contentType: file.type
+                });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('menu-images')
+                .getPublicUrl(cleanFileName);
+
+            setNewGalleryItem(prev => ({ ...prev, url: data.publicUrl }));
+        } catch (error: any) {
+            console.error('Error uploading gallery image:', error);
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: 'שגיאה',
+                message: error.message
+            });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleAddGalleryItem = async () => {
+        if (!newGalleryItem.url) return;
+        const item: GalleryItem = {
+            id: Math.random().toString(36).substring(2, 15),
+            type: newGalleryItem.type,
+            url: newGalleryItem.url,
+            caption: newGalleryItem.caption || undefined
+        };
+        await updateGallery([...(gallery || []), item]);
+        setNewGalleryItem({ type: 'image', url: '', caption: '' });
+    };
+
+    const handleDeleteGalleryItem = (id: string) => {
+        setConfirmation({
+            isOpen: true,
+            title: language === 'he' ? 'מחיקת פריט מהגלריה' : 'Delete Gallery Item',
+            message: language === 'he' ? 'האם אתה בטוח שברצונך למחוק פריט זה מהגלריה?' : 'Are you sure you want to delete this item from the gallery?',
+            isDestructive: true,
+            onConfirm: async () => {
+                await updateGallery((gallery || []).filter(i => i.id !== id));
+            }
+        });
     };
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, isEdit: boolean) => {
@@ -222,7 +380,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             image_url: editImageUrl,
             name: editName,
             is_tray: editIsTray,
-            units_per_tray: editIsTray ? editUnitsPerTray : null
+            units_per_tray: editIsTray ? editUnitsPerTray : null,
+            description: editDescription,
+            category: editCategory,
+            unit_type: editUnitType,
+            serves_min: editServesMin,
+            serves_max: editServesMax
         };
         if (language === 'he') updateData.allowed_modifications = modsArray;
         else updateData.allowed_modifications_en = modsArray;
@@ -549,6 +712,214 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 )}
             </div>
 
+            {/* Theme Settings Customizer */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
+                <button onClick={() => setShowThemeSettings(!showThemeSettings)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
+                    <div className="flex items-center gap-3"><Palette size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{t.themeSettings}</span></div>
+                    {showThemeSettings ? <ChevronUp /> : <ChevronDown />}
+                </button>
+                {showThemeSettings && (
+                    <div className="p-6 bg-stone-50 animate-slide-in-top space-y-8">
+                        {/* Theme Presets */}
+                        <div>
+                            <h4 className="text-stone-900 font-bold mb-3 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{language === 'he' ? 'ערכות נושא מוכנות' : 'Theme Presets'}</h4>
+                            <div className="flex gap-4">
+                                <button
+                                    onClick={() => applyThemePreset('classic')}
+                                    className="px-4 py-2 bg-stone-900 text-white rounded hover:bg-stone-800 transition font-bold text-xs"
+                                >
+                                    {language === 'he' ? 'קלאסי (זהב ושחור)' : 'Classic (Gold & Dark)'}
+                                </button>
+                                <button
+                                    onClick={() => applyThemePreset('olive')}
+                                    className="px-4 py-2 bg-emerald-800 text-white rounded hover:bg-emerald-700 transition font-bold text-xs"
+                                >
+                                    {language === 'he' ? 'ירוק זית וקרם' : 'Olive Green & Cream'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Theme Color Inputs */}
+                        <div className="border-t border-stone-200 pt-6">
+                            <h4 className="text-stone-900 font-bold mb-3 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{language === 'he' ? 'התאמת צבעים אישית' : 'Custom Theme Colors'}</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {[
+                                    { key: 'bg_color', label: language === 'he' ? 'צבע רקע כללי' : 'General Background' },
+                                    { key: 'text_color', label: language === 'he' ? 'צבע טקסט כללי' : 'General Text Color' },
+                                    { key: 'primary_color', label: language === 'he' ? 'צבע ראשי (כפתורים וזהב)' : 'Primary Theme Color' },
+                                    { key: 'secondary_color', label: language === 'he' ? 'צבע משני' : 'Secondary Theme Color' },
+                                    { key: 'header_bg_color', label: language === 'he' ? 'רקע תפריט עליון' : 'Header Background' },
+                                    { key: 'header_text_color', label: language === 'he' ? 'טקסט תפריט עליון' : 'Header Text Color' },
+                                    { key: 'hero_bg_color', label: language === 'he' ? 'רקע אזור הירו (פתיחה)' : 'Hero Background' },
+                                    { key: 'card_bg_color', label: language === 'he' ? 'רקע כרטיס מנה' : 'Dish Card Background' },
+                                    { key: 'card_text_color', label: language === 'he' ? 'טקסט כרטיס מנה' : 'Dish Card Text Color' },
+                                ].map(({ key, label }) => (
+                                    <div key={key} className="flex items-center justify-between p-3 bg-white rounded-lg border border-stone-200 shadow-sm">
+                                        <span className="text-xs font-bold text-stone-700">{label}</span>
+                                        <input
+                                            type="color"
+                                            value={(theme as any)[key] || '#ffffff'}
+                                            onChange={(e) => updateTheme({ [key]: e.target.value })}
+                                            className="w-8 h-8 rounded cursor-pointer border border-stone-300"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Kosher Certificate */}
+                        <div className="border-t border-stone-200 pt-6">
+                            <h4 className="text-stone-900 font-bold mb-3 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.kosherCert}</h4>
+                            <div className="flex flex-col sm:flex-row items-center gap-6">
+                                <div className="w-32 h-32 bg-stone-100 rounded-lg overflow-hidden border border-stone-200 flex items-center justify-center shrink-0">
+                                    {kosherCertUrl ? (
+                                        <img src={kosherCertUrl} alt="Kosher Certificate" className="w-full h-full object-contain" />
+                                    ) : (
+                                        <span className="text-stone-400 text-xs italic">{language === 'he' ? 'אין תעודה' : 'No certificate'}</span>
+                                    )}
+                                </div>
+                                <div className="flex-1 w-full space-y-2">
+                                    <label className={`
+                                        flex items-center justify-center gap-2 w-full max-w-xs p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm bg-white
+                                        ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
+                                    `}>
+                                        <Upload size={16} />
+                                        <span>{uploading ? '...' : t.uploadKosher}</span>
+                                        <input type="file" accept="image/*,application/pdf" onChange={handleKosherUpload} className="hidden" disabled={uploading} />
+                                    </label>
+                                    <p className="text-[10px] text-stone-400">{t.imageHint}</p>
+                                    {kosherCertUrl && (
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                value={kosherCertUrl}
+                                                className="w-full max-w-md p-1.5 border border-stone-200 rounded text-xs text-stone-500 bg-stone-100"
+                                            />
+                                            <button
+                                                onClick={() => updateKosherCertUrl('')}
+                                                className="text-xs text-red-500 hover:underline font-bold"
+                                            >
+                                                {language === 'he' ? 'הסר' : 'Remove'}
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Gallery Settings Customizer */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
+                <button onClick={() => setShowGallerySettings(!showGallerySettings)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
+                    <div className="flex items-center gap-3"><ImageIcon size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{t.galleryTitle}</span></div>
+                    {showGallerySettings ? <ChevronUp /> : <ChevronDown />}
+                </button>
+                {showGallerySettings && (
+                    <div className="p-6 bg-stone-50 animate-slide-in-top space-y-6">
+                        {/* Add Gallery Item Form */}
+                        <div className="bg-white p-4 rounded-xl border border-stone-200 space-y-4">
+                            <h4 className="font-bold text-stone-900 text-sm">{t.addGalleryItem}</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                <div>
+                                    <label className="block text-xs font-bold text-stone-500 mb-1">{t.mediaType}</label>
+                                    <select
+                                        value={newGalleryItem.type}
+                                        onChange={(e) => setNewGalleryItem({ ...newGalleryItem, type: e.target.value as 'image' | 'video', url: '' })}
+                                        className="w-full p-2 border rounded bg-white text-sm"
+                                    >
+                                        <option value="image">{language === 'he' ? 'תמונה' : 'Image'}</option>
+                                        <option value="video">{language === 'he' ? 'סרטון' : 'Video'}</option>
+                                    </select>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-xs font-bold text-stone-500 mb-1">
+                                        {newGalleryItem.type === 'video' ? t.videoUrl : (language === 'he' ? 'תמונה' : 'Image')}
+                                    </label>
+                                    {newGalleryItem.type === 'video' ? (
+                                        <input
+                                            type="text"
+                                            value={newGalleryItem.url}
+                                            onChange={(e) => setNewGalleryItem({ ...newGalleryItem, url: e.target.value })}
+                                            className="w-full p-2 border rounded text-sm"
+                                            placeholder="https://www.youtube.com/watch?v=..."
+                                        />
+                                    ) : (
+                                        <div className="flex items-center gap-4">
+                                            {newGalleryItem.url && (
+                                                <img src={newGalleryItem.url} alt="Gallery Preview" className="w-10 h-10 object-cover rounded" />
+                                            )}
+                                            <label className="flex items-center justify-center gap-2 flex-1 p-2 border-2 border-dashed border-stone-300 rounded cursor-pointer hover:border-gold-500 transition text-stone-500 font-bold text-xs bg-stone-50">
+                                                <Upload size={14} />
+                                                <span>{uploading ? '...' : t.upload}</span>
+                                                <input type="file" accept="image/*" onChange={handleGalleryImageUpload} className="hidden" disabled={uploading} />
+                                            </label>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div className="md:col-span-3">
+                                    <label className="block text-xs font-bold text-stone-500 mb-1">{t.caption}</label>
+                                    <input
+                                        type="text"
+                                        value={newGalleryItem.caption}
+                                        onChange={(e) => setNewGalleryItem({ ...newGalleryItem, caption: e.target.value })}
+                                        className="w-full p-2 border rounded text-sm"
+                                        placeholder={language === 'he' ? 'לדוגמה: שולחן קינוחים מעוצב' : 'e.g. Dessert table design'}
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleAddGalleryItem}
+                                    disabled={!newGalleryItem.url || uploading}
+                                    className="bg-gold-500 text-stone-900 font-bold px-6 py-2 rounded hover:bg-gold-400 transition w-full disabled:opacity-50 text-sm"
+                                >
+                                    {language === 'he' ? 'הוסף לגלריה' : 'Add Item'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Gallery List */}
+                        <div>
+                            <h4 className="text-sm font-bold text-stone-400 uppercase mb-3">{language === 'he' ? 'פריטים בגלריה' : 'Items in Gallery'}</h4>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                {(gallery || []).map(item => (
+                                    <div key={item.id} className="relative group bg-white border border-stone-200 rounded-lg overflow-hidden shadow-sm aspect-square flex flex-col justify-between">
+                                        <div className="relative flex-1 w-full bg-stone-100 flex items-center justify-center overflow-hidden">
+                                            {item.type === 'video' ? (
+                                                <div className="w-full h-full flex flex-col items-center justify-center p-2 text-center text-xs text-stone-500">
+                                                    <span className="font-bold text-red-500 text-[10px] uppercase border border-red-500 px-1 rounded mb-1">VIDEO</span>
+                                                    <span className="truncate w-full">{item.url}</span>
+                                                </div>
+                                            ) : (
+                                                <img src={item.url} alt={item.caption} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" />
+                                            )}
+                                        </div>
+                                        {item.caption && (
+                                            <div className="p-1.5 text-[10px] text-stone-500 font-medium truncate border-t bg-stone-50">
+                                                {item.caption}
+                                            </div>
+                                        )}
+                                        <button
+                                            onClick={() => handleDeleteGalleryItem(item.id)}
+                                            className="absolute top-2 left-2 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors opacity-0 group-hover:opacity-100 animate-fade-in"
+                                            title="Delete"
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {(gallery || []).length === 0 && (
+                                    <p className="text-sm text-stone-400 italic col-span-full">No gallery items yet.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
             {/* Menu Items Table */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden text-start">
                 <div className="p-4 border-b border-stone-200">
@@ -635,7 +1006,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     </div>
                                     <div className="flex-1">
                                         <label className={`
-                                            flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm
+                                            flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm bg-white
                                             ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                                         `}>
                                             <Upload size={16} />
@@ -673,10 +1044,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 </div>
                             </div>
 
-                            {/* Price */}
-                            <div>
-                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label>
-                                <input type="number" value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                            {/* Price & Serves Row */}
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label>
+                                    <input type="number" value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.servesMin}</label>
+                                    <input type="number" value={newItem.serves_min} onChange={(e) => setNewItem({ ...newItem, serves_min: Number(e.target.value) })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.servesMax}</label>
+                                    <input type="number" value={newItem.serves_max} onChange={(e) => setNewItem({ ...newItem, serves_max: Number(e.target.value) })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                </div>
                             </div>
 
                             {/* Description */}
@@ -743,6 +1124,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 <label className="block text-sm font-bold text-stone-700 mb-1">{t.dishName}</label>
                                 <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
                             </div>
+                            
+                            {/* Image Upload */}
                             <div>
                                 <label className="block text-sm font-bold text-stone-700 mb-2">{t.image}</label>
                                 <div className="flex items-center gap-4">
@@ -762,7 +1145,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     </div>
                                     <div className="flex-1">
                                         <label className={`
-                                            flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm
+                                            flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm bg-white
                                             ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                                         `}>
                                             <Upload size={16} />
@@ -773,14 +1156,70 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     </div>
                                 </div>
                             </div>
-                            <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label><input type="number" value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" /></div>
-                            <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.status}</label><div className="flex items-center gap-4"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={editStatus} onChange={() => setEditStatus(true)} className="w-4 h-4 text-gold-500" /><span>{t.inStock}</span></label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={!editStatus} onChange={() => setEditStatus(false)} className="w-4 h-4 text-red-500" /><span>{t.outOfStockLabel}</span></label></div></div>
+
+                            {/* Category & Unit Type Row */}
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.category}</label>
+                                    <select value={editCategory} onChange={(e) => setEditCategory(e.target.value as Category)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white">
+                                        {CATEGORY_OPTIONS.map(cat => (
+                                            <option key={cat} value={cat}>{(rootT.categories as any)[cat] || cat}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.unitType}</label>
+                                    <select value={editUnitType} onChange={(e) => setEditUnitType(e.target.value as UnitType)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white">
+                                        {UNIT_OPTIONS.map(u => (
+                                            <option key={u} value={u}>{rootT[u] || u}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Price & Serves Row */}
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label>
+                                    <input type="number" value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.servesMin}</label>
+                                    <input type="number" value={editServesMin} onChange={(e) => setEditServesMin(Number(e.target.value))} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                </div>
+                                <div className="flex-1">
+                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.servesMax}</label>
+                                    <input type="number" value={editServesMax} onChange={(e) => setEditServesMax(Number(e.target.value))} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                </div>
+                            </div>
+
+                            {/* Description */}
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.description}</label>
+                                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-20 resize-none" />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.status}</label>
+                                <div className="flex items-center gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" checked={editStatus} onChange={() => setEditStatus(true)} className="w-4 h-4 text-gold-500" />
+                                        <span>{t.inStock}</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" checked={!editStatus} onChange={() => setEditStatus(false)} className="w-4 h-4 text-red-500" />
+                                        <span>{t.outOfStockLabel}</span>
+                                    </label>
+                                </div>
+                            </div>
+
                             <div>
                                 <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50 w-full">
                                     <input type="checkbox" checked={editIsPremium} onChange={(e) => setEditIsPremium(e.target.checked)} className="w-4 h-4 text-gold-500 rounded" />
                                     <span className="font-bold text-sm text-stone-700">{t.premium}</span>
                                 </label>
                             </div>
+
                             {/* Tray Checkbox */}
                             <div>
                                 <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50 w-full">
@@ -788,6 +1227,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     <span className="font-bold text-sm text-stone-700">{t.isTray}</span>
                                 </label>
                             </div>
+
                             {/* Units Per Tray */}
                             {editIsTray && (
                                 <div>
@@ -795,7 +1235,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     <input type="number" min="1" value={editUnitsPerTray ?? ''} onChange={(e) => setEditUnitsPerTray(e.target.value ? Number(e.target.value) : null)} placeholder={language === 'he' ? 'לדוגמה: 10' : 'e.g. 10'} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
                                 </div>
                             )}
-                            <div><label className="block text-sm font-bold text-stone-700 mb-1">{t.modifications}</label><textarea value={editMods} onChange={(e) => setEditMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-24" /></div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.modifications}</label>
+                                <textarea value={editMods} onChange={(e) => setEditMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-24" />
+                            </div>
                         </div>
                         <div className="mt-8 flex flex-col gap-3 shrink-0">
                             <div className="flex gap-3">

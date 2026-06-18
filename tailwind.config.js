@@ -22,7 +22,16 @@ export default {
         gold: {
           500: '#d4af37',
           600: '#b4941f',
-        }
+        },
+        themeBg: 'var(--theme-bg)',
+        themeText: 'var(--theme-text)',
+        themePrimary: 'var(--theme-primary)',
+        themeSecondary: 'var(--theme-secondary)',
+        themeHeaderBg: 'var(--theme-header-bg)',
+        themeHeaderTxt: 'var(--theme-header-text)',
+        themeHeroBg: 'var(--theme-hero-bg)',
+        themeCardBg: 'var(--theme-card-bg)',
+        themeCardTxt: 'var(--theme-card-text)',
       },
       fontFamily: {
         sans: ['Heebo', 'system-ui', 'sans-serif'],

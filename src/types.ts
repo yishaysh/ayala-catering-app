@@ -7,7 +7,29 @@ export type Category =
   | 'Dips' 
   | 'Main Courses' 
   | 'Pastries' 
-  | 'Desserts';
+  | 'Desserts'
+  | 'Picnic Baskets'
+  | 'Breakfast & Dinner';
+
+export interface ThemeConfig {
+  bg_color: string;
+  text_color: string;
+  primary_color: string;
+  secondary_color: string;
+  header_bg_color: string;
+  header_text_color: string;
+  hero_bg_color: string;
+  card_bg_color: string;
+  card_text_color: string;
+}
+
+export interface GalleryItem {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  caption?: string;
+}
+
 
 export type EventType = 'brunch' | 'dinner' | 'snack';
 

@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon, AppSettings } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon, AppSettings, ThemeConfig, GalleryItem } from './types';
 import { supabase } from './lib/supabase';
 
 type Language = 'he' | 'en';
@@ -151,6 +151,17 @@ export interface Translations {
     dishName: string;
     isTray: string;
     unitsPerTray: string;
+    servesMin: string;
+    servesMax: string;
+    galleryTitle: string;
+    addGalleryItem: string;
+    deleteGalleryConfirm: string;
+    caption: string;
+    mediaType: string;
+    videoUrl: string;
+    themeSettings: string;
+    kosherCert: string;
+    uploadKosher: string;
   };
 }
 
@@ -230,7 +241,9 @@ export const translations: Record<Language, Translations> = {
       'Dips': 'מטבלים',
       'Main Courses': 'עיקריות',
       'Pastries': 'מאפים',
-      'Desserts': 'קינוחים'
+      'Desserts': 'קינוחים',
+      'Picnic Baskets': 'סלסלאות פיקניק',
+      'Breakfast & Dinner': 'ארוחות בוקר וערב'
     },
     admin: {
         title: "ניהול תפריט ומלאי",
@@ -304,10 +317,21 @@ export const translations: Record<Language, Translations> = {
         pricePerKm: "מחיר לק\"מ נוסף",
         includedRadius: "רדיוס כלול בבסיס (ק\"מ)",
         deleteItem: "מחק מנה",
-        deleteItemConfirm: "האם למחוק את המנה לצמיתות?",
+        deleteItemConfirm: "האם למחק את המנה לצמיתות?",
         dishName: "שם המנה",
         isTray: "המנה היא מגש",
         unitsPerTray: "כמות יחידות במגש",
+        servesMin: "מינימום סועדים",
+        servesMax: "מקסימום סועדים",
+        galleryTitle: "ניהול גלריית אירועים",
+        addGalleryItem: "הוסף פריט לגלריה",
+        deleteGalleryConfirm: "האם למחוק פריט זה מהגלריה?",
+        caption: "תיאור קצר (כיתוב)",
+        mediaType: "סוג מדיה",
+        videoUrl: "קישור לסרטון (YouTube/Direct)",
+        themeSettings: "עיצוב צבעי האתר",
+        kosherCert: "תעודת כשרות",
+        uploadKosher: "העלאת תעודת כשרות"
     }
   },
   en: {
@@ -385,7 +409,9 @@ export const translations: Record<Language, Translations> = {
       'Dips': 'Dips & Spreads',
       'Main Courses': 'Main Courses',
       'Pastries': 'Pastries',
-      'Desserts': 'Desserts'
+      'Desserts': 'Desserts',
+      'Picnic Baskets': 'Picnic Baskets',
+      'Breakfast & Dinner': 'Breakfast & Dinner'
     },
     admin: {
         title: "Menu & Inventory Management",
@@ -463,6 +489,17 @@ export const translations: Record<Language, Translations> = {
         dishName: "Dish Name",
         isTray: "This item is a tray",
         unitsPerTray: "Units per tray",
+        servesMin: "Min Serves",
+        servesMax: "Max Serves",
+        galleryTitle: "Gallery Management",
+        addGalleryItem: "Add Item to Gallery",
+        deleteGalleryConfirm: "Are you sure you want to delete this item?",
+        caption: "Caption",
+        mediaType: "Media Type",
+        videoUrl: "Video Link (YouTube/Direct)",
+        themeSettings: "Website Styling",
+        kosherCert: "Kosher Certificate",
+        uploadKosher: "Upload Kosher Certificate"
     }
   }
 };
@@ -482,6 +519,9 @@ interface AppState {
   advancedSettings: AdvancedCalculationSettings;
   activeCoupon: Coupon | null;
   appConfig: AppSettings;
+  theme: ThemeConfig;
+  gallery: GalleryItem[];
+  kosherCertUrl: string;
 
   fetchMenuItems: () => Promise<void>;
   fetchSettings: () => Promise<void>;
@@ -501,6 +541,9 @@ interface AppState {
   updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
   updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
   updateAppConfig: (config: Partial<AppSettings>) => Promise<void>;
+  updateTheme: (theme: Partial<ThemeConfig>) => Promise<void>;
+  updateGallery: (gallery: GalleryItem[]) => Promise<void>;
+  updateKosherCertUrl: (url: string) => Promise<void>;
   clearCart: () => void;
   cartTotal: () => number;
   validateCoupon: (code: string) => Promise<boolean>;
@@ -511,6 +554,18 @@ interface AppState {
   incrementCouponUsage: (code: string) => Promise<void>;
   getDeliveryFee: (distance: number, subtotal: number) => number;
 }
+
+const defaultTheme: ThemeConfig = {
+  bg_color: '#fafaf9',
+  text_color: '#1c1917',
+  primary_color: '#d4af37',
+  secondary_color: '#b4941f',
+  header_bg_color: '#1c1917',
+  header_text_color: '#ffffff',
+  hero_bg_color: '#1c1917',
+  card_bg_color: '#ffffff',
+  card_text_color: '#1c1917'
+};
 
 export const useStore = create<AppState>()(
   persist(
@@ -550,6 +605,9 @@ export const useStore = create<AppState>()(
         }
       },
       activeCoupon: null,
+      theme: defaultTheme,
+      gallery: [],
+      kosherCertUrl: '',
 
       fetchMenuItems: async () => {
           set({ isLoading: true });
@@ -577,6 +635,24 @@ export const useStore = create<AppState>()(
                 delivery_min_radius_included: 15
             };
             set({ appConfig: { ...defaults, ...configData.value } });
+        }
+
+        // Fetch Theme
+        const { data: themeData } = await supabase.from('app_settings').select('*').eq('key', 'theme').single();
+        if (themeData && themeData.value) {
+            set({ theme: { ...defaultTheme, ...themeData.value } });
+        }
+
+        // Fetch Gallery
+        const { data: galleryData } = await supabase.from('app_settings').select('*').eq('key', 'gallery').single();
+        if (galleryData && galleryData.value) {
+            set({ gallery: galleryData.value as GalleryItem[] });
+        }
+
+        // Fetch Kosher Cert
+        const { data: kosherData } = await supabase.from('app_settings').select('*').eq('key', 'kosher').single();
+        if (kosherData && kosherData.value) {
+            set({ kosherCertUrl: kosherData.value as string });
         }
       },
 
@@ -726,10 +802,26 @@ export const useStore = create<AppState>()(
 
           // Round to nearest 5
           return Math.ceil(fee / 5) * 5;
+      },
+
+      updateTheme: async (theme) => {
+        const newTheme = { ...get().theme, ...theme };
+        set({ theme: newTheme });
+        await supabase.from('app_settings').upsert({ key: 'theme', value: newTheme });
+      },
+
+      updateGallery: async (gallery) => {
+        set({ gallery });
+        await supabase.from('app_settings').upsert({ key: 'gallery', value: gallery });
+      },
+
+      updateKosherCertUrl: async (url) => {
+        set({ kosherCertUrl: url });
+        await supabase.from('app_settings').upsert({ key: 'kosher', value: url });
       }
     }),
     {
-      name: 'ayala-catering-storage-v12', 
+      name: 'ayala-catering-storage-v13', 
       partialize: (state) => ({ 
           cart: state.cart, 
           guestCount: state.guestCount,
@@ -742,7 +834,10 @@ export const useStore = create<AppState>()(
           featureFlags: state.featureFlags,
           customerDetails: state.customerDetails,
           activeCoupon: state.activeCoupon,
-          appConfig: state.appConfig // Added appConfig to persistence
+          appConfig: state.appConfig,
+          theme: state.theme,
+          gallery: state.gallery,
+          kosherCertUrl: state.kosherCertUrl
       }), 
     }
   )

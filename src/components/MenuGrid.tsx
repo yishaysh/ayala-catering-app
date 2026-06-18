@@ -16,7 +16,9 @@ const CATEGORY_ORDER: Category[] = [
   'Dips',
   'Main Courses',
   'Pastries',
-  'Desserts'
+  'Desserts',
+  'Picnic Baskets',
+  'Breakfast & Dinner'
 ];
 
 const DEFAULT_PLACEHOLDER = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80";
@@ -94,9 +96,9 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
         return (
           <section key={cat} id={sectionId} className="scroll-mt-48 md:scroll-mt-52">
             <div className="flex items-center gap-4 mb-4 px-2">
-                <h3 className="text-xl md:text-3xl font-serif font-bold text-stone-900 relative">
+                <h3 className="text-xl md:text-3xl font-serif font-bold text-themeText relative">
                   {(t.categories as Record<string, string>)[cat]}
-                  <span className="absolute -bottom-2 right-0 w-8 md:w-12 h-1 bg-gold-500 rounded-full"></span>
+                  <span className="absolute -bottom-2 right-0 w-8 md:w-12 h-1 bg-themePrimary rounded-full"></span>
                 </h3>
             </div>
             
@@ -110,9 +112,9 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                   <div 
                       key={item.id} 
                       id={`item-${item.id}`}
-                      className="group relative bg-white rounded-xl overflow-hidden shadow-sm border border-stone-100 hover:shadow-xl hover:border-gold-500/30 transition-all duration-300 flex flex-col justify-between"
+                      className="group relative bg-themeCardBg rounded-xl overflow-hidden shadow-sm border border-themeText/5 hover:shadow-xl hover:border-themePrimary/40 transition-all duration-300 flex flex-col justify-between"
                   >
-                    <div className="relative aspect-[4/3] bg-stone-100 overflow-hidden cursor-pointer" onClick={() => openAddModal(item)}>
+                    <div className="relative aspect-[4/3] bg-themeBg/40 overflow-hidden cursor-pointer" onClick={() => openAddModal(item)}>
                         <img 
                             src={previewUrl} 
                             alt={localItem.name}
@@ -122,7 +124,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none"></div>
 
                         {item.is_premium && (
-                          <div className="absolute top-0 right-0 bg-stone-900 text-gold-500 text-[10px] md:text-xs px-2 py-1 rounded-bl-lg font-bold tracking-wider z-10 flex items-center gap-1 shadow-md">
+                          <div className="absolute top-0 right-0 bg-themeHeaderBg text-themePrimary text-[10px] md:text-xs px-2 py-1 rounded-bl-lg font-bold tracking-wider z-10 flex items-center gap-1 shadow-md">
                             <Star size={10} fill="currentColor" /> {t.premium}
                           </div>
                         )}
@@ -130,18 +132,18 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
 
                     <div className="p-2.5 md:p-5 flex flex-col flex-1">
                       <div className="flex justify-between items-start mb-1 gap-1">
-                          <h4 className="text-sm md:text-lg font-bold text-stone-900 leading-tight line-clamp-2 min-h-[2.5em]">{localItem.name}</h4>
+                          <h4 className="text-sm md:text-lg font-bold text-themeText leading-tight line-clamp-2 min-h-[2.5em]">{localItem.name}</h4>
                       </div>
                       
                       <div className="flex items-baseline gap-1 mb-2">
-                           <span className="text-base md:text-xl font-bold text-stone-800">₪{item.price}</span>
-                           <span className="text-[10px] md:text-xs text-stone-400 font-normal">/ {getUnitName(item.unit_type)}</span>
+                           <span className="text-base md:text-xl font-bold text-themeText">₪{item.price}</span>
+                           <span className="text-[10px] md:text-xs text-themeText/50 font-normal">/ {getUnitName(item.unit_type)}</span>
                            {item.is_tray && item.units_per_tray && (
-                               <span className="text-[10px] md:text-xs text-gold-600 font-bold">({item.units_per_tray} {language === 'he' ? 'יח\'' : 'pcs'})</span>
+                               <span className="text-[10px] md:text-xs text-themePrimary font-bold">({item.units_per_tray} {language === 'he' ? 'יח\'' : 'pcs'})</span>
                            )}
                       </div>
                       
-                      <p className="hidden md:block text-stone-500 text-xs md:text-sm mb-3 leading-relaxed line-clamp-2">
+                      <p className="hidden md:block text-themeText/70 text-xs md:text-sm mb-3 leading-relaxed line-clamp-2">
                           {localItem.description}
                       </p>
 
@@ -152,8 +154,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                             className={`
                                 w-full py-2 md:py-3 rounded-lg flex items-center justify-center gap-1.5 font-bold text-xs md:text-sm tracking-wide transition-all duration-200
                                 ${!item.availability_status 
-                                    ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
-                                    : 'bg-stone-900 text-white shadow-md hover:bg-gold-500 hover:text-stone-900 active:scale-[0.98]'
+                                    ? 'bg-themeText/10 text-themeText/45 cursor-not-allowed'
+                                    : 'bg-themeHeaderBg text-themeHeaderTxt shadow-md hover:bg-themePrimary hover:text-themeHeaderBg active:scale-[0.98]'
                                 }
                             `}
                         >
@@ -201,8 +203,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                 onClick={() => setItemToAdd(null)}
              ></div>
              
-             <div className="relative bg-stone-50 w-full md:max-w-lg max-h-[85vh] rounded-2xl md:rounded-3xl flex flex-col shadow-2xl animate-zoom-in overflow-hidden border border-stone-200">
-                <div className="relative h-28 md:h-48 bg-stone-200 shrink-0 group">
+             <div className="relative bg-themeBg w-full md:max-w-lg max-h-[85vh] rounded-2xl md:rounded-3xl flex flex-col shadow-2xl animate-zoom-in overflow-hidden border border-themeText/10">
+                <div className="relative h-28 md:h-48 bg-themeBg/40 shrink-0 group">
                     <img 
                         src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
                         alt={getLocalizedItem(itemToAdd, language).name}
@@ -231,32 +233,32 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                             {getLocalizedItem(itemToAdd, language).name}
                         </h3>
                         <div className="flex items-center gap-2">
-                             <span className="text-sm font-bold text-gold-400">₪{itemToAdd.price}</span>
+                             <span className="text-sm font-bold text-themePrimary">₪{itemToAdd.price}</span>
                              <span className="text-stone-300 text-[10px]">/ {getUnitName(itemToAdd.unit_type)}</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-stone-50">
-                    <div className="bg-white p-3 rounded-xl border border-stone-100 shadow-sm">
-                        <p className="text-stone-600 text-xs md:text-sm leading-relaxed">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-themeBg text-themeText">
+                    <div className="bg-themeCardBg p-3 rounded-xl border border-themeText/5 shadow-sm">
+                        <p className="text-themeText/80 text-xs md:text-sm leading-relaxed">
                             {getLocalizedItem(itemToAdd, language).description || t.description}
                         </p>
                     </div>
 
-                    <div className="flex items-center justify-between bg-white p-3 rounded-xl border border-stone-100 shadow-sm">
-                        <span className="font-bold text-stone-700 text-sm">{t.customizeTitle}</span>
+                    <div className="flex items-center justify-between bg-themeCardBg p-3 rounded-xl border border-themeText/5 shadow-sm">
+                        <span className="font-bold text-themeText/90 text-sm">{t.customizeTitle}</span>
                         <div className="flex items-center gap-3">
                             <button 
                                 onClick={() => setAddQuantity(Math.max(1, addQuantity - 1))}
-                                className="w-8 h-8 rounded-full bg-stone-100 border border-stone-200 grid place-items-center text-stone-600 active:bg-stone-200 transition-colors"
+                                className="w-8 h-8 rounded-full bg-themeBg border border-themeText/10 grid place-items-center text-themeText active:bg-themeText/20 transition-colors"
                             >
                                 <Minus size={14} />
                             </button>
-                            <span className="text-base font-bold w-6 text-center text-stone-900">{addQuantity}</span>
+                            <span className="text-base font-bold w-6 text-center text-themeText">{addQuantity}</span>
                             <button 
                                 onClick={() => setAddQuantity(addQuantity + 1)}
-                                className="w-8 h-8 rounded-full bg-gold-500 text-stone-900 grid place-items-center shadow-md active:bg-gold-600 transition-colors"
+                                className="w-8 h-8 rounded-full bg-themePrimary text-themeHeaderBg grid place-items-center shadow-md active:opacity-90 transition-colors"
                             >
                                 <Plus size={14} />
                             </button>
@@ -265,7 +267,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
 
                     {getLocalizedItem(itemToAdd, language).modifications.length > 0 && (
                         <div className="space-y-2">
-                            <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest px-1">{t.modifications}</label>
+                            <label className="block text-[10px] font-bold text-themeText/50 uppercase tracking-widest px-1">{t.modifications}</label>
                             <div className="flex flex-wrap gap-2">
                                 {getLocalizedItem(itemToAdd, language).modifications.map(mod => (
                                     <button
@@ -274,8 +276,8 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                                         className={`
                                             px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-1.5
                                             ${selectedMods.includes(mod) 
-                                                ? 'bg-stone-900 text-white border-stone-900' 
-                                                : 'bg-white text-stone-600 border-stone-200'
+                                                ? 'bg-themeHeaderBg text-themePrimary border-themeHeaderBg' 
+                                                : 'bg-themeCardBg text-themeText/70 border-themeText/10'
                                             }
                                         `}
                                     >
@@ -288,24 +290,24 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                     )}
 
                     <div className="space-y-2">
-                        <label className="block text-[10px] font-bold text-stone-400 uppercase tracking-widest px-1">{t.notesPlaceholder}</label>
+                        <label className="block text-[10px] font-bold text-themeText/50 uppercase tracking-widest px-1">{t.notesPlaceholder}</label>
                         <textarea
                             value={notes}
                             onChange={(e) => setNotes(e.target.value)}
                             placeholder={language === 'he' ? "דגשים מיוחדים, אלרגיות..." : "Special requests, allergies..."}
-                            className="w-full p-3 bg-white border border-stone-200 rounded-xl focus:outline-none focus:border-gold-500 min-h-[80px] text-xs resize-none shadow-sm"
+                            className="w-full p-3 bg-themeCardBg border border-themeText/10 rounded-xl focus:outline-none focus:border-themePrimary min-h-[80px] text-xs resize-none shadow-sm text-themeText"
                         ></textarea>
                     </div>
                 </div>
 
-                <div className="bg-white border-t border-stone-200 p-4 flex gap-3 shrink-0 shadow-[0_-8px_24px_rgba(0,0,0,0.05)]">
+                <div className="bg-themeCardBg border-t border-themeText/10 p-4 flex gap-3 shrink-0 shadow-[0_-8px_24px_rgba(0,0,0,0.05)]">
                     <div className="flex flex-col justify-center">
-                        <div className="text-[10px] text-stone-400 font-bold uppercase tracking-tighter">{t.total}</div>
-                        <div className="text-xl font-bold font-serif text-stone-900 leading-none">₪{itemToAdd.price * addQuantity}</div>
+                        <div className="text-[10px] text-themeText/50 font-bold uppercase tracking-tighter">{t.total}</div>
+                        <div className="text-xl font-bold font-serif text-themeText leading-none">₪{itemToAdd.price * addQuantity}</div>
                     </div>
                     <button 
                         onClick={handleConfirmAdd}
-                        className="flex-1 bg-gold-500 text-stone-900 font-bold py-3 rounded-xl hover:bg-gold-400 active:scale-95 transition-all shadow-md flex items-center justify-center text-base"
+                        className="flex-1 bg-themePrimary text-themeHeaderBg font-bold py-3 rounded-xl hover:bg-themeSecondary active:scale-95 transition-all shadow-md flex items-center justify-center text-base"
                     >
                         {t.confirmAdd}
                     </button>
