@@ -556,15 +556,15 @@ interface AppState {
 }
 
 const defaultTheme: ThemeConfig = {
-  bg_color: '#3a4729',
-  text_color: '#fbfaf6',
-  primary_color: '#f5f2e9',
-  secondary_color: '#dfd9c1',
-  header_bg_color: '#2d371f',
-  header_text_color: '#f5f2e9',
-  hero_bg_color: '#3a4729',
-  card_bg_color: '#fbfaf6',
-  card_text_color: '#2d371f'
+  bg_color: '#fafaf9',
+  text_color: '#1c1917',
+  primary_color: '#d4af37',
+  secondary_color: '#b4941f',
+  header_bg_color: '#1c1917',
+  header_text_color: '#ffffff',
+  hero_bg_color: '#1c1917',
+  card_bg_color: '#ffffff',
+  card_text_color: '#1c1917'
 };
 
 export const useStore = create<AppState>()(

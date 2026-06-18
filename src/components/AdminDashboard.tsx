@@ -178,15 +178,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             });
         } else {
             await updateTheme({
-                bg_color: '#3a4729',
-                text_color: '#fbfaf6',
-                primary_color: '#f5f2e9',
-                secondary_color: '#dfd9c1',
-                header_bg_color: '#2d371f',
-                header_text_color: '#f5f2e9',
-                hero_bg_color: '#3a4729',
-                card_bg_color: '#fbfaf6',
-                card_text_color: '#2d371f'
+                bg_color: '#f4f6f0',
+                text_color: '#2d3a1a',
+                primary_color: '#5f7a36',
+                secondary_color: '#8fa86b',
+                header_bg_color: '#3d4b24',
+                header_text_color: '#fcfbf7',
+                hero_bg_color: '#3d4b24',
+                card_bg_color: '#ffffff',
+                card_text_color: '#2d3a1a'
             });
         }
     };
