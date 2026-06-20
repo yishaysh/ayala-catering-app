@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon, AppSettings, ThemeConfig, GalleryItem } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon, AppSettings, ThemeConfig, GalleryItem, Review } from './types';
 import { supabase } from './lib/supabase';
 
 type Language = 'he' | 'en';
@@ -242,8 +242,7 @@ export const translations: Record<Language, Translations> = {
       'Main Courses': 'עיקריות',
       'Pastries': 'מאפים',
       'Desserts': 'קינוחים',
-      'Picnic Baskets': 'סלסלאות פיקניק',
-      'Breakfast & Dinner': 'ארוחות בוקר וערב'
+      'Picnic Baskets': 'סלסלאות פיקניק'
     },
     admin: {
         title: "ניהול תפריט ומלאי",
@@ -410,8 +409,7 @@ export const translations: Record<Language, Translations> = {
       'Main Courses': 'Main Courses',
       'Pastries': 'Pastries',
       'Desserts': 'Desserts',
-      'Picnic Baskets': 'Picnic Baskets',
-      'Breakfast & Dinner': 'Breakfast & Dinner'
+      'Picnic Baskets': 'Picnic Baskets'
     },
     admin: {
         title: "Menu & Inventory Management",
@@ -522,6 +520,7 @@ interface AppState {
   theme: ThemeConfig;
   gallery: GalleryItem[];
   kosherCertUrl: string;
+  reviews: Review[];
 
   fetchMenuItems: () => Promise<void>;
   fetchSettings: () => Promise<void>;
@@ -553,6 +552,9 @@ interface AppState {
   getCoupons: () => Promise<Coupon[]>;
   incrementCouponUsage: (code: string) => Promise<void>;
   getDeliveryFee: (distance: number, subtotal: number) => number;
+  fetchReviews: () => Promise<void>;
+  addReview: (review: Omit<Review, 'id' | 'created_at'>) => Promise<void>;
+  deleteReview: (id: string) => Promise<void>;
 }
 
 const defaultTheme: ThemeConfig = {
@@ -608,6 +610,7 @@ export const useStore = create<AppState>()(
       theme: defaultTheme,
       gallery: [],
       kosherCertUrl: '',
+      reviews: [],
 
       fetchMenuItems: async () => {
           set({ isLoading: true });
@@ -818,6 +821,76 @@ export const useStore = create<AppState>()(
       updateKosherCertUrl: async (url) => {
         set({ kosherCertUrl: url });
         await supabase.from('app_settings').upsert({ key: 'kosher', value: url });
+      },
+
+      fetchReviews: async () => {
+          try {
+              const { data, error } = await supabase
+                  .from('reviews')
+                  .select('*')
+                  .order('created_at', { ascending: false });
+              
+              if (!error && data) {
+                  set({ reviews: data as Review[] });
+                  return;
+              }
+              
+              const { data: settingData } = await supabase
+                  .from('app_settings')
+                  .select('*')
+                  .eq('key', 'reviews')
+                  .single();
+                  
+              if (settingData && settingData.value) {
+                  set({ reviews: settingData.value as Review[] });
+              } else {
+                  set({ reviews: [] });
+              }
+          } catch (e) {
+              console.error("Error fetching reviews:", e);
+          }
+      },
+
+      addReview: async (review) => {
+          const newReview: Review = {
+              id: Math.random().toString(36).substring(2, 15) + '_' + Date.now(),
+              customer_name: review.customer_name,
+              rating: review.rating,
+              comment: review.comment,
+              created_at: new Date().toISOString()
+          };
+          
+          try {
+              const { error } = await supabase.from('reviews').insert([newReview]);
+              if (!error) {
+                  set((state) => ({ reviews: [newReview, ...state.reviews] }));
+                  return;
+              }
+              
+              const currentReviews = get().reviews;
+              const updated = [newReview, ...currentReviews];
+              set({ reviews: updated });
+              await supabase.from('app_settings').upsert({ key: 'reviews', value: updated });
+          } catch (e) {
+              console.error("Error adding review:", e);
+          }
+      },
+
+      deleteReview: async (id) => {
+          try {
+              const { error } = await supabase.from('reviews').delete().eq('id', id);
+              if (!error) {
+                  set((state) => ({ reviews: state.reviews.filter(r => r.id !== id) }));
+                  return;
+              }
+              
+              const currentReviews = get().reviews;
+              const updated = currentReviews.filter(r => r.id !== id);
+              set({ reviews: updated });
+              await supabase.from('app_settings').upsert({ key: 'reviews', value: updated });
+          } catch (e) {
+              console.error("Error deleting review:", e);
+          }
       }
     }),
     {

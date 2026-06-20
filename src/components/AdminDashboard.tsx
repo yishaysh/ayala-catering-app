@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { MenuItem, Category, UnitType, EventType, Coupon, ThemeConfig, GalleryItem } from '../types';
+import { MenuItem, Category, UnitType, EventType, Coupon, ThemeConfig, GalleryItem, Order, Review } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Video } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Video, Award, ShoppingBag, Calendar, Eye, MessageSquare } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
@@ -20,8 +20,7 @@ const CATEGORY_OPTIONS: Category[] = [
     'Main Courses',
     'Pastries',
     'Desserts',
-    'Picnic Baskets',
-    'Breakfast & Dinner'
+    'Picnic Baskets'
 ];
 
 const UNIT_OPTIONS: UnitType[] = ['tray', 'unit', 'liter', 'weight'];
@@ -35,13 +34,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         featureFlags, updateFeatureFlags,
         language, getCoupons, createCoupon, deleteCoupon,
         appConfig, updateAppConfig,
-        theme, updateTheme, gallery, updateGallery, kosherCertUrl, updateKosherCertUrl
+        theme, updateTheme, gallery, updateGallery, kosherCertUrl, updateKosherCertUrl,
+        reviews, fetchReviews, deleteReview
     } = useStore();
 
     // Ensure the view starts at the top when entering admin mode
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         loadCoupons();
+        loadOrders();
+        fetchReviews();
     }, []);
 
     const t = translations[language]?.admin || translations['he'].admin;
@@ -54,7 +56,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [showCoupons, setShowCoupons] = useState(false);
     const [showThemeSettings, setShowThemeSettings] = useState(false);
     const [showGallerySettings, setShowGallerySettings] = useState(false);
+    const [showKosherSettings, setShowKosherSettings] = useState(false);
+    const [showOrders, setShowOrders] = useState(true);
+    const [showReviews, setShowReviews] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [loadingOrders, setLoadingOrders] = useState(false);
 
     // Coupon State
     const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -84,6 +91,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     }>({ isOpen: false, title: '', message: '', onConfirm: () => { } });
 
     const closeConfirmation = () => setConfirmation(prev => ({ ...prev, isOpen: false }));
+
+    const loadOrders = async () => {
+        setLoadingOrders(true);
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .order('created_at', { ascending: false });
+            if (data) setOrders(data as Order[]);
+        } catch (e) {
+            console.error("Error loading orders:", e);
+        } finally {
+            setLoadingOrders(false);
+        }
+    };
+
+    const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+        try {
+            const { error } = await supabase
+                .from('orders')
+                .update({ status: newStatus })
+                .eq('id', orderId);
+            if (!error) {
+                setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as any } : o));
+            }
+        } catch (e) {
+            console.error("Error updating order status:", e);
+        }
+    };
+
+    const handleDeleteReview = (id: string) => {
+        setConfirmation({
+            isOpen: true,
+            title: language === 'he' ? 'מחיקת חוות דעת' : 'Delete Review',
+            message: language === 'he' ? 'האם אתה בטוח שברצונך למחוק חוות דעת זו?' : 'Are you sure you want to delete this review?',
+            isDestructive: true,
+            onConfirm: async () => {
+                await deleteReview(id);
+            }
+        });
+    };
 
     const handleDeleteCoupon = (code: string) => {
         setConfirmation({
@@ -567,7 +615,128 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             <input type="number" value={calculationSettings?.averageTrayCapacity || 10} onChange={(e) => updateCalculationSettings({ averageTrayCapacity: parseInt(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
                         </div>
                     </div>
-                </div>
+            </div>
+        </div>
+
+            {/* Incoming Orders Section */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
+                <button onClick={() => setShowOrders(!showOrders)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
+                    <div className="flex items-center gap-3">
+                        <ShoppingBag size={20} className="text-gold-500" />
+                        <span className="font-serif font-bold text-lg">{language === 'he' ? 'הזמנות נכנסות' : 'Incoming Orders'}</span>
+                        {orders.filter(o => o.status === 'pending').length > 0 && (
+                            <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                                {orders.filter(o => o.status === 'pending').length} {language === 'he' ? 'חדשות' : 'New'}
+                            </span>
+                        )}
+                    </div>
+                    {showOrders ? <ChevronUp /> : <ChevronDown />}
+                </button>
+                {showOrders && (
+                    <div className="p-6 bg-stone-50 animate-slide-in-top space-y-6">
+                        {loadingOrders ? (
+                            <div className="flex justify-center py-8">
+                                <Loader2 className="animate-spin text-gold-500" size={32} />
+                            </div>
+                        ) : orders.length > 0 ? (
+                            <div className="space-y-4">
+                                {orders.map(order => {
+                                    const dateStr = order.created_at ? new Date(order.created_at).toLocaleString(language === 'he' ? 'he-IL' : 'en-US') : '';
+                                    const partialId = order.id ? order.id.slice(0, 8) : 'NEW';
+                                    
+                                    const statusColors: Record<string, string> = {
+                                        pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+                                        approved: 'bg-blue-100 text-blue-800 border-blue-200',
+                                        completed: 'bg-green-100 text-green-800 border-green-200',
+                                        cancelled: 'bg-red-100 text-red-800 border-red-200'
+                                    };
+                                    
+                                    const statusLabel: Record<string, string> = {
+                                        pending: language === 'he' ? 'ממתין' : 'Pending',
+                                        approved: language === 'he' ? 'מאושר' : 'Approved',
+                                        completed: language === 'he' ? 'הושלם' : 'Completed',
+                                        cancelled: language === 'he' ? 'מבוטל' : 'Cancelled'
+                                    };
+
+                                    return (
+                                        <div key={order.id} className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm space-y-4 hover:border-gold-500/20 transition-all">
+                                            {/* Order Card Header */}
+                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-stone-100 pb-3">
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-bold text-stone-900">#{partialId}</span>
+                                                        <span className="text-xs text-stone-500 flex items-center gap-1"><Calendar size={12} /> {dateStr}</span>
+                                                    </div>
+                                                    <div className="text-xs font-bold text-stone-700 mt-1">
+                                                        👤 {order.customer_name} | 📞 {order.customer_phone}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusColors[order.status] || 'bg-stone-100 text-stone-800 border-stone-200'}`}>
+                                                        {statusLabel[order.status] || order.status}
+                                                    </span>
+                                                    <span className="text-lg font-bold text-stone-900 font-serif">₪{order.total_price}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Order Items */}
+                                            <div className="space-y-2">
+                                                {((order.items as any) || []).map((item: any, idx: number) => (
+                                                    <div key={idx} className="text-xs text-stone-600 flex justify-between">
+                                                        <div>
+                                                            <span className="font-bold text-stone-800">{item.quantity}x</span> {language === 'he' ? item.name : (item.name_en || item.name)}
+                                                            {item.selected_modifications && item.selected_modifications.length > 0 && (
+                                                                <span className="text-stone-400 block text-[10px] pl-4">
+                                                                    ↳ {item.selected_modifications.join(', ')}
+                                                                </span>
+                                                            )}
+                                                            {item.notes && (
+                                                                <span className="text-stone-400 italic block text-[10px] pl-4">
+                                                                    ↳ "{item.notes}"
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span className="font-medium text-stone-700">₪{item.price * item.quantity}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Status Update Actions */}
+                                            <div className="flex flex-wrap gap-2 pt-2 border-t border-stone-100 justify-end">
+                                                {order.status !== 'approved' && order.status !== 'completed' && (
+                                                    <button
+                                                        onClick={() => handleUpdateOrderStatus(order.id!, 'approved')}
+                                                        className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
+                                                    >
+                                                        {language === 'he' ? 'אשר הזמנה' : 'Approve'}
+                                                    </button>
+                                                )}
+                                                {order.status !== 'completed' && (
+                                                    <button
+                                                        onClick={() => handleUpdateOrderStatus(order.id!, 'completed')}
+                                                        className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-lg text-xs font-bold hover:bg-green-100 transition-colors"
+                                                    >
+                                                        {language === 'he' ? 'סמן כהושלם' : 'Complete'}
+                                                    </button>
+                                                )}
+                                                {order.status !== 'cancelled' && (
+                                                    <button
+                                                        onClick={() => handleUpdateOrderStatus(order.id!, 'cancelled')}
+                                                        className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors"
+                                                    >
+                                                        {language === 'he' ? 'בטל הזמנה' : 'Cancel'}
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-stone-400 italic py-4">{language === 'he' ? 'אין הזמנות במערכת' : 'No orders in system yet.'}</p>
+                        )}
+                    </div>
+                )}
             </div>
 
             {/* Delivery Settings */}
@@ -825,45 +994,52 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 ))}
                             </div>
                         </div>
+                    </div>
+                )}
+            </div>
 
-                        {/* Kosher Certificate */}
-                        <div className="border-t border-stone-200 pt-6">
-                            <h4 className="text-stone-900 font-bold mb-3 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.kosherCert}</h4>
-                            <div className="flex flex-col sm:flex-row items-center gap-6">
-                                <div className="w-32 h-32 bg-stone-100 rounded-lg overflow-hidden border border-stone-200 flex items-center justify-center shrink-0">
-                                    {kosherCertUrl ? (
-                                        <img src={kosherCertUrl} alt="Kosher Certificate" className="w-full h-full object-contain" />
-                                    ) : (
-                                        <span className="text-stone-400 text-xs italic">{language === 'he' ? 'אין תעודה' : 'No certificate'}</span>
-                                    )}
-                                </div>
-                                <div className="flex-1 w-full space-y-2">
-                                    <label className={`
-                                        flex items-center justify-center gap-2 w-full max-w-xs p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm bg-white
-                                        ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
-                                    `}>
-                                        <Upload size={16} />
-                                        <span>{uploading ? '...' : t.uploadKosher}</span>
-                                        <input type="file" accept="image/*,application/pdf" onChange={handleKosherUpload} className="hidden" disabled={uploading} />
-                                    </label>
-                                    <p className="text-[10px] text-stone-400">{t.imageHint}</p>
-                                    {kosherCertUrl && (
-                                        <div className="flex gap-2">
-                                            <input
-                                                type="text"
-                                                readOnly
-                                                value={kosherCertUrl}
-                                                className="w-full max-w-md p-1.5 border border-stone-200 rounded text-xs text-stone-500 bg-stone-100"
-                                            />
-                                            <button
-                                                onClick={() => updateKosherCertUrl('')}
-                                                className="text-xs text-red-500 hover:underline font-bold"
-                                            >
-                                                {language === 'he' ? 'הסר' : 'Remove'}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
+            {/* Kosher Certificate Section */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
+                <button onClick={() => setShowKosherSettings(!showKosherSettings)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
+                    <div className="flex items-center gap-3"><Award size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{t.kosherCert}</span></div>
+                    {showKosherSettings ? <ChevronUp /> : <ChevronDown />}
+                </button>
+                {showKosherSettings && (
+                    <div className="p-6 bg-stone-50 animate-slide-in-top">
+                        <div className="flex flex-col sm:flex-row items-center gap-6">
+                            <div className="w-32 h-32 bg-stone-100 rounded-lg overflow-hidden border border-stone-200 flex items-center justify-center shrink-0">
+                                {kosherCertUrl ? (
+                                    <img src={kosherCertUrl} alt="Kosher Certificate" className="w-full h-full object-contain" />
+                                ) : (
+                                    <span className="text-stone-400 text-xs italic">{language === 'he' ? 'אין תעודה' : 'No certificate'}</span>
+                                )}
+                            </div>
+                            <div className="flex-1 w-full space-y-2">
+                                <label className={`
+                                    flex items-center justify-center gap-2 w-full max-w-xs p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm bg-white
+                                    ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
+                                `}>
+                                    <Upload size={16} />
+                                    <span>{uploading ? '...' : t.uploadKosher}</span>
+                                    <input type="file" accept="image/*,application/pdf" onChange={handleKosherUpload} className="hidden" disabled={uploading} />
+                                </label>
+                                <p className="text-[10px] text-stone-400">{t.imageHint}</p>
+                                {kosherCertUrl && (
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            readOnly
+                                            value={kosherCertUrl}
+                                            className="w-full max-w-md p-1.5 border border-stone-200 rounded text-xs text-stone-500 bg-stone-100"
+                                        />
+                                        <button
+                                            onClick={() => updateKosherCertUrl('')}
+                                            className="text-xs text-red-500 hover:underline font-bold"
+                                        >
+                                            {language === 'he' ? 'הסר' : 'Remove'}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1021,6 +1197,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 )}
                             </div>
                         </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Reviews Moderation */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
+                <button onClick={() => setShowReviews(!showReviews)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
+                    <div className="flex items-center gap-3">
+                        <MessageSquare size={20} className="text-gold-500" />
+                        <span className="font-serif font-bold text-lg">{language === 'he' ? 'ניהול חוות דעת' : 'Manage Reviews'}</span>
+                        {reviews.length > 0 && (
+                            <span className="bg-gold-500 text-stone-900 text-xs font-bold px-2 py-0.5 rounded-full">
+                                {reviews.length}
+                            </span>
+                        )}
+                    </div>
+                    {showReviews ? <ChevronUp /> : <ChevronDown />}
+                </button>
+                {showReviews && (
+                    <div className="p-6 bg-stone-50 animate-slide-in-top space-y-6">
+                        {reviews.length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {reviews.map(review => {
+                                    const dateStr = review.created_at ? new Date(review.created_at).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US') : '';
+                                    return (
+                                        <div key={review.id} className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm flex flex-col justify-between hover:border-gold-500/20 transition-all">
+                                            <div>
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <h5 className="font-bold text-stone-900 text-sm">{review.customer_name}</h5>
+                                                        <span className="text-[10px] text-stone-400">{dateStr}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-0.5">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <svg
+                                                                key={i}
+                                                                className={`w-4 h-4 ${i < review.rating ? 'text-gold-500 fill-gold-500' : 'text-stone-200 fill-stone-200'}`}
+                                                                viewBox="0 0 20 20"
+                                                                fill="currentColor"
+                                                            >
+                                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                            </svg>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-stone-600 italic mt-2">"{review.comment}"</p>
+                                            </div>
+                                            <div className="flex justify-end mt-4 pt-2 border-t border-stone-100">
+                                                <button
+                                                    onClick={() => handleDeleteReview(review.id!)}
+                                                    className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-bold hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                                                >
+                                                    <Trash2 size={14} />
+                                                    <span>{language === 'he' ? 'מחק חוות דעת' : 'Delete'}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-stone-400 italic py-4">{language === 'he' ? 'אין חוות דעת במערכת' : 'No reviews in system yet.'}</p>
+                        )}
                     </div>
                 )}
             </div>

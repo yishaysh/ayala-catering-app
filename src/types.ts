@@ -8,8 +8,15 @@ export type Category =
   | 'Main Courses' 
   | 'Pastries' 
   | 'Desserts'
-  | 'Picnic Baskets'
-  | 'Breakfast & Dinner';
+  | 'Picnic Baskets';
+
+export interface Review {
+  id?: string;
+  customer_name: string;
+  rating: number;
+  comment: string;
+  created_at?: string;
+}
 
 export interface ThemeConfig {
   bg_color: string;

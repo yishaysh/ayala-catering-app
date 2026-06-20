@@ -10,15 +10,16 @@ import { AIConcierge } from './components/AIConcierge';
 import { useBackButton } from './hooks/useBackButton';
 import { ThemeStyles } from './components/ThemeStyles';
 import { EventGallery } from './components/EventGallery';
+import { ReviewsSection } from './components/ReviewsSection';
 
-const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts', 'Picnic Baskets', 'Breakfast & Dinner'];
+const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts', 'Picnic Baskets'];
 const LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png";
 const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || '2024';
 
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isKosherOpen, setIsKosherOpen] = useState(false);
-  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, featureFlags, fetchSettings, kosherCertUrl } = useStore();
+  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, featureFlags, fetchSettings, kosherCertUrl, fetchReviews } = useStore();
   
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -34,6 +35,7 @@ export default function App() {
   useEffect(() => {
       fetchMenuItems();
       fetchSettings();
+      fetchReviews();
   }, []);
 
   const handleAdminLogin = (e: React.FormEvent) => {
@@ -79,17 +81,30 @@ export default function App() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-themeHeaderBg text-themeHeaderTxt shadow-lg border-b border-themeHeaderBg/10 h-[72px]">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center h-full">
-            <div className="flex items-center gap-3">
-                <div className="relative h-12 w-auto flex items-center justify-center overflow-hidden">
-                   <img 
+            <div className="flex items-center gap-4">
+                <div className="flex flex-col items-start justify-center">
+                    <img 
                         src={LOGO_SRC} 
                         alt="Ayala Logo" 
-                        className="h-full w-auto object-contain"
-                   />
+                        className="h-9 w-auto object-contain"
+                    />
+                    <a href="tel:0547474764" className="text-[9px] sm:text-[10px] text-themeHeaderTxt/90 font-bold hover:text-themePrimary transition-colors leading-none mt-0.5">
+                        054-747-4764
+                    </a>
                 </div>
-                <div className="flex flex-col text-start">
-                    <h1 className="text-sm sm:text-xl font-serif font-bold tracking-wide text-themePrimary leading-none mb-0.5 sm:mb-1">{t.title}</h1>
-                    <p className="text-[8px] sm:text-[10px] text-themeHeaderTxt/70 tracking-wider sm:tracking-[0.2em] uppercase font-medium">{t.subtitle}</p>
+                <div className="flex items-center gap-2">
+                    <a href="https://www.instagram.com/ayala_pashutaim/" target="_blank" rel="noopener noreferrer" className="text-themeHeaderTxt/70 hover:text-themePrimary transition-colors" title="Instagram">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                        </svg>
+                    </a>
+                    <a href="https://www.facebook.com/share/1EkU7G5BDA/" target="_blank" rel="noopener noreferrer" className="text-themeHeaderTxt/70 hover:text-themePrimary transition-colors" title="Facebook">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"></path>
+                        </svg>
+                    </a>
                 </div>
             </div>
 
@@ -102,11 +117,11 @@ export default function App() {
                     <Lock size={18} />
                 </button>
 
-                <button 
+                 <button 
                     onClick={() => setIsKosherOpen(true)}
                     className="flex items-center gap-1.5 text-xs font-bold bg-themeHeaderBg/55 px-2.5 py-1.5 rounded-full border border-themeHeaderTxt/10 hover:border-themePrimary transition-colors"
                 >
-                    <Award size={14} className="text-themePrimary" />
+                    <Award size={18} className="text-themePrimary animate-pulse" />
                     <span>{language === 'he' ? 'כשרות' : 'Kosher'}</span>
                 </button>
 
@@ -117,13 +132,6 @@ export default function App() {
                     <Globe size={14} className="text-themePrimary" />
                     <span>{language === 'he' ? 'EN' : 'עב'}</span>
                 </button>
-
-                <a href="tel:0547474764" className="hidden md:flex items-center gap-2 text-themeHeaderTxt/80 hover:text-themeHeaderTxt transition-colors">
-                    <div className="bg-themeHeaderBg/50 p-2 rounded-full border border-themeHeaderTxt/10">
-                        <Phone size={16} />
-                    </div>
-                    <span className="text-sm font-medium">054-747-4764</span>
-                </a>
 
                 <button 
                     onClick={() => setIsCartOpen(true)}
@@ -140,37 +148,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* Hero */}
-      <div className="relative bg-themeHeroBg text-white pt-16 pb-24 overflow-hidden mb-8">
-         <div 
-            className="absolute bottom-2 left-2 w-32 h-32 md:w-56 md:h-56 bg-no-repeat opacity-[0.06] pointer-events-none mix-blend-luminosity filter brightness-75 contrast-125"
-            style={{ 
-                backgroundImage: `url(${LOGO_SRC})`,
-                backgroundSize: 'contain',
-                backgroundPosition: 'bottom left'
-            }}
-         ></div>
-         <div className="absolute inset-0 bg-gradient-to-t from-themeBg via-transparent to-themeHeroBg/50"></div>
-         
-         <div className="container mx-auto text-center px-4 relative z-10">
-            <div className="inline-block border border-themePrimary/30 bg-themePrimary/10 backdrop-blur-sm px-4 py-1 rounded-full text-themePrimary text-xs font-bold tracking-widest uppercase mb-6 animate-fade-in">
-                {t.subtitle}
-            </div>
-            <h2 className="text-4xl md:text-6xl font-serif font-bold text-white mb-6 leading-tight drop-shadow-xl animate-slide-in-bottom">
-                {language === 'he' ? 'איילה פשוט טעים' : 'Simply Delicious'}
-            </h2>
-            <div className="flex justify-center animate-slide-in-bottom" style={{ animationDelay: '200ms' }}>
-                 <button 
-                    onClick={() => scrollToCategory('Salads')}
-                    className="bg-themePrimary text-themeHeaderBg px-8 py-3 rounded-full font-bold text-lg hover:bg-themeSecondary transition transform hover:scale-105 shadow-lg shadow-themePrimary/20"
-                >
-                    {language === 'he' ? 'הזמינו עכשיו' : 'Order Now'}
-                </button>
-            </div>
-         </div>
-      </div>
-
-      <main className="container mx-auto px-4 -mt-16 relative z-20">
+      <main className="container mx-auto px-4 mt-6 relative z-20">
         
         {featureFlags?.showCalculator && <HostHelper />}
         {featureFlags?.showAI && <AIConcierge />}
@@ -203,6 +181,54 @@ export default function App() {
             <>
                 <MenuGrid items={menuItems} />
                 <EventGallery />
+                <ReviewsSection />
+
+                {/* About Us (מי אני / הסיפור שלנו) */}
+                <section className="my-16 bg-themeCardBg rounded-2xl p-8 border border-themeText/5 shadow-sm scroll-mt-24" id="about-section">
+                    <div className="max-w-3xl mx-auto text-center">
+                        <h2 className="text-3xl font-serif font-bold text-themePrimary mb-4">{language === 'he' ? 'הסיפור שלנו - איילה פשוט טעים' : 'Our Story - Ayala Simply Delicious'}</h2>
+                        <div className="w-12 h-1 bg-themePrimary mx-auto mb-6 rounded-full"></div>
+                        <p className="text-themeText/80 leading-relaxed text-base md:text-lg mb-4 text-start font-serif">
+                            {language === 'he' 
+                                ? 'ברוכים הבאים לקייטרינג הבוטיק החלבי שלי. אצלי תמצאו שילוב מושלם של חומרי גלם טריים ואיכותיים ביותר, תשומת לב קפדנית לפרטים הקטנים, והמון אהבה ותשוקה לאוכל ואירוח.'
+                                : 'Welcome to my dairy boutique catering service. Here you will find a perfect combination of the freshest, highest quality ingredients, meticulous attention to the smallest details, and a lot of love and passion for food and hosting.'
+                            }
+                        </p>
+                        <p className="text-themeText/80 leading-relaxed text-base md:text-lg text-start font-serif">
+                            {language === 'he'
+                                ? 'אני מתמחה בבניית תפריטים עשירים ומגוונים לכל סוגי האירועים - החל ממפגשים משפחתיים קטנים, בראנצ׳ים מפנקים, הרמות כוסית, ועד לאירועים עסקיים יוקרתיים. כל מגש אירוח, סלט טרי, קיש או מאפה נעשה בעבודת יד מוקפדת עם דגש על אסתטיקה מרהיבה וטעם בלתי נשכח. הכשרות היא חלבי כשר למהדרין כדי שכולם יוכלו ליהנות בלב שקט.'
+                                : 'I specialize in creating rich, diverse menus for all types of events - from small family gatherings and luxurious brunches to toasts and prestigious corporate events. Each hosting tray, fresh salad, quiche, or pastry is handmade with an emphasis on spectacular aesthetics and unforgettable taste. The catering is Kosher Mehadrin Dairy so that everyone can enjoy with peace of mind.'
+                            }
+                        </p>
+                    </div>
+                </section>
+
+                {/* Contact Section (צור קשר) */}
+                <section className="my-16 bg-themeCardBg rounded-2xl p-8 border border-themeText/5 shadow-sm scroll-mt-24 text-center" id="contact-section">
+                    <h2 className="text-3xl font-serif font-bold text-themePrimary mb-2">{language === 'he' ? 'צור קשר' : 'Contact Us'}</h2>
+                    <p className="text-xs text-themeText/60 tracking-wider uppercase mb-6">{language === 'he' ? 'נשמח לקחת חלק באירוע שלכם' : 'We would love to take part in your event'}</p>
+                    <div className="w-16 h-1 bg-themePrimary mx-auto mb-8 rounded-full"></div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                        <div className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 flex flex-col items-center">
+                            <Phone className="text-themePrimary mb-3" size={24} />
+                            <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'טלפון' : 'Phone'}</h4>
+                            <a href="tel:0547474764" className="text-themeText/80 text-sm font-semibold hover:text-themePrimary transition-colors">054-747-4764</a>
+                        </div>
+                        <div className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 flex flex-col items-center">
+                            <svg className="w-6 h-6 text-themePrimary mb-3" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.247 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.52 5.242 1.521 5.46.002 9.897-4.437 9.9-9.899.001-2.646-1.03-5.132-2.903-7.006-1.874-1.873-4.361-2.903-7.01-2.903-5.464 0-9.903 4.438-9.907 9.899-.001 2.126.579 4.197 1.681 5.897l-.999 3.648 3.796-.997zm10.963-7.935c-.299-.149-1.77-.874-2.043-.974-.275-.102-.475-.149-.675.149-.199.299-.775.974-.95 1.173-.175.199-.349.224-.648.075-.3-.149-1.266-.467-2.41-1.487-.89-.794-1.49-1.775-1.665-2.074-.175-.299-.019-.462.13-.611.135-.133.3-.349.45-.523.149-.174.199-.299.299-.498.1-.2.05-.374-.025-.523-.075-.149-.675-1.62-.925-2.224-.244-.595-.493-.513-.675-.523-.175-.008-.374-.01-.573-.01-.199 0-.523.075-.798.374-.275.299-1.047 1.022-1.047 2.491 0 1.469 1.073 2.887 1.222 3.087.149.199 2.11 3.223 5.112 4.521.714.308 1.272.493 1.706.63.717.228 1.37.195 1.887.118.577-.087 1.77-.723 2.02-1.419.249-.696.249-1.293.175-1.419-.075-.126-.275-.2-.574-.349z"></path>
+                            </svg>
+                            <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'וואטסאפ' : 'WhatsApp'}</h4>
+                            <a href="https://wa.me/972547474764" target="_blank" rel="noopener noreferrer" className="text-themeText/80 text-sm font-semibold hover:text-themePrimary transition-colors">{language === 'he' ? 'שלחו הודעה' : 'Send Message'}</a>
+                        </div>
+                        <div className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 flex flex-col items-center">
+                            <Globe className="text-themePrimary mb-3" size={24} />
+                            <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'מיקום' : 'Location'}</h4>
+                            <span className="text-themeText/80 text-sm font-semibold">{language === 'he' ? 'מקדומים' : 'Kedumim'}</span>
+                        </div>
+                    </div>
+                </section>
             </>
         )}
         
@@ -234,14 +260,14 @@ export default function App() {
 
       {isKosherOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-zoom-in" onClick={() => setIsKosherOpen(false)}>
-              <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative text-center" onClick={e => e.stopPropagation()}>
+              <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl relative text-center" onClick={e => e.stopPropagation()}>
                   <button 
                     onClick={() => setIsKosherOpen(false)}
                     className="absolute top-4 right-4 text-stone-400 hover:text-stone-900 bg-stone-100 p-1.5 rounded-full"
                   >
                       <X size={16} />
                   </button>
-                  <Award size={36} className="text-gold-500 mx-auto mb-2" />
+                  <Award size={48} className="text-gold-500 mx-auto mb-2" />
                   <h3 className="text-xl font-serif font-bold text-stone-900 mb-1">{language === 'he' ? 'תעודת כשרות' : 'Kosher Certificate'}</h3>
                   <p className="text-xs text-stone-500 mb-4">{language === 'he' ? 'קייטרינג חלבי כשר למהדרין' : 'Kosher Mehadrin Dairy Catering'}</p>
                   
@@ -250,7 +276,7 @@ export default function App() {
                           <img src={kosherCertUrl} alt="Kosher Certificate" className="w-full h-full object-contain" />
                       ) : (
                           <div className="p-4 text-stone-400">
-                              <Award size={48} className="mx-auto mb-2 opacity-25" />
+                              <Award size={64} className="mx-auto mb-2 opacity-25" />
                               <p className="text-sm font-bold">{language === 'he' ? 'כשר למהדרין' : 'Kosher Mehadrin'}</p>
                               <p className="text-[10px] mt-1">{language === 'he' ? 'התעודה תוצג כאן בקרוב' : 'Certificate will be uploaded soon'}</p>
                           </div>

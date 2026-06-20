@@ -17,8 +17,7 @@ const CATEGORY_ORDER: Category[] = [
   'Main Courses',
   'Pastries',
   'Desserts',
-  'Picnic Baskets',
-  'Breakfast & Dinner'
+  'Picnic Baskets'
 ];
 
 const DEFAULT_PLACEHOLDER = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80";

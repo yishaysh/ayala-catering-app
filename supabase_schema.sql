@@ -12,6 +12,7 @@ DROP TABLE IF EXISTS orders CASCADE;
 DROP TABLE IF EXISTS menu_items CASCADE;
 DROP TABLE IF EXISTS coupons CASCADE;
 DROP TABLE IF EXISTS app_settings CASCADE;
+DROP TABLE IF EXISTS reviews CASCADE;
 
 -- 2. Enable Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -73,11 +74,21 @@ CREATE TABLE app_settings (
     value JSONB
 );
 
+-- E. Reviews
+CREATE TABLE reviews (
+    id TEXT PRIMARY KEY,
+    customer_name VARCHAR(100) NOT NULL,
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- 4. Enable Row Level Security (RLS)
 ALTER TABLE menu_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE coupons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 
 -- 5. Define Policies (Open Access for MVP)
 -- Note: In a stricter production environment, 'write' access would be restricted to authenticated admin users.
@@ -98,6 +109,11 @@ CREATE POLICY "Enable write access for all users" ON coupons FOR ALL USING (true
 -- App Settings
 CREATE POLICY "Enable read access for all users" ON app_settings FOR SELECT USING (true);
 CREATE POLICY "Enable write access for all users" ON app_settings FOR ALL USING (true) WITH CHECK (true);
+
+-- Reviews
+CREATE POLICY "Enable read access for all users" ON reviews FOR SELECT USING (true);
+CREATE POLICY "Enable insert access for all users" ON reviews FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable delete access for all users" ON reviews FOR DELETE USING (true);
 
 -- 6. Helper Functions (RPC)
 
