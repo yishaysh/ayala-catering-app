@@ -156,20 +156,6 @@ export default function App() {
                         054-747-4764
                     </a>
                 </div>
-                <div className="flex items-center gap-2">
-                    <a href="https://www.instagram.com/ayala_pashutaim/" target="_blank" rel="noopener noreferrer" className="text-themeHeaderTxt/70 hover:text-themePrimary transition-colors" title="Instagram">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                            <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                            <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-                        </svg>
-                    </a>
-                    <a href="https://www.facebook.com/share/1EkU7G5BDA/" target="_blank" rel="noopener noreferrer" className="text-themeHeaderTxt/70 hover:text-themePrimary transition-colors" title="Facebook">
-                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"></path>
-                        </svg>
-                    </a>
-                </div>
             </div>
 
             <div className="flex items-center gap-2 md:gap-4">
@@ -296,14 +282,14 @@ export default function App() {
                     <p className="text-xs text-themeText/60 tracking-wider uppercase mb-6">{language === 'he' ? 'נשמח לקחת חלק באירוע שלכם' : 'We would love to take part in your event'}</p>
                     <div className="w-16 h-1 bg-themePrimary mx-auto mb-8 rounded-full"></div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6 max-w-5xl mx-auto">
                         <a 
                             href="tel:0547474764" 
                             className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
                         >
                             <Phone className="text-themePrimary mb-3 transition-transform group-hover:scale-110" size={24} />
                             <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'טלפון' : 'Phone'}</h4>
-                            <span className="text-themeText/80 text-sm font-semibold group-hover:text-themePrimary transition-colors">054-747-4764</span>
+                            <span className="text-themeText/80 text-xs font-semibold group-hover:text-themePrimary transition-colors">054-747-4764</span>
                         </a>
                         <a 
                             href="https://wa.me/972547474764" 
@@ -315,7 +301,7 @@ export default function App() {
                                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.247 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.52 5.242 1.521 5.46.002 9.897-4.437 9.9-9.899.001-2.646-1.03-5.132-2.903-7.006-1.874-1.873-4.361-2.903-7.01-2.903-5.464 0-9.903 4.438-9.907 9.899-.001 2.126.579 4.197 1.681 5.897l-.999 3.648 3.796-.997zm10.963-7.935c-.299-.149-1.77-.874-2.043-.974-.275-.102-.475-.149-.675.149-.199.299-.775.974-.95 1.173-.175.199-.349.224-.648.075-.3-.149-1.266-.467-2.41-1.487-.89-.794-1.49-1.775-1.665-2.074-.175-.299-.019-.462.13-.611.135-.133.3-.349.45-.523.149-.174.199-.299.299-.498.1-.2.05-.374-.025-.523-.075-.149-.675-1.62-.925-2.224-.244-.595-.493-.513-.675-.523-.175-.008-.374-.01-.573-.01-.199 0-.523.075-.798.374-.275.299-1.047 1.022-1.047 2.491 0 1.469 1.073 2.887 1.222 3.087.149.199 2.11 3.223 5.112 4.521.714.308 1.272.493 1.706.63.717.228 1.37.195 1.887.118.577-.087 1.77-.723 2.02-1.419.249-.696.249-1.293.175-1.419-.075-.126-.275-.2-.574-.349z"></path>
                             </svg>
                             <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'וואטסאפ' : 'WhatsApp'}</h4>
-                            <span className="text-themeText/80 text-sm font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'שלחו הודעה' : 'Send Message'}</span>
+                            <span className="text-themeText/80 text-xs font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'שלחו הודעה' : 'Send Message'}</span>
                         </a>
                         <a 
                             href="https://maps.google.com/?q=קדומיים" 
@@ -325,7 +311,33 @@ export default function App() {
                         >
                             <Globe className="text-themePrimary mb-3 transition-transform group-hover:scale-110" size={24} />
                             <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'מיקום' : 'Location'}</h4>
-                            <span className="text-themeText/80 text-sm font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'מקדומים' : 'Kedumim'}</span>
+                            <span className="text-themeText/80 text-xs font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'מקדומים' : 'Kedumim'}</span>
+                        </a>
+                        <a 
+                            href="https://www.instagram.com/ayala_pashutaim/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
+                        >
+                            <svg className="w-6 h-6 text-themePrimary mb-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                            </svg>
+                            <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'אינסטגרם' : 'Instagram'}</h4>
+                            <span className="text-themeText/80 text-xs font-semibold group-hover:text-themePrimary transition-colors">@ayala_pashutaim</span>
+                        </a>
+                        <a 
+                            href="https://www.facebook.com/share/1EkU7G5BDA/" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
+                        >
+                            <svg className="w-6 h-6 text-themePrimary mb-3 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"></path>
+                            </svg>
+                            <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'פייסבוק' : 'Facebook'}</h4>
+                            <span className="text-themeText/80 text-xs font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'איילה פשוט טעים' : 'Ayala Simply Delicious'}</span>
                         </a>
                     </div>
                 </section>
