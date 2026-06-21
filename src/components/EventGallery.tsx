@@ -1,13 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useStore, translations } from '../store';
-import { Play, X, Image as ImageIcon, Video as VideoIcon, Film } from 'lucide-react';
+import { useStore } from '../store';
+import { Play, X, Image as ImageIcon, Video as VideoIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
+import { flushSync } from 'react-dom';
 
 export const EventGallery: React.FC = () => {
     const { gallery, language } = useStore();
     const [activeTab, setActiveTab] = useState<'all' | 'image' | 'video'>('all');
     const [selectedMedia, setSelectedMedia] = useState<{ type: 'image' | 'video'; url: string; caption?: string } | null>(null);
     const modalContainerRef = useRef<HTMLDivElement>(null);
+    const touchStartRef = useRef<number | null>(null);
+
+    const filteredGallery = gallery ? gallery.filter(item => {
+        if (activeTab === 'all') return true;
+        return item.type === activeTab;
+    }) : [];
 
     const closeMedia = () => {
         setSelectedMedia(null);
@@ -23,19 +30,97 @@ export const EventGallery: React.FC = () => {
     };
 
     const openMedia = (item: { type: 'image' | 'video'; url: string; caption?: string }) => {
-        setSelectedMedia(item);
-        if (item.type === 'video' && modalContainerRef.current) {
+        if (item.type === 'video') {
+            flushSync(() => {
+                setSelectedMedia(item);
+            });
             const container = modalContainerRef.current;
-            if (container.requestFullscreen) {
-                container.requestFullscreen().catch(err => {
-                    console.log("Error attempting to enable fullscreen mode:", err);
-                });
-            } else if ((container as any).webkitRequestFullscreen) {
-                (container as any).webkitRequestFullscreen();
-            } else if ((container as any).msRequestFullscreen) {
-                (container as any).msRequestFullscreen();
+            if (container) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen().catch(err => {
+                        console.log("Error attempting to enable fullscreen mode:", err);
+                    });
+                } else if ((container as any).webkitRequestFullscreen) {
+                    (container as any).webkitRequestFullscreen();
+                } else if ((container as any).msRequestFullscreen) {
+                    (container as any).msRequestFullscreen();
+                }
             }
+        } else {
+            setSelectedMedia(item);
         }
+    };
+
+    const changeMedia = (item: { type: 'image' | 'video'; url: string; caption?: string }) => {
+        const isCurrentlyFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement);
+        
+        if (item.type === 'video' && !isCurrentlyFullscreen) {
+            flushSync(() => {
+                setSelectedMedia(item);
+            });
+            const container = modalContainerRef.current;
+            if (container) {
+                if (container.requestFullscreen) {
+                    container.requestFullscreen().catch(err => console.log(err));
+                } else if ((container as any).webkitRequestFullscreen) {
+                    (container as any).webkitRequestFullscreen();
+                }
+            }
+        } else if (item.type === 'image' && isCurrentlyFullscreen) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().then(() => {
+                    setSelectedMedia(item);
+                }).catch(err => {
+                    console.log(err);
+                    setSelectedMedia(item);
+                });
+            } else {
+                setSelectedMedia(item);
+            }
+        } else {
+            setSelectedMedia(item);
+        }
+    };
+
+    const handlePrevMedia = () => {
+        if (!selectedMedia || filteredGallery.length === 0) return;
+        const currentIndex = filteredGallery.findIndex(item => item.url === selectedMedia.url);
+        let prevItem;
+        if (currentIndex > 0) {
+            prevItem = filteredGallery[currentIndex - 1];
+        } else {
+            prevItem = filteredGallery[filteredGallery.length - 1];
+        }
+        changeMedia(prevItem);
+    };
+
+    const handleNextMedia = () => {
+        if (!selectedMedia || filteredGallery.length === 0) return;
+        const currentIndex = filteredGallery.findIndex(item => item.url === selectedMedia.url);
+        let nextItem;
+        if (currentIndex < filteredGallery.length - 1) {
+            nextItem = filteredGallery[currentIndex + 1];
+        } else {
+            nextItem = filteredGallery[0];
+        }
+        changeMedia(nextItem);
+    };
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        touchStartRef.current = e.touches[0].clientX;
+    };
+
+    const handleTouchEnd = (e: React.TouchEvent) => {
+        if (touchStartRef.current === null) return;
+        const touchEndX = e.changedTouches[0].clientX;
+        const diff = touchStartRef.current - touchEndX;
+
+        if (diff > 50) {
+            handleNextMedia();
+        } else if (diff < -50) {
+            handlePrevMedia();
+        }
+        touchStartRef.current = null;
     };
 
     useBackButton(!!selectedMedia, () => closeMedia());
@@ -58,12 +143,20 @@ export const EventGallery: React.FC = () => {
         };
     }, [selectedMedia]);
 
-    if (!gallery || gallery.length === 0) return null;
-
-    const filteredGallery = gallery.filter(item => {
-        if (activeTab === 'all') return true;
-        return item.type === activeTab;
-    });
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!selectedMedia) return;
+            if (e.key === 'ArrowLeft') {
+                handlePrevMedia();
+            } else if (e.key === 'ArrowRight') {
+                handleNextMedia();
+            } else if (e.key === 'Escape') {
+                closeMedia();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [selectedMedia, filteredGallery]);
 
     const getYoutubeId = (url: string) => {
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -165,6 +258,8 @@ export const EventGallery: React.FC = () => {
                     selectedMedia ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                 }`}
                 onClick={closeMedia}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
             >
                 {selectedMedia && (
                     <>
@@ -176,6 +271,30 @@ export const EventGallery: React.FC = () => {
                             className="absolute top-6 right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[210]"
                         >
                             <X size={32} />
+                        </button>
+
+                        {/* Prev Button */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handlePrevMedia();
+                            }}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2 bg-black/40 hover:bg-black/60 rounded-full transition-colors z-[210] hidden md:block"
+                            title="Previous"
+                        >
+                            <ChevronLeft size={36} />
+                        </button>
+
+                        {/* Next Button */}
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleNextMedia();
+                            }}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2 bg-black/40 hover:bg-black/60 rounded-full transition-colors z-[210] hidden md:block"
+                            title="Next"
+                        >
+                            <ChevronRight size={36} />
                         </button>
 
                         <div className="relative max-w-4xl w-full max-h-[85vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>

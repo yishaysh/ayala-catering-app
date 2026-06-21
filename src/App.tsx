@@ -3,7 +3,7 @@ import { MenuGrid } from './components/MenuGrid';
 import { HostHelper } from './components/HostHelper';
 import { CartDrawer } from './components/CartDrawer';
 import { Category } from './types';
-import { ShoppingBag, Phone, Globe, Lock, X, Loader2, Award } from 'lucide-react';
+import { ShoppingBag, Phone, Globe, Lock, X, Loader2, Award, Menu } from 'lucide-react';
 import { useStore, translations } from './store';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AIConcierge } from './components/AIConcierge';
@@ -13,7 +13,8 @@ import { EventGallery } from './components/EventGallery';
 import { ReviewsSection } from './components/ReviewsSection';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts', 'Picnic Baskets'];
-const LOGO_SRC = "/logo_text.png";
+const NAV_LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png";
+const BRAND_LOGO_SRC = "/logo_text.png";
 const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || '2024';
 
 export default function App() {
@@ -70,10 +71,37 @@ export default function App() {
     }
   };
 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  useBackButton(isMenuOpen, () => setIsMenuOpen(false));
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+        const headerHeight = 72; 
+        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+        window.scrollTo({
+            top: elementPosition - headerHeight,
+            behavior: 'smooth'
+        });
+        setIsMenuOpen(false);
+    }
+  };
+
   const isHeaderDark = (() => {
     if (!theme?.header_bg_color) return true;
     const hex = theme.header_bg_color.replace('#', '');
     if (hex.length !== 6) return true;
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness < 128;
+  })();
+
+  const isCardBgDark = (() => {
+    if (!theme?.card_bg_color) return false;
+    const hex = theme.card_bg_color.replace('#', '');
+    if (hex.length !== 6) return false;
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
@@ -90,26 +118,22 @@ export default function App() {
       <ThemeStyles />
       
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-themeHeaderBg text-themeHeaderTxt shadow-lg border-b border-themeHeaderBg/10 h-[72px] overflow-hidden relative">
-        {/* Background Seal Watermark */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
-            <div 
-                className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] bg-center bg-no-repeat bg-contain opacity-[0.06] ${
-                    isHeaderDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
-                }`}
-                style={{ backgroundImage: 'url("/seal_stamp.png")' }}
-            />
-        </div>
-
+      <header className="sticky top-0 z-50 bg-themeHeaderBg text-themeHeaderTxt shadow-lg border-b border-themeHeaderBg/10 h-[72px]">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center h-full relative z-10">
             <div className="flex items-center gap-4">
+                {/* Hamburger Menu Button */}
+                <button 
+                    onClick={() => setIsMenuOpen(true)}
+                    className="p-2 text-themeHeaderTxt/80 hover:text-themePrimary transition-colors"
+                    title="Menu"
+                >
+                    <Menu size={24} />
+                </button>
                 <div className="flex flex-col items-start justify-center">
                     <img 
-                        src={LOGO_SRC} 
+                        src={NAV_LOGO_SRC} 
                         alt="Ayala Logo" 
-                        className={`h-9 w-auto object-contain ${
-                            isHeaderDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
-                        }`}
+                        className="h-9 w-auto object-contain"
                     />
                     <a href="tel:0547474764" className="text-[9px] sm:text-[10px] text-themeHeaderTxt/90 font-bold hover:text-themePrimary transition-colors leading-none mt-0.5">
                         054-747-4764
@@ -172,6 +196,29 @@ export default function App() {
       </header>
 
       <main className="container mx-auto px-4 mt-6 relative z-20">
+        {/* Brand Banner Section with big Logo and Seal Watermark */}
+        <div className="relative w-full py-12 md:py-16 flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-themeCardBg border border-themeText/5 shadow-sm mb-6">
+            {/* Background Seal Watermark */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+                <div 
+                    className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] md:w-[420px] md:h-[420px] bg-center bg-no-repeat bg-contain opacity-[0.06] ${
+                        isCardBgDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
+                    }`}
+                    style={{ backgroundImage: 'url("/seal_stamp.png")' }}
+                />
+            </div>
+
+            {/* Brand Logo */}
+            <div className="relative z-10 flex flex-col items-center">
+                <img 
+                    src={BRAND_LOGO_SRC} 
+                    alt="Ayala Simply Delicious" 
+                    className={`h-20 md:h-28 w-auto object-contain ${
+                        isCardBgDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
+                    }`}
+                />
+            </div>
+        </div>
         
         {featureFlags?.showCalculator && <HostHelper />}
         {featureFlags?.showAI && <AIConcierge />}
@@ -233,23 +280,36 @@ export default function App() {
                     <div className="w-16 h-1 bg-themePrimary mx-auto mb-8 rounded-full"></div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-                        <div className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 flex flex-col items-center">
-                            <Phone className="text-themePrimary mb-3" size={24} />
+                        <a 
+                            href="tel:0547474764" 
+                            className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
+                        >
+                            <Phone className="text-themePrimary mb-3 transition-transform group-hover:scale-110" size={24} />
                             <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'טלפון' : 'Phone'}</h4>
-                            <a href="tel:0547474764" className="text-themeText/80 text-sm font-semibold hover:text-themePrimary transition-colors">054-747-4764</a>
-                        </div>
-                        <div className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 flex flex-col items-center">
-                            <svg className="w-6 h-6 text-themePrimary mb-3" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <span className="text-themeText/80 text-sm font-semibold group-hover:text-themePrimary transition-colors">054-747-4764</span>
+                        </a>
+                        <a 
+                            href="https://wa.me/972547474764" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
+                        >
+                            <svg className="w-6 h-6 text-themePrimary mb-3 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.247 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.52 5.242 1.521 5.46.002 9.897-4.437 9.9-9.899.001-2.646-1.03-5.132-2.903-7.006-1.874-1.873-4.361-2.903-7.01-2.903-5.464 0-9.903 4.438-9.907 9.899-.001 2.126.579 4.197 1.681 5.897l-.999 3.648 3.796-.997zm10.963-7.935c-.299-.149-1.77-.874-2.043-.974-.275-.102-.475-.149-.675.149-.199.299-.775.974-.95 1.173-.175.199-.349.224-.648.075-.3-.149-1.266-.467-2.41-1.487-.89-.794-1.49-1.775-1.665-2.074-.175-.299-.019-.462.13-.611.135-.133.3-.349.45-.523.149-.174.199-.299.299-.498.1-.2.05-.374-.025-.523-.075-.149-.675-1.62-.925-2.224-.244-.595-.493-.513-.675-.523-.175-.008-.374-.01-.573-.01-.199 0-.523.075-.798.374-.275.299-1.047 1.022-1.047 2.491 0 1.469 1.073 2.887 1.222 3.087.149.199 2.11 3.223 5.112 4.521.714.308 1.272.493 1.706.63.717.228 1.37.195 1.887.118.577-.087 1.77-.723 2.02-1.419.249-.696.249-1.293.175-1.419-.075-.126-.275-.2-.574-.349z"></path>
                             </svg>
                             <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'וואטסאפ' : 'WhatsApp'}</h4>
-                            <a href="https://wa.me/972547474764" target="_blank" rel="noopener noreferrer" className="text-themeText/80 text-sm font-semibold hover:text-themePrimary transition-colors">{language === 'he' ? 'שלחו הודעה' : 'Send Message'}</a>
-                        </div>
-                        <div className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 flex flex-col items-center">
-                            <Globe className="text-themePrimary mb-3" size={24} />
+                            <span className="text-themeText/80 text-sm font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'שלחו הודעה' : 'Send Message'}</span>
+                        </a>
+                        <a 
+                            href="https://maps.google.com/?q=קדומיים" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
+                        >
+                            <Globe className="text-themePrimary mb-3 transition-transform group-hover:scale-110" size={24} />
                             <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'מיקום' : 'Location'}</h4>
-                            <span className="text-themeText/80 text-sm font-semibold">{language === 'he' ? 'מקדומים' : 'Kedumim'}</span>
-                        </div>
+                            <span className="text-themeText/80 text-sm font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'מקדומים' : 'Kedumim'}</span>
+                        </a>
                     </div>
                 </section>
             </>
@@ -280,6 +340,59 @@ export default function App() {
       </div>
 
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+
+      {/* Side Menu Drawer */}
+      <div 
+        className={`fixed inset-0 z-[150] bg-stone-900/60 backdrop-blur-sm transition-opacity duration-300 ${
+            isMenuOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setIsMenuOpen(false)}
+      >
+          <div 
+            className={`fixed top-0 right-0 h-full w-[280px] max-w-[80vw] bg-themeCardBg text-themeText shadow-2xl z-[160] flex flex-col p-6 transition-transform duration-300 transform ${
+                isMenuOpen ? 'translate-x-0' : 'translate-x-full'
+            }`}
+            onClick={e => e.stopPropagation()}
+            dir={language === 'he' ? 'rtl' : 'ltr'}
+          >
+              <div className="flex justify-between items-center mb-8 border-b border-themeText/10 pb-4">
+                  <span className="font-serif font-bold text-lg text-themePrimary">{language === 'he' ? 'ניווט באתר' : 'Navigation'}</span>
+                  <button 
+                    onClick={() => setIsMenuOpen(false)}
+                    className="p-1.5 hover:bg-themeText/5 rounded-full transition-colors text-themeText/70 hover:text-themeText"
+                  >
+                      <X size={20} />
+                  </button>
+              </div>
+
+              <nav className="flex flex-col gap-4 text-start font-serif">
+                  <button 
+                    onClick={() => scrollToSection('gallery-section')}
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-themePrimary/15 hover:text-themePrimary font-bold text-base transition-all duration-200 text-start"
+                  >
+                      <span>{language === 'he' ? 'גלריה' : 'Gallery'}</span>
+                  </button>
+                  <button 
+                    onClick={() => scrollToSection('about-section')}
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-themePrimary/15 hover:text-themePrimary font-bold text-base transition-all duration-200 text-start"
+                  >
+                      <span>{language === 'he' ? 'הסיפור שלנו' : 'Our Story'}</span>
+                  </button>
+                  <button 
+                    onClick={() => scrollToSection('reviews-section')}
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-themePrimary/15 hover:text-themePrimary font-bold text-base transition-all duration-200 text-start"
+                  >
+                      <span>{language === 'he' ? 'חוות דעת' : 'Reviews'}</span>
+                  </button>
+                  <button 
+                    onClick={() => scrollToSection('contact-section')}
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-themePrimary/15 hover:text-themePrimary font-bold text-base transition-all duration-200 text-start"
+                  >
+                      <span>{language === 'he' ? 'צור קשר' : 'Contact Us'}</span>
+                  </button>
+              </nav>
+          </div>
+      </div>
 
       {isKosherOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-zoom-in" onClick={() => setIsKosherOpen(false)}>
