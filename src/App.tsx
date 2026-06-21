@@ -3,7 +3,7 @@ import { MenuGrid } from './components/MenuGrid';
 import { HostHelper } from './components/HostHelper';
 import { CartDrawer } from './components/CartDrawer';
 import { Category } from './types';
-import { ShoppingBag, Phone, Globe, Lock, X, Loader2, Award, Menu } from 'lucide-react';
+import { ShoppingBag, Phone, Globe, Lock, X, Loader2, Award, Menu, MapPin } from 'lucide-react';
 import { useStore, translations } from './store';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AIConcierge } from './components/AIConcierge';
@@ -26,9 +26,11 @@ export default function App() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [loginError, setLoginError] = useState(false);
+  const [isMapSelectionOpen, setIsMapSelectionOpen] = useState(false);
 
   useBackButton(isLoginOpen, () => setIsLoginOpen(false));
   useBackButton(isKosherOpen, () => setIsKosherOpen(false));
+  useBackButton(isMapSelectionOpen, () => setIsMapSelectionOpen(false));
 
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const t = translations[language];
@@ -282,42 +284,40 @@ export default function App() {
                     <p className="text-xs text-themeText/60 tracking-wider uppercase mb-6">{language === 'he' ? 'נשמח לקחת חלק באירוע שלכם' : 'We would love to take part in your event'}</p>
                     <div className="w-16 h-1 bg-themePrimary mx-auto mb-8 rounded-full"></div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6 max-w-5xl mx-auto">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6 max-w-5xl mx-auto">
                         <a 
                             href="tel:0547474764" 
-                            className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
+                            className="bg-themeBg/40 p-5 md:p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
                         >
                             <Phone className="text-themePrimary mb-3 transition-transform group-hover:scale-110" size={24} />
                             <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'טלפון' : 'Phone'}</h4>
-                            <span className="text-themeText/80 text-xs font-semibold group-hover:text-themePrimary transition-colors">054-747-4764</span>
+                            <span className="text-themeText/80 text-[10px] md:text-xs font-semibold group-hover:text-themePrimary transition-colors">054-747-4764</span>
                         </a>
                         <a 
                             href="https://wa.me/972547474764" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
+                            className="bg-themeBg/40 p-5 md:p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
                         >
                             <svg className="w-6 h-6 text-themePrimary mb-3 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.247 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.52 5.242 1.521 5.46.002 9.897-4.437 9.9-9.899.001-2.646-1.03-5.132-2.903-7.006-1.874-1.873-4.361-2.903-7.01-2.903-5.464 0-9.903 4.438-9.907 9.899-.001 2.126.579 4.197 1.681 5.897l-.999 3.648 3.796-.997zm10.963-7.935c-.299-.149-1.77-.874-2.043-.974-.275-.102-.475-.149-.675.149-.199.299-.775.974-.95 1.173-.175.199-.349.224-.648.075-.3-.149-1.266-.467-2.41-1.487-.89-.794-1.49-1.775-1.665-2.074-.175-.299-.019-.462.13-.611.135-.133.3-.349.45-.523.149-.174.199-.299.299-.498.1-.2.05-.374-.025-.523-.075-.149-.675-1.62-.925-2.224-.244-.595-.493-.513-.675-.523-.175-.008-.374-.01-.573-.01-.199 0-.523.075-.798.374-.275.299-1.047 1.022-1.047 2.491 0 1.469 1.073 2.887 1.222 3.087.149.199 2.11 3.223 5.112 4.521.714.308 1.272.493 1.706.63.717.228 1.37.195 1.887.118.577-.087 1.77-.723 2.02-1.419.249-.696.249-1.293.175-1.419-.075-.126-.275-.2-.574-.349z"></path>
                             </svg>
                             <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'וואטסאפ' : 'WhatsApp'}</h4>
-                            <span className="text-themeText/80 text-xs font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'שלחו הודעה' : 'Send Message'}</span>
+                            <span className="text-themeText/80 text-[10px] md:text-xs font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'שלחו הודעה' : 'Send Message'}</span>
                         </a>
-                        <a 
-                            href="https://maps.google.com/?q=קדומיים" 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
+                        <button 
+                            onClick={() => setIsMapSelectionOpen(true)}
+                            className="bg-themeBg/40 p-5 md:p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
                         >
-                            <Globe className="text-themePrimary mb-3 transition-transform group-hover:scale-110" size={24} />
+                            <MapPin className="text-themePrimary mb-3 transition-transform group-hover:scale-110" size={24} />
                             <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'מיקום' : 'Location'}</h4>
-                            <span className="text-themeText/80 text-xs font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'מקדומים' : 'Kedumim'}</span>
-                        </a>
+                            <span className="text-themeText/80 text-[10px] md:text-xs font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'מקדומים' : 'Kedumim'}</span>
+                        </button>
                         <a 
                             href="https://www.instagram.com/ayala_pashutaim/" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
+                            className="bg-themeBg/40 p-5 md:p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
                         >
                             <svg className="w-6 h-6 text-themePrimary mb-3 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
@@ -325,19 +325,19 @@ export default function App() {
                                 <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
                             </svg>
                             <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'אינסטגרם' : 'Instagram'}</h4>
-                            <span className="text-themeText/80 text-xs font-semibold group-hover:text-themePrimary transition-colors">@ayala_pashutaim</span>
+                            <span className="text-themeText/80 text-[10px] md:text-xs font-semibold group-hover:text-themePrimary transition-colors">@ayala_pashutaim</span>
                         </a>
                         <a 
                             href="https://www.facebook.com/share/1EkU7G5BDA/" 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="bg-themeBg/40 p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02]"
+                            className="bg-themeBg/40 p-5 md:p-6 rounded-xl border border-themeText/5 hover:border-themePrimary/40 hover:shadow-md transition-all duration-300 flex flex-col items-center cursor-pointer group hover:scale-[1.02] col-span-2 md:col-span-1"
                         >
                             <svg className="w-6 h-6 text-themePrimary mb-3 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"></path>
                             </svg>
                             <h4 className="font-bold text-themeText text-sm mb-1">{language === 'he' ? 'פייסבוק' : 'Facebook'}</h4>
-                            <span className="text-themeText/80 text-xs font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'איילה פשוט טעים' : 'Ayala Simply Delicious'}</span>
+                            <span className="text-themeText/80 text-[10px] md:text-xs font-semibold group-hover:text-themePrimary transition-colors">{language === 'he' ? 'איילה פשוט טעים' : 'Ayala Simply Delicious'}</span>
                         </a>
                     </div>
                 </section>
@@ -491,6 +491,64 @@ export default function App() {
                           <span>כניסה</span>
                       </button>
                   </form>
+              </div>
+          </div>
+      )}
+
+      {isMapSelectionOpen && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-zoom-in" onClick={() => setIsMapSelectionOpen(false)}>
+              <div className="bg-themeCardBg text-themeText rounded-2xl p-6 md:p-8 w-full max-w-sm shadow-2xl relative border border-themeText/10 text-center" onClick={e => e.stopPropagation()}>
+                  <button 
+                    onClick={() => setIsMapSelectionOpen(false)}
+                    className="absolute top-4 right-4 text-themeText/70 hover:text-themeText hover:bg-themeText/5 p-1.5 rounded-full"
+                  >
+                      <X size={16} />
+                  </button>
+                  <div className="text-center mb-6">
+                      <div className="inline-flex items-center justify-center w-12 h-12 bg-themePrimary/10 rounded-full mb-3 text-themePrimary">
+                          <MapPin size={24} />
+                      </div>
+                      <h3 className="text-xl font-serif font-bold text-themeText">{language === 'he' ? 'בחר אפליקציית ניווט' : 'Choose Navigation App'}</h3>
+                      <p className="text-xs text-themeText/60 mt-1">{language === 'he' ? 'איסוף עצמי מקדומים' : 'Self-pickup from Kedumim'}</p>
+                  </div>
+                  
+                  <div className="flex flex-col gap-3">
+                      <a 
+                        href="https://waze.com/ul?q=קדומים&navigate=yes" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3.5 bg-themeBg/50 hover:bg-themePrimary/10 hover:text-themePrimary rounded-xl border border-themeText/10 transition-all font-bold text-sm cursor-pointer"
+                        onClick={() => setIsMapSelectionOpen(false)}
+                      >
+                          <svg className="w-5 h-5 text-themePrimary" viewBox="0 0 30 30" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M23.167 15.65c.552.008.983.473.964 1.037l-.004.1c-.046 1.346-.576 2.585-1.467 3.52-.907.954-2.186 1.493-3.626 1.493-.82 0-1.579-.173-2.235-.494-.654-.316-1.216-.767-1.636-1.309a4.834 4.834 0 0 1-3.87 1.803c-1.411 0-2.673-.526-3.585-1.458-.89-.91-1.457-2.155-1.545-3.541l-.007-.156c-.019-.564.412-1.03.964-1.038.552-.008.984.472.964 1.036l-.003.078c.057.868.423 1.632.998 2.22.576.589 1.353.923 2.213.923s1.637-.334 2.214-.923l.115-.125c.34-.397.77-.706 1.258-.894a4.834 4.834 0 0 1 2.274-1.393V11.233c-.702.08-1.365.342-1.929.743-.564.4-.993.945-1.229 1.578a1 1 0 0 1-1.873-.687c.36-.967 1.026-1.802 1.89-2.416.865-.615 1.898-1.002 3.013-1.12l.128-.01v-.954c0-.552.448-1 1-1s1 .448 1 1v.961c1.173.132 2.257.545 3.155 1.18.897.636 1.583 1.503 1.942 2.502a1 1 0 0 1-1.884.673c-.237-.665-.694-1.235-1.298-1.657-.604-.422-1.312-.687-2.062-.759v6.52c.866.242 1.62.775 2.115 1.488.232.336.398.723.479 1.139.576-.589 1.353-.923 2.213-.923s1.637.334 2.214.923l.114.125a1 1 0 0 1-.115 1.415c-.34.397-.77.706-1.258.894a4.834 4.834 0 0 1-2.274 1.393c.42.542.982.993 1.636 1.31.656.32 1.416.494 2.235.494 1.44 0 2.719-.539 3.626-1.493.89-.935 1.421-2.174 1.467-3.52l.004-.1c.019-.564.45-.992 1.002-.992zm-5.667-2.183c0-.828.672-1.5 1.5-1.5s1.5.672 1.5 1.5-.672 1.5-1.5 1.5-1.5-.672-1.5-1.5zm-5 0c0-.828.672-1.5 1.5-1.5s1.5.672 1.5 1.5-.672 1.5-1.5 1.5-1.5-.672-1.5-1.5z"></path>
+                          </svg>
+                          <span>Waze</span>
+                      </a>
+                      <a 
+                        href="https://www.google.com/maps/search/?api=1&query=קדומים" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3.5 bg-themeBg/50 hover:bg-themePrimary/10 hover:text-themePrimary rounded-xl border border-themeText/10 transition-all font-bold text-sm cursor-pointer"
+                        onClick={() => setIsMapSelectionOpen(false)}
+                      >
+                          <MapPin size={20} className="text-themePrimary" />
+                          <span>Google Maps</span>
+                      </a>
+                      <a 
+                        href="https://maps.apple.com/?q=קדומים" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3.5 bg-themeBg/50 hover:bg-themePrimary/10 hover:text-themePrimary rounded-xl border border-themeText/10 transition-all font-bold text-sm cursor-pointer"
+                        onClick={() => setIsMapSelectionOpen(false)}
+                      >
+                          <svg className="w-5 h-5 text-themePrimary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" xmlns="http://www.w3.org/2000/svg">
+                              <circle cx="12" cy="12" r="10"></circle>
+                              <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+                          </svg>
+                          <span>Apple Maps</span>
+                      </a>
+                  </div>
               </div>
           </div>
       )}
