@@ -33,42 +33,42 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
     const iconMap = {
         success: <CheckCircle2 className="text-green-500" size={32} />,
         error: <AlertCircle className="text-red-500" size={32} />,
-        warning: <AlertCircle className="text-gold-500" size={32} />,
-        info: <Info className="text-stone-500" size={32} />
+        warning: <AlertCircle className="text-themePrimary" size={32} />,
+        info: <Info className="text-themePrimary" size={32} />
     };
 
     // Color Styles for Primary Button
     const buttonStyles = {
         success: 'bg-green-600 hover:bg-green-700 text-white',
         error: 'bg-red-600 hover:bg-red-700 text-white',
-        warning: 'bg-gold-500 hover:bg-gold-600 text-stone-900',
-        info: 'bg-stone-900 hover:bg-stone-800 text-white'
+        warning: 'bg-themePrimary text-themeHeaderBg hover:opacity-90',
+        info: 'bg-themePrimary text-themeHeaderBg hover:opacity-90'
     };
 
     return (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 font-sans" dir="rtl">
             {/* Backdrop */}
             <div 
-                className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm animate-fade-in"
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
                 onClick={onClose}
             ></div>
 
             {/* Modal Card */}
-            <div className="relative bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 border border-stone-100 animate-zoom-in flex flex-col items-center text-center">
+            <div className="relative bg-themeCardBg text-themeText w-full max-w-sm rounded-2xl shadow-2xl p-6 border border-themeText/10 animate-zoom-in flex flex-col items-center text-center">
                 
                 <button 
                     onClick={onClose} 
-                    className="absolute top-4 left-4 text-stone-400 hover:text-stone-900 transition-colors"
+                    className="absolute top-4 left-4 text-themeText/60 hover:text-themeText transition-colors"
                 >
                     <X size={20} />
                 </button>
 
-                <div className="mb-4 bg-stone-50 p-3 rounded-full border border-stone-100">
+                <div className="mb-4 bg-themeBg/50 p-3 rounded-full border border-themeText/10">
                     {iconMap[type]}
                 </div>
 
-                <h3 className="text-xl font-serif font-bold text-stone-900 mb-2">{title}</h3>
-                <p className="text-stone-500 text-sm mb-8 leading-relaxed px-4">
+                <h3 className="text-xl font-serif font-bold text-themeText mb-2">{title}</h3>
+                <p className="text-themeText/65 text-sm mb-8 leading-relaxed px-4">
                     {message}
                 </p>
 
@@ -76,7 +76,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
                     {isConfirm && (
                         <button
                             onClick={onClose}
-                            className="flex-1 py-3 rounded-xl font-bold bg-stone-100 text-stone-600 hover:bg-stone-200 transition-colors"
+                            className="flex-1 py-3 rounded-xl font-bold bg-themeBg text-themeText/70 border border-themeText/10 hover:opacity-90 transition-colors"
                         >
                             {cancelText}
                         </button>

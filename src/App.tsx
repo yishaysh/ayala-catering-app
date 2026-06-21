@@ -129,7 +129,12 @@ export default function App() {
   })();
 
   if (isAdmin) {
-      return <AdminDashboard onExit={() => setIsAdmin(false)} />;
+      return (
+          <>
+              <ThemeStyles />
+              <AdminDashboard onExit={() => setIsAdmin(false)} />
+          </>
+      );
   }
 
   return (
@@ -419,23 +424,23 @@ export default function App() {
       </div>
 
       {isKosherOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-zoom-in" onClick={() => setIsKosherOpen(false)}>
-              <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-2xl relative text-center" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-zoom-in" onClick={() => setIsKosherOpen(false)}>
+              <div className="bg-themeCardBg text-themeText border border-themeText/10 rounded-2xl p-8 w-full max-w-lg shadow-2xl relative text-center" onClick={e => e.stopPropagation()}>
                   <button 
                     onClick={() => setIsKosherOpen(false)}
-                    className="absolute top-4 right-4 text-stone-400 hover:text-stone-900 bg-stone-100 p-1.5 rounded-full"
+                    className="absolute top-4 right-4 text-themeText/60 hover:text-themeText bg-themeBg/50 hover:bg-themeBg/85 p-1.5 rounded-full"
                   >
                       <X size={16} />
                   </button>
-                  <Award size={48} className="text-gold-500 mx-auto mb-2" />
-                  <h3 className="text-xl font-serif font-bold text-stone-900 mb-1">{language === 'he' ? 'תעודת כשרות' : 'Kosher Certificate'}</h3>
-                  <p className="text-xs text-stone-500 mb-4">{language === 'he' ? 'קייטרינג חלבי כשר למהדרין' : 'Kosher Mehadrin Dairy Catering'}</p>
+                  <Award size={48} className="text-themePrimary mx-auto mb-2" />
+                  <h3 className="text-xl font-serif font-bold text-themeText mb-1">{language === 'he' ? 'תעודת כשרות' : 'Kosher Certificate'}</h3>
+                  <p className="text-xs text-themeText/60 mb-4">{language === 'he' ? 'קייטרינג חלבי כשר למהדרין' : 'Kosher Mehadrin Dairy Catering'}</p>
                   
-                  <div className="border border-stone-200 rounded-xl overflow-hidden bg-stone-50 aspect-[3/4] flex items-center justify-center">
+                  <div className="border border-themeText/10 rounded-xl overflow-hidden bg-themeBg/30 aspect-[3/4] flex items-center justify-center">
                       {kosherCertUrl ? (
                           <img src={kosherCertUrl} alt="Kosher Certificate" className="w-full h-full object-contain" />
                       ) : (
-                          <div className="p-4 text-stone-400">
+                          <div className="p-4 text-themeText/40">
                               <Award size={64} className="mx-auto mb-2 opacity-25" />
                               <p className="text-sm font-bold">{language === 'he' ? 'כשר למהדרין' : 'Kosher Mehadrin'}</p>
                               <p className="text-[10px] mt-1">{language === 'he' ? 'התעודה תוצג כאן בקרוב' : 'Certificate will be uploaded soon'}</p>
@@ -447,21 +452,21 @@ export default function App() {
       )}
 
       {isLoginOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/90 backdrop-blur-sm animate-zoom-in">
-              <div className="bg-white rounded-2xl p-8 w-full max-w-sm shadow-2xl relative">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-zoom-in">
+              <div className="bg-themeCardBg text-themeText border border-themeText/10 rounded-2xl p-8 w-full max-w-sm shadow-2xl relative">
                   <button 
                     onClick={() => { setIsLoginOpen(false); setPin(''); setLoginError(false); }}
-                    className="absolute top-4 right-4 text-stone-400 hover:text-stone-900"
+                    className="absolute top-4 right-4 text-themeText/60 hover:text-themeText bg-themeBg/50 hover:bg-themeBg/85 p-1.5 rounded-full"
                   >
-                      <X />
+                      <X size={18} />
                   </button>
                   
                   <div className="text-center mb-6">
-                      <div className="inline-flex items-center justify-center w-16 h-16 bg-stone-100 rounded-full mb-4 text-stone-900">
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-themePrimary/10 rounded-full mb-4 text-themePrimary">
                           <Lock size={32} />
                       </div>
-                      <h2 className="text-2xl font-serif font-bold text-stone-900">כניסת מנהל</h2>
-                      <p className="text-sm text-stone-500">נא להזין קוד גישה</p>
+                      <h2 className="text-2xl font-serif font-bold text-themeText">כניסת מנהל</h2>
+                      <p className="text-sm text-themeText/60">נא להזין קוד גישה</p>
                   </div>
 
                   <form onSubmit={handleAdminLogin}>
@@ -470,8 +475,8 @@ export default function App() {
                         value={pin}
                         onChange={(e) => { setPin(e.target.value); setLoginError(false); }}
                         className={`
-                            w-full text-center text-3xl tracking-widest font-bold border-b-2 py-2 mb-6 focus:outline-none transition-colors
-                            ${loginError ? 'border-red-500 text-red-500' : 'border-stone-200 focus:border-gold-500 text-stone-900'}
+                            w-full text-center text-3xl tracking-widest font-bold border-b-2 py-2 mb-6 focus:outline-none transition-colors bg-transparent
+                            ${loginError ? 'border-red-500 text-red-500' : 'border-themeText/20 focus:border-themePrimary text-themeText'}
                         `}
                         placeholder="••••"
                         maxLength={4}
@@ -481,7 +486,7 @@ export default function App() {
                       
                       <button 
                         type="submit"
-                        className="w-full bg-stone-900 text-gold-500 font-bold py-3 rounded-xl hover:bg-stone-800 transition flex items-center justify-center gap-2"
+                        className="w-full bg-themePrimary text-themeHeaderBg font-bold py-3 rounded-xl hover:opacity-90 transition flex items-center justify-center gap-2"
                       >
                           <span>כניסה</span>
                       </button>

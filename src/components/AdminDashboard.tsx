@@ -706,7 +706,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     {showOrders ? <ChevronUp /> : <ChevronDown />}
                 </button>
                 {showOrders && (
-                    <div className="p-6 bg-stone-50 animate-slide-in-top space-y-6">
+                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top space-y-6">
                         {loadingOrders ? (
                             <div className="flex justify-center py-8">
                                 <Loader2 className="animate-spin text-gold-500" size={32} />
@@ -718,10 +718,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     const partialId = order.id ? order.id.slice(0, 8) : 'NEW';
                                     
                                     const statusColors: Record<string, string> = {
-                                        pending: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-                                        approved: 'bg-blue-100 text-blue-800 border-blue-200',
-                                        completed: 'bg-green-100 text-green-800 border-green-200',
-                                        cancelled: 'bg-red-100 text-red-800 border-red-200'
+                                        pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/25',
+                                        approved: 'bg-blue-500/10 text-blue-500 border-blue-500/25',
+                                        completed: 'bg-green-500/10 text-green-500 border-green-500/25',
+                                        cancelled: 'bg-red-500/10 text-red-500 border-red-500/25'
                                     };
                                     
                                     const statusLabel: Record<string, string> = {
@@ -732,54 +732,54 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     };
 
                                     return (
-                                        <div key={order.id} className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm space-y-4 hover:border-gold-500/20 transition-all">
+                                        <div key={order.id} className="bg-themeCardBg p-5 rounded-xl border border-themeText/10 shadow-sm space-y-4 hover:border-themePrimary/20 transition-all">
                                             {/* Order Card Header */}
-                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-stone-100 pb-3">
+                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-themeText/10 pb-3">
                                                 <div>
                                                     <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-bold text-stone-900">#{partialId}</span>
-                                                        <span className="text-xs text-stone-500 flex items-center gap-1"><Calendar size={12} /> {dateStr}</span>
+                                                        <span className="text-sm font-bold text-themeText">#{partialId}</span>
+                                                        <span className="text-xs text-themeText/60 flex items-center gap-1"><Calendar size={12} /> {dateStr}</span>
                                                     </div>
-                                                    <div className="text-xs font-bold text-stone-700 mt-1">
+                                                    <div className="text-xs font-bold text-themeText/80 mt-1">
                                                         👤 {order.customer_name} | 📞 {order.customer_phone}
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusColors[order.status] || 'bg-stone-100 text-stone-800 border-stone-200'}`}>
+                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusColors[order.status] || 'bg-themeBg text-themeText/80 border-themeText/10'}`}>
                                                         {statusLabel[order.status] || order.status}
                                                     </span>
-                                                    <span className="text-lg font-bold text-stone-900 font-serif">₪{order.total_price}</span>
+                                                    <span className="text-lg font-bold text-themeText font-serif">₪{order.total_price}</span>
                                                 </div>
                                             </div>
 
                                             {/* Order Items */}
                                             <div className="space-y-2">
                                                 {((order.items as any) || []).map((item: any, idx: number) => (
-                                                    <div key={idx} className="text-xs text-stone-600 flex justify-between">
+                                                    <div key={idx} className="text-xs text-themeText/70 flex justify-between">
                                                         <div>
-                                                            <span className="font-bold text-stone-800">{item.quantity}x</span> {language === 'he' ? item.name : (item.name_en || item.name)}
+                                                            <span className="font-bold text-themeText/90">{item.quantity}x</span> {language === 'he' ? item.name : (item.name_en || item.name)}
                                                             {item.selected_modifications && item.selected_modifications.length > 0 && (
-                                                                <span className="text-stone-400 block text-[10px] pl-4">
+                                                                <span className="text-themeText/40 block text-[10px] pl-4">
                                                                     ↳ {item.selected_modifications.join(', ')}
                                                                 </span>
                                                             )}
                                                             {item.notes && (
-                                                                <span className="text-stone-400 italic block text-[10px] pl-4">
+                                                                <span className="text-themeText/40 italic block text-[10px] pl-4">
                                                                     ↳ "{item.notes}"
                                                                 </span>
                                                             )}
                                                         </div>
-                                                        <span className="font-medium text-stone-700">₪{item.price * item.quantity}</span>
+                                                        <span className="font-medium text-themeText/85">₪{item.price * item.quantity}</span>
                                                     </div>
                                                 ))}
                                             </div>
 
                                             {/* Status Update Actions */}
-                                            <div className="flex flex-wrap gap-2 pt-2 border-t border-stone-100 justify-end">
+                                            <div className="flex flex-wrap gap-2 pt-2 border-t border-themeText/10 justify-end">
                                                 {order.status !== 'approved' && order.status !== 'completed' && (
                                                     <button
                                                         onClick={() => handleUpdateOrderStatus(order.id!, 'approved')}
-                                                        className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg text-xs font-bold hover:bg-blue-100 transition-colors"
+                                                        className="px-3 py-1.5 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-lg text-xs font-bold hover:bg-blue-500/20 transition-colors"
                                                     >
                                                         {language === 'he' ? 'אשר הזמנה' : 'Approve'}
                                                     </button>
@@ -787,7 +787,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                 {order.status !== 'completed' && (
                                                     <button
                                                         onClick={() => handleUpdateOrderStatus(order.id!, 'completed')}
-                                                        className="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-lg text-xs font-bold hover:bg-green-100 transition-colors"
+                                                        className="px-3 py-1.5 bg-green-500/10 text-green-500 border border-green-500/20 rounded-lg text-xs font-bold hover:bg-green-500/20 transition-colors"
                                                     >
                                                         {language === 'he' ? 'סמן כהושלם' : 'Complete'}
                                                     </button>
@@ -795,7 +795,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                 {order.status !== 'cancelled' && (
                                                     <button
                                                         onClick={() => handleUpdateOrderStatus(order.id!, 'cancelled')}
-                                                        className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition-colors"
+                                                        className="px-3 py-1.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500/20 transition-colors"
                                                     >
                                                         {language === 'he' ? 'בטל הזמנה' : 'Cancel'}
                                                     </button>
@@ -806,64 +806,64 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 })}
                             </div>
                         ) : (
-                            <p className="text-sm text-stone-400 italic py-4">{language === 'he' ? 'אין הזמנות במערכת' : 'No orders in system yet.'}</p>
+                            <p className="text-sm text-themeText/40 italic py-4">{language === 'he' ? 'אין הזמנות במערכת' : 'No orders in system yet.'}</p>
                         )}
                     </div>
                 )}
             </div>
 
             {/* Delivery Settings */}
-            <div className="bg-white p-6 rounded-lg shadow-sm border border-stone-100 mb-8 text-start relative overflow-hidden">
+            <div className="bg-themeCardBg p-6 rounded-lg shadow-sm border border-themeText/10 mb-8 text-start relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-4">
-                    <div className="p-1.5 bg-stone-100 rounded text-stone-600"><Truck size={16} /></div>
-                    <h3 className="text-sm font-bold text-stone-900 uppercase">{t.deliverySettings}</h3>
+                    <div className="p-1.5 bg-themePrimary/10 rounded text-themePrimary"><Truck size={16} /></div>
+                    <h3 className="text-sm font-bold text-themeText uppercase">{t.deliverySettings}</h3>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                     <div className="flex flex-col">
-                        <label className="text-[10px] text-stone-500 font-bold mb-1">{t.minFreeDelivery}</label>
+                        <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.minFreeDelivery}</label>
                         <div className="flex items-center gap-1">
-                            <span className="text-stone-400">₪</span>
+                            <span className="text-themeText/40">₪</span>
                             <input
                                 type="number"
                                 value={calculationSettings?.minOrderFreeDelivery || 1500}
                                 onChange={(e) => updateCalculationSettings({ minOrderFreeDelivery: Number(e.target.value) })}
-                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500"
+                                className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
                             />
                         </div>
                     </div>
                     <div className="flex flex-col">
-                        <label className="text-[10px] text-stone-500 font-bold mb-1">{t.baseDeliveryFee}</label>
+                        <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.baseDeliveryFee}</label>
                         <div className="flex items-center gap-1">
-                            <span className="text-stone-400">₪</span>
+                            <span className="text-themeText/40">₪</span>
                             <input
                                 type="number"
                                 value={appConfig.delivery_base_fee ?? 60}
                                 onChange={(e) => updateAppConfig({ delivery_base_fee: Number(e.target.value) })}
-                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500"
+                                className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
                             />
                         </div>
                     </div>
                     <div className="flex flex-col">
-                        <label className="text-[10px] text-stone-500 font-bold mb-1">{t.pricePerKm}</label>
+                        <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.pricePerKm}</label>
                         <div className="flex items-center gap-1">
-                            <span className="text-stone-400">₪</span>
+                            <span className="text-themeText/40">₪</span>
                             <input
                                 type="number"
                                 value={appConfig.delivery_price_per_km ?? 4}
                                 onChange={(e) => updateAppConfig({ delivery_price_per_km: Number(e.target.value) })}
-                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500"
+                                className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
                             />
                         </div>
                     </div>
                     <div className="flex flex-col">
-                        <label className="text-[10px] text-stone-500 font-bold mb-1">{t.includedRadius}</label>
+                        <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.includedRadius}</label>
                         <div className="flex items-center gap-1">
-                            <span className="text-stone-400">KM</span>
+                            <span className="text-themeText/40">KM</span>
                             <input
                                 type="number"
                                 value={appConfig.delivery_min_radius_included ?? 15}
                                 onChange={(e) => updateAppConfig({ delivery_min_radius_included: Number(e.target.value) })}
-                                className="w-full border-b border-stone-300 text-lg font-bold pb-1 focus:outline-none focus:border-gold-500"
+                                className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
                             />
                         </div>
                     </div>
@@ -871,88 +871,88 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             </div>
 
             {/* Coupon Manager */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
-                <button onClick={() => setShowCoupons(!showCoupons)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
-                    <div className="flex items-center gap-3"><Tag size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{t.coupons}</span></div>
+            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
+                <button onClick={() => setShowCoupons(!showCoupons)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
+                    <div className="flex items-center gap-3"><Tag size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{t.coupons}</span></div>
                     {showCoupons ? <ChevronUp /> : <ChevronDown />}
                 </button>
                 {showCoupons && (
-                    <div className="p-6 bg-stone-50 animate-slide-in-top">
-                        <div className="flex flex-col lg:flex-row gap-4 mb-6 items-end border-b border-stone-200 pb-6">
+                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top">
+                        <div className="flex flex-col lg:flex-row gap-4 mb-6 items-end border-b border-themeText/10 pb-6">
                             <div className="flex-1 w-full">
-                                <label className="block text-xs font-bold text-stone-500 mb-1">{t.couponCode}</label>
+                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.couponCode}</label>
                                 <input
                                     type="text"
                                     value={newCoupon.code}
                                     onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
-                                    className="w-full p-2 border rounded uppercase"
+                                    className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded uppercase"
                                     placeholder="SALE2024"
                                 />
                             </div>
                             <div className="flex-1 w-full">
-                                <label className="block text-xs font-bold text-stone-500 mb-1">{t.discountType}</label>
+                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.discountType}</label>
                                 <select
                                     value={newCoupon.discount_type}
                                     onChange={(e) => setNewCoupon({ ...newCoupon, discount_type: e.target.value as 'percentage' | 'fixed' })}
-                                    className="w-full p-2 border rounded bg-white"
+                                    className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded"
                                 >
                                     <option value="percentage">{t.percentage}</option>
                                     <option value="fixed">{t.fixedAmount}</option>
                                 </select>
                             </div>
                             <div className="flex-1 w-full">
-                                <label className="block text-xs font-bold text-stone-500 mb-1">{t.discountValue}</label>
+                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.discountValue}</label>
                                 <input
                                     type="number"
                                     value={newCoupon.discount_value}
                                     onChange={(e) => setNewCoupon({ ...newCoupon, discount_value: parseFloat(e.target.value) })}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded"
                                 />
                             </div>
                             <div className="flex-1 w-full">
-                                <label className="block text-xs font-bold text-stone-500 mb-1">{t.usageLimit}</label>
+                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.usageLimit}</label>
                                 <input
                                     type="number"
                                     value={newCoupon.usage_limit || ''}
                                     onChange={(e) => setNewCoupon({ ...newCoupon, usage_limit: e.target.value ? parseInt(e.target.value) : null })}
-                                    className="w-full p-2 border rounded"
+                                    className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded"
                                     placeholder={t.unlimited}
                                 />
                             </div>
                             <button
                                 onClick={handleCreateCoupon}
-                                className="bg-gold-500 text-stone-900 font-bold px-6 py-2 rounded hover:bg-gold-400 transition w-full lg:w-auto"
+                                className="bg-themePrimary text-themeHeaderBg font-bold px-6 py-2 rounded hover:opacity-90 transition w-full lg:w-auto"
                             >
                                 {t.createCoupon}
                             </button>
                         </div>
 
                         <div>
-                            <h4 className="text-sm font-bold text-stone-400 uppercase mb-3">{t.activeCoupons}</h4>
+                            <h4 className="text-sm font-bold text-themeText/40 uppercase mb-3">{t.activeCoupons}</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {coupons.map(coupon => (
-                                    <div key={coupon.code} className="bg-white p-3 rounded border border-stone-200 flex justify-between items-center shadow-sm">
+                                    <div key={coupon.code} className="bg-themeCardBg p-3 rounded border border-themeText/10 flex justify-between items-center shadow-sm">
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <span className="block font-bold text-stone-800">{coupon.code}</span>
-                                                <span className="text-[10px] bg-stone-100 px-1.5 rounded text-stone-500">
+                                                <span className="block font-bold text-themeText">{coupon.code}</span>
+                                                <span className="text-[10px] bg-themeBg px-1.5 rounded text-themeText/60 border border-themeText/10">
                                                     {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₪${coupon.discount_value}`}
                                                 </span>
                                             </div>
-                                            <div className="flex items-center gap-1 text-xs text-stone-400 mt-1">
+                                            <div className="flex items-center gap-1 text-xs text-themeText/40 mt-1">
                                                 <Users size={12} />
                                                 <span>{t.usage}: {coupon.usage_count || 0} / {coupon.usage_limit || '∞'}</span>
                                             </div>
                                         </div>
                                         <button
                                             onClick={() => handleDeleteCoupon(coupon.code)}
-                                            className="text-stone-400 hover:text-red-500 transition-colors"
+                                            className="text-themeText/40 hover:text-red-500 transition-colors"
                                         >
                                             <Trash2 size={16} />
                                         </button>
                                     </div>
                                 ))}
-                                {coupons.length === 0 && <p className="text-sm text-stone-400 italic">No coupons yet.</p>}
+                                {coupons.length === 0 && <p className="text-sm text-themeText/40 italic">No coupons yet.</p>}
                             </div>
                         </div>
                     </div>
@@ -960,30 +960,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             </div>
 
             {/* Advanced Calculator Settings */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
-                <button onClick={() => setShowAdvancedCalc(!showAdvancedCalc)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
-                    <div className="flex items-center gap-3"><Settings size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{t.advCalc}</span></div>
+            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
+                <button onClick={() => setShowAdvancedCalc(!showAdvancedCalc)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
+                    <div className="flex items-center gap-3"><Settings size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{t.advCalc}</span></div>
                     {showAdvancedCalc ? <ChevronUp /> : <ChevronDown />}
                 </button>
                 {showAdvancedCalc && (
-                    <div className="p-6 bg-stone-50 animate-slide-in-top">
-                        <div className="mb-8 border-b border-stone-200 pb-8">
-                            <h4 className="text-stone-900 font-bold mb-2 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.aiInstructions}</h4>
+                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top">
+                        <div className="mb-8 border-b border-themeText/10 pb-8">
+                            <h4 className="text-themeText font-bold mb-2 flex items-center gap-2"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{t.aiInstructions}</h4>
                             <textarea
                                 value={calculationSettings?.aiCustomInstructions || ''}
                                 onChange={(e) => updateCalculationSettings({ aiCustomInstructions: e.target.value })}
                                 placeholder={t.aiInstructionsPlaceholder}
-                                className="w-full h-32 p-3 border border-stone-300 rounded-lg focus:outline-none focus:border-gold-500 text-sm resize-none"
+                                className="w-full h-32 p-3 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg focus:outline-none focus:border-themePrimary text-sm resize-none"
                             />
                         </div>
 
                         <div>
-                            <h4 className="text-stone-900 font-bold mb-2 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{t.eventLogic}</h4>
-                            <p className="text-[11px] text-stone-500 italic mb-4 px-2">{t.eventLogicExpl}</p>
+                            <h4 className="text-themeText font-bold mb-2 flex items-center gap-2"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{t.eventLogic}</h4>
+                            <p className="text-[11px] text-themeText/60 italic mb-4 px-2">{t.eventLogicExpl}</p>
                             <div className="overflow-x-auto">
                                 <table className="w-full border-collapse">
                                     <thead>
-                                        <tr className="bg-stone-200 text-stone-600 text-[10px] uppercase">
+                                        <tr className="bg-themeHeaderBg/10 text-themeText/80 text-[10px] uppercase">
                                             <th className="p-2 text-start">{t.tableEventType}</th>
                                             <th className="p-2 text-start">{t.tableSandwiches}</th>
                                             <th className="p-2 text-start">{t.tablePastries}</th>
@@ -996,15 +996,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     </thead>
                                     <tbody>
                                         {EVENT_TYPES.map(eType => (
-                                            <tr key={eType} className="border-b border-stone-200 hover:bg-white transition-colors">
-                                                <td className="p-2 font-bold text-stone-800 text-sm capitalize">{eType === 'basic' ? rootT.basicEvent : eType === 'plus' ? rootT.plusEvent : rootT.premiumEvent}</td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.sandwiches || 0} onChange={(e) => handleEventRatioChange(eType, 'sandwiches', e.target.value)} /></td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.pastries || 0} onChange={(e) => handleEventRatioChange(eType, 'pastries', e.target.value)} /></td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.saladsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'saladsCoverage', e.target.value)} /></td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.mainsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'mainsCoverage', e.target.value)} /></td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.plattersCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'plattersCoverage', e.target.value)} /></td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.dessertsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'dessertsCoverage', e.target.value)} /></td>
-                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.dipsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'dipsCoverage', e.target.value)} /></td>
+                                            <tr key={eType} className="border-b border-themeText/10 hover:bg-themeCardBg/30 transition-colors">
+                                                <td className="p-2 font-bold text-themeText text-sm capitalize">{eType === 'basic' ? rootT.basicEvent : eType === 'plus' ? rootT.plusEvent : rootT.premiumEvent}</td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border border-themeText/20 bg-themeCardBg text-themeText rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.sandwiches || 0} onChange={(e) => handleEventRatioChange(eType, 'sandwiches', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border border-themeText/20 bg-themeCardBg text-themeText rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.pastries || 0} onChange={(e) => handleEventRatioChange(eType, 'pastries', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border border-themeText/20 bg-themeCardBg text-themeText rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.saladsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'saladsCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border border-themeText/20 bg-themeCardBg text-themeText rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.mainsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'mainsCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border border-themeText/20 bg-themeCardBg text-themeText rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.plattersCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'plattersCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border border-themeText/20 bg-themeCardBg text-themeText rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.dessertsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'dessertsCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border border-themeText/20 bg-themeCardBg text-themeText rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.dipsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'dipsCoverage', e.target.value)} /></td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -1016,28 +1016,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             </div>
 
             {/* Our Story Settings Customizer */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
-                <button onClick={() => setShowAboutUsSettings(!showAboutUsSettings)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
-                    <div className="flex items-center gap-3"><Award size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{language === 'he' ? 'עריכת הסיפור שלנו' : 'Edit Our Story'}</span></div>
+            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
+                <button onClick={() => setShowAboutUsSettings(!showAboutUsSettings)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
+                    <div className="flex items-center gap-3"><Award size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{language === 'he' ? 'עריכת הסיפור שלנו' : 'Edit Our Story'}</span></div>
                     {showAboutUsSettings ? <ChevronUp /> : <ChevronDown />}
                 </button>
                 {showAboutUsSettings && (
-                    <div className="p-6 bg-stone-50 animate-slide-in-top space-y-4">
+                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top space-y-4">
                         <div>
-                            <label className="block text-xs font-bold text-stone-700 mb-1">{language === 'he' ? 'הסיפור שלנו בעברית' : 'Our Story (Hebrew)'}</label>
+                            <label className="block text-xs font-bold text-themeText/70 mb-1">{language === 'he' ? 'הסיפור שלנו בעברית' : 'Our Story (Hebrew)'}</label>
                             <textarea
                                 value={storyHe}
                                 onChange={(e) => setStoryHe(e.target.value)}
-                                className="w-full h-40 p-3 border border-stone-300 rounded-lg focus:outline-none focus:border-gold-500 text-sm"
+                                className="w-full h-40 p-3 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg focus:outline-none focus:border-themePrimary text-sm"
                                 placeholder="כתוב את הסיפור בעברית..."
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-stone-700 mb-1">{language === 'he' ? 'הסיפור שלנו באנגלית' : 'Our Story (English)'}</label>
+                            <label className="block text-xs font-bold text-themeText/70 mb-1">{language === 'he' ? 'הסיפור שלנו באנגלית' : 'Our Story (English)'}</label>
                             <textarea
                                 value={storyEn}
                                 onChange={(e) => setStoryEn(e.target.value)}
-                                className="w-full h-40 p-3 border border-stone-300 rounded-lg focus:outline-none focus:border-gold-500 text-sm"
+                                className="w-full h-40 p-3 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg focus:outline-none focus:border-themePrimary text-sm"
                                 placeholder="Write the story in English..."
                             />
                         </div>
@@ -1055,7 +1055,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     });
                                 }}
                                 disabled={uploading}
-                                className="px-6 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl flex items-center gap-2 shadow-sm transition active:scale-[0.98]"
+                                className="px-6 py-2.5 bg-themePrimary text-themeHeaderBg font-bold rounded-xl flex items-center gap-2 shadow-sm transition active:scale-[0.98] hover:opacity-90"
                             >
                                 {uploading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
                                 <span>{t.save}</span>
@@ -1066,20 +1066,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             </div>
 
             {/* Theme Settings Customizer */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
-                <button onClick={() => setShowThemeSettings(!showThemeSettings)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
-                    <div className="flex items-center gap-3"><Palette size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{t.themeSettings}</span></div>
+            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
+                <button onClick={() => setShowThemeSettings(!showThemeSettings)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
+                    <div className="flex items-center gap-3"><Palette size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{t.themeSettings}</span></div>
                     {showThemeSettings ? <ChevronUp /> : <ChevronDown />}
                 </button>
                 {showThemeSettings && (
-                    <div className="p-6 bg-stone-50 animate-slide-in-top space-y-8">
+                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top space-y-8">
                         {/* Theme Presets */}
                         <div>
-                            <h4 className="text-stone-900 font-bold mb-3 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{language === 'he' ? 'ערכות נושא מוכנות' : 'Theme Presets'}</h4>
+                            <h4 className="text-themeText font-bold mb-3 flex items-center gap-2"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{language === 'he' ? 'ערכות נושא מוכנות' : 'Theme Presets'}</h4>
                             <div className="flex flex-wrap gap-3">
                                 <button
                                     onClick={() => applyThemePreset('classic')}
-                                    className="px-4 py-2.5 bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-all shadow-sm font-bold text-xs"
+                                    className="px-4 py-2.5 bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-all shadow-sm font-bold text-xs"
                                 >
                                     {language === 'he' ? 'קלאסי (זהב ושחור)' : 'Classic (Gold & Dark)'}
                                 </button>
@@ -1123,8 +1123,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         </div>
 
                         {/* Theme Color Inputs */}
-                        <div className="border-t border-stone-200 pt-6">
-                            <h4 className="text-stone-900 font-bold mb-3 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{language === 'he' ? 'התאמת צבעים אישית' : 'Custom Theme Colors'}</h4>
+                        <div className="border-t border-themeText/10 pt-6">
+                            <h4 className="text-themeText font-bold mb-3 flex items-center gap-2"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{language === 'he' ? 'התאמת צבעים אישית' : 'Custom Theme Colors'}</h4>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {[
                                     { key: 'bg_color', label: language === 'he' ? 'צבע רקע כללי' : 'General Background' },
@@ -1137,13 +1137,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     { key: 'card_bg_color', label: language === 'he' ? 'רקע כרטיס מנה' : 'Dish Card Background' },
                                     { key: 'card_text_color', label: language === 'he' ? 'טקסט כרטיס מנה' : 'Dish Card Text Color' },
                                 ].map(({ key, label }) => (
-                                    <div key={key} className="flex items-center justify-between p-3 bg-white rounded-lg border border-stone-200 shadow-sm">
-                                        <span className="text-xs font-bold text-stone-700">{label}</span>
+                                    <div key={key} className="flex items-center justify-between p-3 bg-themeCardBg rounded-lg border border-themeText/10 shadow-sm">
+                                        <span className="text-xs font-bold text-themeText/80">{label}</span>
                                         <input
                                             type="color"
                                             value={(theme as any)[key] || '#ffffff'}
                                             onChange={(e) => updateTheme({ [key]: e.target.value })}
-                                            className="w-8 h-8 rounded cursor-pointer border border-stone-300"
+                                            className="w-8 h-8 rounded cursor-pointer border border-themeText/20 bg-transparent"
                                         />
                                     </div>
                                 ))}
@@ -1154,38 +1154,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             </div>
 
             {/* Kosher Certificate Section */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
-                <button onClick={() => setShowKosherSettings(!showKosherSettings)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
-                    <div className="flex items-center gap-3"><Award size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{t.kosherCert}</span></div>
+            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
+                <button onClick={() => setShowKosherSettings(!showKosherSettings)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
+                    <div className="flex items-center gap-3"><Award size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{t.kosherCert}</span></div>
                     {showKosherSettings ? <ChevronUp /> : <ChevronDown />}
                 </button>
                 {showKosherSettings && (
-                    <div className="p-6 bg-stone-50 animate-slide-in-top">
+                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top">
                         <div className="flex flex-col sm:flex-row items-center gap-6">
-                            <div className="w-32 h-32 bg-stone-100 rounded-lg overflow-hidden border border-stone-200 flex items-center justify-center shrink-0">
+                            <div className="w-32 h-32 bg-themeBg/30 rounded-lg overflow-hidden border border-themeText/10 flex items-center justify-center shrink-0">
                                 {kosherCertUrl ? (
                                     <img src={kosherCertUrl} alt="Kosher Certificate" className="w-full h-full object-contain" />
                                 ) : (
-                                    <span className="text-stone-400 text-xs italic">{language === 'he' ? 'אין תעודה' : 'No certificate'}</span>
+                                    <span className="text-themeText/40 text-xs italic">{language === 'he' ? 'אין תעודה' : 'No certificate'}</span>
                                 )}
                             </div>
                             <div className="flex-1 w-full space-y-2">
                                 <label className={`
-                                    flex items-center justify-center gap-2 w-full max-w-xs p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm bg-white
+                                    flex items-center justify-center gap-2 w-full max-w-xs p-3 border-2 border-dashed border-themeText/20 rounded-lg cursor-pointer hover:border-themePrimary hover:text-themePrimary transition-colors text-themeText/60 font-bold text-sm bg-themeCardBg
                                     ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                                 `}>
                                     <Upload size={16} />
                                     <span>{uploading ? '...' : t.uploadKosher}</span>
                                     <input type="file" accept="image/*,application/pdf" onChange={handleKosherUpload} className="hidden" disabled={uploading} />
                                 </label>
-                                <p className="text-[10px] text-stone-400">{t.imageHint}</p>
+                                <p className="text-[10px] text-themeText/40">{t.imageHint}</p>
                                 {kosherCertUrl && (
-                                    <div className="flex gap-2">
+                                            <div className="flex gap-2">
                                         <input
                                             type="text"
                                             readOnly
                                             value={kosherCertUrl}
-                                            className="w-full max-w-md p-1.5 border border-stone-200 rounded text-xs text-stone-500 bg-stone-100"
+                                            className="w-full max-w-md p-1.5 border border-themeText/20 rounded text-xs text-themeText/60 bg-themeBg/30"
                                         />
                                         <button
                                             onClick={() => updateKosherCertUrl('')}
@@ -1202,30 +1202,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             </div>
 
             {/* Gallery Settings Customizer */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
-                <button onClick={() => setShowGallerySettings(!showGallerySettings)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
-                    <div className="flex items-center gap-3"><ImageIcon size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{t.galleryTitle}</span></div>
+            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
+                <button onClick={() => setShowGallerySettings(!showGallerySettings)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
+                    <div className="flex items-center gap-3"><ImageIcon size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{t.galleryTitle}</span></div>
                     {showGallerySettings ? <ChevronUp /> : <ChevronDown />}
                 </button>
                 {showGallerySettings && (
-                    <div className="p-6 bg-stone-50 animate-slide-in-top space-y-6">
+                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top space-y-6">
                         {/* Add Gallery Item Form */}
-                        <div className="bg-white p-4 rounded-xl border border-stone-200 space-y-4">
-                            <h4 className="font-bold text-stone-900 text-sm">{t.addGalleryItem}</h4>
+                        <div className="bg-themeCardBg p-4 rounded-xl border border-themeText/10 space-y-4">
+                            <h4 className="font-bold text-themeText text-sm">{t.addGalleryItem}</h4>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
                                 <div>
-                                    <label className="block text-xs font-bold text-stone-500 mb-1">{t.mediaType}</label>
+                                    <label className="block text-xs font-bold text-themeText/60 mb-1">{t.mediaType}</label>
                                     <select
                                         value={newGalleryItem.type}
                                         onChange={(e) => setNewGalleryItem({ ...newGalleryItem, type: e.target.value as 'image' | 'video', url: '' })}
-                                        className="w-full p-2 border rounded bg-white text-sm"
+                                        className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText text-sm rounded"
                                     >
                                         <option value="image">{language === 'he' ? 'תמונה' : 'Image'}</option>
                                         <option value="video">{language === 'he' ? 'סרטון' : 'Video'}</option>
                                     </select>
                                 </div>
                                 <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-stone-500 mb-1">
+                                    <label className="block text-xs font-bold text-themeText/60 mb-1">
                                         {newGalleryItem.type === 'video' 
                                             ? (language === 'he' ? 'סרטון' : 'Video') 
                                             : (language === 'he' ? 'תמונה' : 'Image')}
@@ -1236,14 +1236,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                 <button
                                                     type="button"
                                                     onClick={() => { setVideoSourceType('file'); setNewGalleryItem(prev => ({ ...prev, url: '' })); }}
-                                                    className={`px-3 py-1 text-xs font-bold rounded-full border transition-all ${videoSourceType === 'file' ? 'bg-stone-900 text-white border-stone-900 shadow-sm' : 'bg-white text-stone-600 hover:border-stone-300'}`}
+                                                    className={`px-3 py-1 text-xs font-bold rounded-full border transition-all ${videoSourceType === 'file' ? 'bg-themePrimary text-themeHeaderBg border-themePrimary shadow-sm' : 'bg-themeBg text-themeText/70 hover:border-themeText/30'}`}
                                                 >
                                                     {language === 'he' ? 'העלאת קובץ' : 'Upload File'}
                                                 </button>
                                                 <button
                                                     type="button"
                                                     onClick={() => { setVideoSourceType('url'); setNewGalleryItem(prev => ({ ...prev, url: '' })); }}
-                                                    className={`px-3 py-1 text-xs font-bold rounded-full border transition-all ${videoSourceType === 'url' ? 'bg-stone-900 text-white border-stone-900 shadow-sm' : 'bg-white text-stone-600 hover:border-stone-300'}`}
+                                                    className={`px-3 py-1 text-xs font-bold rounded-full border transition-all ${videoSourceType === 'url' ? 'bg-themePrimary text-themeHeaderBg border-themePrimary shadow-sm' : 'bg-themeBg text-themeText/70 hover:border-themeText/30'}`}
                                                 >
                                                     {language === 'he' ? 'קישור URL' : 'URL Link'}
                                                 </button>
@@ -1253,17 +1253,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                     type="text"
                                                     value={newGalleryItem.url}
                                                     onChange={(e) => setNewGalleryItem({ ...newGalleryItem, url: e.target.value })}
-                                                    className="w-full p-2 border rounded text-sm bg-white"
+                                                    className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText text-sm rounded"
                                                     placeholder="https://www.youtube.com/watch?v=..."
                                                 />
                                             ) : (
                                                 <div className="flex items-center gap-4">
                                                     {newGalleryItem.url && (
-                                                        <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200 truncate max-w-[150px]">
+                                                        <span className="text-xs text-emerald-500 font-bold bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/25 truncate max-w-[150px]">
                                                             {language === 'he' ? 'סרטון הועלה' : 'Video uploaded'}
                                                         </span>
                                                     )}
-                                                    <label className="flex items-center justify-center gap-2 flex-1 p-2 border-2 border-dashed border-stone-300 rounded cursor-pointer hover:border-gold-500 transition text-stone-500 font-bold text-xs bg-stone-50">
+                                                    <label className="flex items-center justify-center gap-2 flex-1 p-2 border-2 border-dashed border-themeText/20 rounded cursor-pointer hover:border-themePrimary transition text-themeText/60 font-bold text-xs bg-themeBg/30">
                                                         <Upload size={14} />
                                                         <span>{uploading ? '...' : (language === 'he' ? 'העלאת סרטון' : 'Upload Video')}</span>
                                                         <input type="file" accept="video/*" onChange={handleGalleryVideoUpload} className="hidden" disabled={uploading} />
@@ -1276,10 +1276,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                             {newGalleryItem.url && (
                                                 <img src={newGalleryItem.url} alt="Gallery Preview" className="w-10 h-10 object-cover rounded" />
                                             )}
-                                            <label className="flex items-center justify-center gap-2 flex-1 p-2 border-2 border-dashed border-stone-300 rounded cursor-pointer hover:border-gold-500 transition text-stone-500 font-bold text-xs bg-stone-50">
+                                            <label className="flex items-center justify-center gap-2 flex-1 p-2 border-2 border-dashed border-themeText/20 rounded cursor-pointer hover:border-themePrimary transition text-themeText/60 font-bold text-xs bg-themeBg/30">
                                                 <Upload size={14} />
                                                 <span>{uploading ? '...' : t.upload}</span>
-                                                <input type="file" accept="image/*" onChange={handleGalleryImageUpload} className="hidden" disabled={uploading} />
+                                                <input type="file" accept="image/*" onChange={(e) => handleGalleryImageUpload(e)} className="hidden" disabled={uploading} />
                                             </label>
                                         </div>
                                     )}
@@ -1287,19 +1287,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                                 <div className="md:col-span-3">
-                                    <label className="block text-xs font-bold text-stone-500 mb-1">{t.caption}</label>
+                                    <label className="block text-xs font-bold text-themeText/60 mb-1">{t.caption}</label>
                                     <input
                                         type="text"
                                         value={newGalleryItem.caption}
                                         onChange={(e) => setNewGalleryItem({ ...newGalleryItem, caption: e.target.value })}
-                                        className="w-full p-2 border rounded text-sm"
+                                        className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText text-sm rounded"
                                         placeholder={language === 'he' ? 'לדוגמה: שולחן קינוחים מעוצב' : 'e.g. Dessert table design'}
                                     />
                                 </div>
                                 <button
                                     onClick={handleAddGalleryItem}
                                     disabled={!newGalleryItem.url || uploading}
-                                    className="bg-gold-500 text-stone-900 font-bold px-6 py-2 rounded hover:bg-gold-400 transition w-full disabled:opacity-50 text-sm"
+                                    className="bg-themePrimary text-themeHeaderBg font-bold px-6 py-2 rounded hover:opacity-90 transition w-full disabled:opacity-50 text-sm"
                                 >
                                     {language === 'he' ? 'הוסף לגלריה' : 'Add Item'}
                                 </button>
@@ -1308,11 +1308,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
                         {/* Gallery List */}
                         <div>
-                            <h4 className="text-sm font-bold text-stone-400 uppercase mb-3">{language === 'he' ? 'פריטים בגלריה' : 'Items in Gallery'}</h4>
+                            <h4 className="text-sm font-bold text-themeText/40 uppercase mb-3">{language === 'he' ? 'פריטים בגלריה' : 'Items in Gallery'}</h4>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
                                 {(gallery || []).map(item => (
-                                    <div key={item.id} className="relative group bg-white border border-stone-200 rounded-lg overflow-hidden shadow-sm aspect-square flex flex-col justify-between">
-                                        <div className="relative flex-1 w-full bg-stone-100 flex items-center justify-center overflow-hidden">
+                                    <div key={item.id} className="relative group bg-themeCardBg border border-themeText/10 rounded-lg overflow-hidden shadow-sm aspect-square flex flex-col justify-between">
+                                        <div className="relative flex-1 w-full bg-themeBg/40 flex items-center justify-center overflow-hidden">
                                             {item.type === 'video' ? (
                                                 getYoutubeId(item.url) ? (
                                                     <div className="relative w-full h-full">
@@ -1334,7 +1334,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                             )}
                                         </div>
                                         {item.caption && (
-                                            <div className="p-1.5 text-[10px] text-stone-500 font-medium truncate border-t bg-stone-50">
+                                            <div className="p-1.5 text-[10px] text-themeText/60 font-medium truncate border-t border-themeText/10 bg-themeBg/30">
                                                 {item.caption}
                                             </div>
                                         )}
@@ -1348,7 +1348,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     </div>
                                 ))}
                                 {(gallery || []).length === 0 && (
-                                    <p className="text-sm text-stone-400 italic col-span-full">No gallery items yet.</p>
+                                    <p className="text-sm text-themeText/40 italic col-span-full">No gallery items yet.</p>
                                 )}
                             </div>
                         </div>
@@ -1357,13 +1357,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             </div>
 
             {/* Reviews Moderation */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
-                <button onClick={() => setShowReviews(!showReviews)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
+            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
+                <button onClick={() => setShowReviews(!showReviews)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
                     <div className="flex items-center gap-3">
-                        <MessageSquare size={20} className="text-gold-500" />
+                        <MessageSquare size={20} className="text-themePrimary" />
                         <span className="font-serif font-bold text-lg">{language === 'he' ? 'ניהול חוות דעת' : 'Manage Reviews'}</span>
                         {reviews.length > 0 && (
-                            <span className="bg-gold-500 text-stone-900 text-xs font-bold px-2 py-0.5 rounded-full">
+                            <span className="bg-themePrimary text-themeHeaderBg text-xs font-bold px-2 py-0.5 rounded-full">
                                 {reviews.length}
                             </span>
                         )}
@@ -1371,24 +1371,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     {showReviews ? <ChevronUp /> : <ChevronDown />}
                 </button>
                 {showReviews && (
-                    <div className="p-6 bg-stone-50 animate-slide-in-top space-y-6">
+                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top space-y-6">
                         {reviews.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {reviews.map(review => {
                                     const dateStr = review.created_at ? new Date(review.created_at).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US') : '';
                                     return (
-                                        <div key={review.id} className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm flex flex-col justify-between hover:border-gold-500/20 transition-all">
+                                        <div key={review.id} className="bg-themeCardBg p-4 rounded-xl border border-themeText/10 shadow-sm flex flex-col justify-between hover:border-themePrimary/20 transition-all text-themeText">
                                             <div>
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div>
-                                                        <h5 className="font-bold text-stone-900 text-sm">{review.customer_name}</h5>
-                                                        <span className="text-[10px] text-stone-400">{dateStr}</span>
+                                                        <h5 className="font-bold text-themeText text-sm">{review.customer_name}</h5>
+                                                        <span className="text-[10px] text-themeText/50">{dateStr}</span>
                                                     </div>
                                                     <div className="flex items-center gap-0.5">
                                                         {[...Array(5)].map((_, i) => (
                                                             <svg
                                                                 key={i}
-                                                                className={`w-4 h-4 ${i < review.rating ? 'text-gold-500 fill-gold-500' : 'text-stone-200 fill-stone-200'}`}
+                                                                className={`w-4 h-4 ${i < review.rating ? 'text-themePrimary fill-themePrimary' : 'text-themeText/20 fill-themeText/20'}`}
                                                                 viewBox="0 0 20 20"
                                                                 fill="currentColor"
                                                             >
@@ -1397,12 +1397,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                         ))}
                                                     </div>
                                                 </div>
-                                                <p className="text-xs text-stone-600 italic mt-2">"{review.comment}"</p>
+                                                <p className="text-xs text-themeText/80 italic mt-2">"{review.comment}"</p>
                                             </div>
-                                            <div className="flex justify-end mt-4 pt-2 border-t border-stone-100">
+                                            <div className="flex justify-end mt-4 pt-2 border-t border-themeText/10">
                                                 <button
                                                     onClick={() => handleDeleteReview(review.id!)}
-                                                    className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-bold hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                                                    className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-bold hover:bg-red-500/10 px-2 py-1 rounded transition-colors"
                                                 >
                                                     <Trash2 size={14} />
                                                     <span>{language === 'he' ? 'מחק חוות דעת' : 'Delete'}</span>
@@ -1413,20 +1413,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 })}
                             </div>
                         ) : (
-                            <p className="text-sm text-stone-400 italic py-4">{language === 'he' ? 'אין חוות דעת במערכת' : 'No reviews in system yet.'}</p>
+                            <p className="text-sm text-themeText/40 italic py-4">{language === 'he' ? 'אין חוות דעת במערכת' : 'No reviews in system yet.'}</p>
                         )}
                     </div>
                 )}
             </div>
 
             {/* Menu Items Table */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden text-start">
-                <div className="p-4 border-b border-stone-200">
-                    <input type="text" placeholder={t.searchPlaceholder} className="w-full p-2 border border-stone-200 rounded" onChange={(e) => setSearchTerm(e.target.value)} />
+            <div className="bg-themeCardBg rounded-lg shadow-sm border border-themeText/10 overflow-hidden text-start text-themeText">
+                <div className="p-4 border-b border-themeText/10">
+                    <input type="text" placeholder={t.searchPlaceholder} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded" onChange={(e) => setSearchTerm(e.target.value)} />
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-start">
-                        <thead className="bg-stone-50 text-stone-500 text-sm">
+                        <thead className="bg-themeBg text-themeText/65 text-sm">
                             <tr>
                                 <th className="p-4 text-start">{t.productName}</th>
                                 <th className="p-4 text-start">{t.image}</th>
@@ -1441,27 +1441,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             {(filteredItems || []).map(item => {
                                 const localItem = getLocalizedItem(item, language);
                                 return (
-                                    <tr key={item.id} className="border-b border-stone-100 hover:bg-stone-50">
-                                        <td className="p-4 font-bold text-stone-800">{localItem.name}</td>
+                                    <tr key={item.id} className="border-b border-themeText/10 hover:bg-themeBg/40">
+                                        <td className="p-4 font-bold text-themeText/95">{localItem.name}</td>
                                         <td className="p-4">
                                             {item.image_url ? (
-                                                <img src={item.image_url} alt="mini" className="w-10 h-10 object-cover rounded-md border border-stone-200" />
+                                                <img src={item.image_url} alt="mini" className="w-10 h-10 object-cover rounded-md border border-themeText/15" />
                                             ) : (
-                                                <div className="w-10 h-10 bg-stone-100 rounded-md border border-stone-200 flex items-center justify-center text-stone-300">
+                                                <div className="w-10 h-10 bg-themeBg/40 rounded-md border border-themeText/15 flex items-center justify-center text-themeText/30">
                                                     <ImageIcon size={16} />
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="p-4 text-stone-500">{(rootT.categories as Record<string, string>)?.[item.category] || item.category}</td>
+                                        <td className="p-4 text-themeText/70">{(rootT.categories as Record<string, string>)?.[item.category] || item.category}</td>
                                         <td className="p-4">₪{item.price}</td>
                                         <td className="p-4">
-                                            <span className={`px-3 py-1 rounded text-xs font-bold ${item.availability_status ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                            <span className={`px-3 py-1 rounded text-xs font-bold ${item.availability_status ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                                                 {item.availability_status ? t.active : t.outOfStock}
                                             </span>
                                         </td>
-                                        <td className="p-4 text-sm text-stone-400 max-w-xs truncate">{localItem.modifications?.join(', ') || '-'}</td>
+                                        <td className="p-4 text-sm text-themeText/50 max-w-xs truncate">{localItem.modifications?.join(', ') || '-'}</td>
                                         <td className="p-4">
-                                            <button onClick={() => handleEditClick(item)} className="p-2 text-stone-400 hover:text-gold-500 transition-colors">
+                                            <button onClick={() => handleEditClick(item)} className="p-2 text-themeText/40 hover:text-themePrimary transition-colors">
                                                 <Pencil size={18} />
                                             </button>
                                         </td>
@@ -1476,24 +1476,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             {/* Add Item Modal */}
             {isAddModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
-                    <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl animate-zoom-in text-start flex flex-col">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
+                    <div className="relative bg-themeCardBg border border-themeText/10 w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl animate-zoom-in text-start flex flex-col text-themeText">
                         <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h2 className="text-2xl font-serif font-bold text-stone-900">
+                            <h2 className="text-2xl font-serif font-bold text-themeText">
                                 {t.createItemTitle}
                             </h2>
-                            <button onClick={() => setIsAddModalOpen(false)} className="text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full"><X size={20} /></button>
+                            <button onClick={() => setIsAddModalOpen(false)} className="text-themeText/70 hover:text-themeText bg-themeBg/50 hover:bg-themeBg p-2 rounded-full"><X size={20} /></button>
                         </div>
                         <div className="space-y-4 flex-1 overflow-y-auto">
                             {/* Image Upload */}
                             <div>
-                                <label className="block text-sm font-bold text-stone-700 mb-2">{t.image}</label>
+                                <label className="block text-sm font-bold text-themeText/80 mb-2">{t.image}</label>
                                 <div className="flex items-center gap-4">
-                                    <div className="relative w-20 h-20 bg-stone-100 rounded-lg overflow-hidden border border-stone-200 shrink-0">
+                                    <div className="relative w-20 h-20 bg-themeBg/50 rounded-lg overflow-hidden border border-themeText/15 shrink-0">
                                         {newItem.image_url ? (
                                             <img src={newItem.image_url} alt="preview" className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-stone-300">
+                                            <div className="w-full h-full flex items-center justify-center text-themeText/30">
                                                 <ImageIcon size={24} />
                                             </div>
                                         )}
@@ -1505,28 +1505,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     </div>
                                     <div className="flex-1">
                                         <label className={`
-                                            flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm bg-white
+                                            flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-themeText/20 rounded-lg cursor-pointer hover:border-themePrimary hover:text-themePrimary transition-colors text-themeText/60 font-bold text-sm bg-themeBg/50
                                             ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                                         `}>
                                             <Upload size={16} />
                                             <span>{uploading ? '...' : t.upload}</span>
                                             <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, false)} className="hidden" disabled={uploading} />
                                         </label>
-                                        <p className="text-[10px] text-stone-400 mt-1">{t.imageHint}</p>
+                                        <p className="text-[10px] text-themeText/40 mt-1">{t.imageHint}</p>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Name */}
                             <div>
-                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.productName}</label>
-                                <input type="text" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                <label className="block text-sm font-bold text-themeText/80 mb-1">{t.productName}</label>
+                                <input type="text" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
                             </div>
 
                             {/* Category & Unit Type Row */}
                             <div className="flex gap-4">
                                 <div className="flex-1">
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.category}</label>
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.category}</label>
                                     <select 
                                         value={newItem.category} 
                                         onChange={(e) => {
@@ -1540,7 +1540,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                             }
                                             setNewItem({ ...newItem, category: cat, serves_min: sMin, serves_max: sMax });
                                         }} 
-                                        className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white"
+                                        className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none text-start bg-transparent"
                                     >
                                         {CATEGORY_OPTIONS.map(cat => (
                                             <option key={cat} value={cat}>{(rootT.categories as any)[cat] || cat}</option>
@@ -1548,8 +1548,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     </select>
                                 </div>
                                 <div className="flex-1">
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.unitType}</label>
-                                    <select value={newItem.unit_type} onChange={(e) => setNewItem({ ...newItem, unit_type: e.target.value as UnitType })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white">
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.unitType}</label>
+                                    <select value={newItem.unit_type} onChange={(e) => setNewItem({ ...newItem, unit_type: e.target.value as UnitType })} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none text-start bg-transparent">
                                         {UNIT_OPTIONS.map(u => (
                                             <option key={u} value={u}>{rootT[u] || u}</option>
                                         ))}
@@ -1560,60 +1560,60 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             {/* Price & Serves Row */}
                             <div className="flex gap-4">
                                 <div className="flex-1">
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label>
-                                    <input type="number" value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.price} (₪)</label>
+                                    <input type="number" value={newItem.price} onChange={(e) => setNewItem({ ...newItem, price: Number(e.target.value) })} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
                                 </div>
                                 <div className="flex-1">
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.servesMin}</label>
-                                    <input type="number" value={newItem.serves_min} onChange={(e) => setNewItem({ ...newItem, serves_min: Number(e.target.value) })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.servesMin}</label>
+                                    <input type="number" value={newItem.serves_min} onChange={(e) => setNewItem({ ...newItem, serves_min: Number(e.target.value) })} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
                                 </div>
                                 <div className="flex-1">
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.servesMax}</label>
-                                    <input type="number" value={newItem.serves_max} onChange={(e) => setNewItem({ ...newItem, serves_max: Number(e.target.value) })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.servesMax}</label>
+                                    <input type="number" value={newItem.serves_max} onChange={(e) => setNewItem({ ...newItem, serves_max: Number(e.target.value) })} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
                                 </div>
                             </div>
 
                             {/* Description */}
                             <div>
-                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.description}</label>
-                                <textarea value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-20 resize-none" />
+                                <label className="block text-sm font-bold text-themeText/80 mb-1">{t.description}</label>
+                                <textarea value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none h-20 resize-none" />
                             </div>
 
                             {/* Premium Toggle */}
                             <div>
-                                <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50 w-full">
-                                    <input type="checkbox" checked={newItem.is_premium} onChange={(e) => setNewItem({ ...newItem, is_premium: e.target.checked })} className="w-4 h-4 text-gold-500 rounded" />
-                                    <span className="font-bold text-sm text-stone-700">{t.premium}</span>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 border border-themeText/20 bg-themeBg/30 rounded-lg hover:bg-themeBg/60 w-full">
+                                    <input type="checkbox" checked={newItem.is_premium} onChange={(e) => setNewItem({ ...newItem, is_premium: e.target.checked })} className="w-4 h-4 text-themePrimary rounded bg-transparent border-themeText/20 focus:ring-themePrimary" />
+                                    <span className="font-bold text-sm text-themeText/80">{t.premium}</span>
                                 </label>
                             </div>
 
                             {/* Tray Toggle */}
                             <div>
-                                <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50 w-full">
-                                    <input type="checkbox" checked={newItem.is_tray || false} onChange={(e) => setNewItem({ ...newItem, is_tray: e.target.checked, units_per_tray: e.target.checked ? newItem.units_per_tray : null })} className="w-4 h-4 text-gold-500 rounded" />
-                                    <span className="font-bold text-sm text-stone-700">{t.isTray}</span>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 border border-themeText/20 bg-themeBg/30 rounded-lg hover:bg-themeBg/60 w-full">
+                                    <input type="checkbox" checked={newItem.is_tray || false} onChange={(e) => setNewItem({ ...newItem, is_tray: e.target.checked, units_per_tray: e.target.checked ? newItem.units_per_tray : null })} className="w-4 h-4 text-themePrimary rounded bg-transparent border-themeText/20 focus:ring-themePrimary" />
+                                    <span className="font-bold text-sm text-themeText/80">{t.isTray}</span>
                                 </label>
                             </div>
                             {/* Units Per Tray (conditional) */}
                             {newItem.is_tray && (
                                 <div>
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.unitsPerTray}</label>
-                                    <input type="number" min="1" value={newItem.units_per_tray ?? ''} onChange={(e) => setNewItem({ ...newItem, units_per_tray: e.target.value ? Number(e.target.value) : null })} placeholder={language === 'he' ? 'לדוגמה: 10' : 'e.g. 10'} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.unitsPerTray}</label>
+                                    <input type="number" min="1" value={newItem.units_per_tray ?? ''} onChange={(e) => setNewItem({ ...newItem, units_per_tray: e.target.value ? Number(e.target.value) : null })} placeholder={language === 'he' ? 'לדוגמה: 10' : 'e.g. 10'} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
                                 </div>
                             )}
 
                             {/* Modifications */}
                             <div>
-                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.modifications}</label>
-                                <textarea value={addMods} onChange={(e) => setAddMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-24" />
-                                <p className="text-[10px] text-stone-400 mt-1">{t.modsHint}</p>
+                                <label className="block text-sm font-bold text-themeText/80 mb-1">{t.modifications}</label>
+                                <textarea value={addMods} onChange={(e) => setAddMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none h-24" />
+                                <p className="text-[10px] text-themeText/45 mt-1">{t.modsHint}</p>
                             </div>
                         </div>
                         <div className="mt-8 flex gap-3 shrink-0">
-                            <button onClick={handleAddSave} className="flex-1 bg-gold-500 text-stone-900 font-bold py-3 rounded-lg hover:bg-gold-400 flex items-center justify-center gap-2">
+                            <button onClick={handleAddSave} className="flex-1 bg-themePrimary text-themeHeaderBg font-bold py-3 rounded-lg hover:opacity-90 flex items-center justify-center gap-2 shadow-md">
                                 <Plus size={18} />{t.create}
                             </button>
-                            <button onClick={() => setIsAddModalOpen(false)} className="bg-stone-100 text-stone-600 font-bold py-3 px-6 rounded-lg hover:bg-stone-200">
+                            <button onClick={() => setIsAddModalOpen(false)} className="bg-themeBg text-themeText/70 font-bold py-3 px-6 rounded-lg hover:opacity-90 border border-themeText/15">
                                 {t.cancelBtn}
                             </button>
                         </div>
@@ -1623,30 +1623,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
             {editingItem && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-stone-900/80 backdrop-blur-sm" onClick={() => setEditingItem(null)}></div>
-                    <div className="relative bg-white w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl animate-zoom-in text-start flex flex-col">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingItem(null)}></div>
+                    <div className="relative bg-themeCardBg border border-themeText/10 w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl animate-zoom-in text-start flex flex-col text-themeText">
                         <div className="flex justify-between items-center mb-6 shrink-0">
-                            <h2 className="text-2xl font-serif font-bold text-stone-900">
+                            <h2 className="text-2xl font-serif font-bold text-themeText">
                                 {t.editItemTitle}: {getLocalizedItem(editingItem, language).name}
                             </h2>
-                            <button onClick={() => setEditingItem(null)} className="text-stone-400 hover:text-stone-900 bg-stone-100 p-2 rounded-full"><X size={20} /></button>
+                            <button onClick={() => setEditingItem(null)} className="text-themeText/70 hover:text-themeText bg-themeBg/50 hover:bg-themeBg p-2 rounded-full"><X size={20} /></button>
                         </div>
                         <div className="space-y-4 flex-1 overflow-y-auto">
                             {/* Dish Name */}
                             <div>
-                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.dishName}</label>
-                                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                <label className="block text-sm font-bold text-themeText/80 mb-1">{t.dishName}</label>
+                                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
                             </div>
                             
                             {/* Image Upload */}
                             <div>
-                                <label className="block text-sm font-bold text-stone-700 mb-2">{t.image}</label>
+                                <label className="block text-sm font-bold text-themeText/80 mb-2">{t.image}</label>
                                 <div className="flex items-center gap-4">
-                                    <div className="relative w-20 h-20 bg-stone-100 rounded-lg overflow-hidden border border-stone-200 shrink-0">
+                                    <div className="relative w-20 h-20 bg-themeBg/50 rounded-lg overflow-hidden border border-themeText/15 shrink-0">
                                         {editImageUrl ? (
                                             <img src={editImageUrl} alt="preview" className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-stone-300">
+                                            <div className="w-full h-full flex items-center justify-center text-themeText/30">
                                                 <ImageIcon size={24} />
                                             </div>
                                         )}
@@ -1658,14 +1658,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     </div>
                                     <div className="flex-1">
                                         <label className={`
-                                            flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-gold-500 hover:text-gold-600 transition-colors text-stone-500 font-bold text-sm bg-white
+                                            flex items-center justify-center gap-2 w-full p-3 border-2 border-dashed border-themeText/20 rounded-lg cursor-pointer hover:border-themePrimary hover:text-themePrimary transition-colors text-themeText/60 font-bold text-sm bg-themeBg/50
                                             ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                                         `}>
                                             <Upload size={16} />
                                             <span>{uploading ? '...' : t.upload}</span>
                                             <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, true)} className="hidden" disabled={uploading} />
                                         </label>
-                                        <p className="text-[10px] text-stone-400 mt-1">{t.imageHint}</p>
+                                        <p className="text-[10px] text-themeText/40 mt-1">{t.imageHint}</p>
                                     </div>
                                 </div>
                             </div>
@@ -1673,7 +1673,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             {/* Category & Unit Type Row */}
                             <div className="flex gap-4">
                                 <div className="flex-1">
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.category}</label>
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.category}</label>
                                     <select 
                                         value={editCategory} 
                                         onChange={(e) => {
@@ -1687,7 +1687,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                 setEditServesMax(15);
                                             }
                                         }} 
-                                        className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white"
+                                        className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none text-start bg-transparent"
                                     >
                                         {CATEGORY_OPTIONS.map(cat => (
                                             <option key={cat} value={cat}>{(rootT.categories as any)[cat] || cat}</option>
@@ -1695,8 +1695,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     </select>
                                 </div>
                                 <div className="flex-1">
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.unitType}</label>
-                                    <select value={editUnitType} onChange={(e) => setEditUnitType(e.target.value as UnitType)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white">
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.unitType}</label>
+                                    <select value={editUnitType} onChange={(e) => setEditUnitType(e.target.value as UnitType)} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none text-start bg-transparent">
                                         {UNIT_OPTIONS.map(u => (
                                             <option key={u} value={u}>{rootT[u] || u}</option>
                                         ))}
@@ -1707,30 +1707,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             {/* Price & Serves Row */}
                             <div className="flex gap-4">
                                 <div className="flex-1">
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.price} (₪)</label>
-                                    <input type="number" value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.price} (₪)</label>
+                                    <input type="number" value={editPrice} onChange={(e) => setEditPrice(Number(e.target.value))} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
                                 </div>
                                 <div className="flex-1">
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.servesMin}</label>
-                                    <input type="number" value={editServesMin} onChange={(e) => setEditServesMin(Number(e.target.value))} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.servesMin}</label>
+                                    <input type="number" value={editServesMin} onChange={(e) => setEditServesMin(Number(e.target.value))} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
                                 </div>
                                 <div className="flex-1">
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.servesMax}</label>
-                                    <input type="number" value={editServesMax} onChange={(e) => setEditServesMax(Number(e.target.value))} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.servesMax}</label>
+                                    <input type="number" value={editServesMax} onChange={(e) => setEditServesMax(Number(e.target.value))} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
                                 </div>
                             </div>
 
                             {/* Description */}
                             <div>
-                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.description}</label>
-                                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-20 resize-none" />
+                                <label className="block text-sm font-bold text-themeText/80 mb-1">{t.description}</label>
+                                <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none h-20 resize-none" />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.status}</label>
+                                <label className="block text-sm font-bold text-themeText/80 mb-1">{t.status}</label>
                                 <div className="flex items-center gap-4">
                                     <label className="flex items-center gap-2 cursor-pointer">
-                                        <input type="radio" checked={editStatus} onChange={() => setEditStatus(true)} className="w-4 h-4 text-gold-500" />
+                                        <input type="radio" checked={editStatus} onChange={() => setEditStatus(true)} className="w-4 h-4 text-themePrimary" />
                                         <span>{t.inStock}</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
@@ -1741,41 +1741,41 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             </div>
 
                             <div>
-                                <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50 w-full">
-                                    <input type="checkbox" checked={editIsPremium} onChange={(e) => setEditIsPremium(e.target.checked)} className="w-4 h-4 text-gold-500 rounded" />
-                                    <span className="font-bold text-sm text-stone-700">{t.premium}</span>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 border border-themeText/20 bg-themeBg/30 rounded-lg hover:bg-themeBg/60 w-full">
+                                    <input type="checkbox" checked={editIsPremium} onChange={(e) => setEditIsPremium(e.target.checked)} className="w-4 h-4 text-themePrimary rounded bg-transparent border-themeText/20 focus:ring-themePrimary" />
+                                    <span className="font-bold text-sm text-themeText/80">{t.premium}</span>
                                 </label>
                             </div>
 
                             {/* Tray Checkbox */}
                             <div>
-                                <label className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg hover:bg-stone-50 w-full">
-                                    <input type="checkbox" checked={editIsTray} onChange={(e) => { setEditIsTray(e.target.checked); if (!e.target.checked) setEditUnitsPerTray(null); }} className="w-4 h-4 text-gold-500 rounded" />
-                                    <span className="font-bold text-sm text-stone-700">{t.isTray}</span>
+                                <label className="flex items-center gap-2 cursor-pointer p-2 border border-themeText/20 bg-themeBg/30 rounded-lg hover:bg-themeBg/60 w-full">
+                                    <input type="checkbox" checked={editIsTray} onChange={(e) => { setEditIsTray(e.target.checked); if (!e.target.checked) setEditUnitsPerTray(null); }} className="w-4 h-4 text-themePrimary rounded bg-transparent border-themeText/20 focus:ring-themePrimary" />
+                                    <span className="font-bold text-sm text-themeText/80">{t.isTray}</span>
                                 </label>
                             </div>
 
                             {/* Units Per Tray */}
                             {editIsTray && (
                                 <div>
-                                    <label className="block text-sm font-bold text-stone-700 mb-1">{t.unitsPerTray}</label>
-                                    <input type="number" min="1" value={editUnitsPerTray ?? ''} onChange={(e) => setEditUnitsPerTray(e.target.value ? Number(e.target.value) : null)} placeholder={language === 'he' ? 'לדוגמה: 10' : 'e.g. 10'} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none" />
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.unitsPerTray}</label>
+                                    <input type="number" min="1" value={editUnitsPerTray ?? ''} onChange={(e) => setEditUnitsPerTray(e.target.value ? Number(e.target.value) : null)} placeholder={language === 'he' ? 'לדוגמה: 10' : 'e.g. 10'} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
                                 </div>
                             )}
 
                             <div>
-                                <label className="block text-sm font-bold text-stone-700 mb-1">{t.modifications}</label>
-                                <textarea value={editMods} onChange={(e) => setEditMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none h-24" />
+                                <label className="block text-sm font-bold text-themeText/80 mb-1">{t.modifications}</label>
+                                <textarea value={editMods} onChange={(e) => setEditMods(e.target.value)} placeholder={t.modsPlaceholder} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none h-24" />
                             </div>
                         </div>
                         <div className="mt-8 flex flex-col gap-3 shrink-0">
                             <div className="flex gap-3">
-                                <button onClick={handleEditSave} className="flex-1 bg-gold-500 text-stone-900 font-bold py-3 rounded-lg hover:bg-gold-400 flex items-center justify-center gap-2"><Save size={18} />{t.save}</button>
-                                <button onClick={() => setEditingItem(null)} className="flex-1 bg-stone-100 text-stone-600 font-bold py-3 px-6 rounded-lg hover:bg-stone-200">{t.cancelBtn}</button>
+                                <button onClick={handleEditSave} className="flex-1 bg-themePrimary text-themeHeaderBg font-bold py-3 rounded-lg hover:opacity-90 flex items-center justify-center gap-2 shadow-md"><Save size={18} />{t.save}</button>
+                                <button onClick={() => setEditingItem(null)} className="flex-1 bg-themeBg text-themeText/70 font-bold py-3 px-6 rounded-lg hover:opacity-90 border border-themeText/15">{t.cancelBtn}</button>
                             </div>
                             <button
                                 onClick={handleDeleteItem}
-                                className="w-full bg-red-50 text-red-600 font-bold py-3 rounded-lg hover:bg-red-100 flex items-center justify-center gap-2 mt-2 transition-colors"
+                                className="w-full bg-red-500/10 text-red-500 font-bold py-3 rounded-lg hover:bg-red-500/20 flex items-center justify-center gap-2 mt-2 transition-colors"
                             >
                                 <Trash2 size={18} />
                                 {t.deleteItem}
