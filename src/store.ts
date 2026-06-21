@@ -838,11 +838,10 @@ export const useStore = create<AppState>()(
               const { data: settingData } = await supabase
                   .from('app_settings')
                   .select('*')
-                  .eq('key', 'reviews')
-                  .single();
+                  .eq('key', 'reviews');
                   
-              if (settingData && settingData.value) {
-                  set({ reviews: settingData.value as Review[] });
+              if (settingData && settingData.length > 0 && settingData[0].value) {
+                  set({ reviews: settingData[0].value as Review[] });
               } else {
                   set({ reviews: [] });
               }
