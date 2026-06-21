@@ -38,7 +38,7 @@ export interface GalleryItem {
 }
 
 
-export type EventType = 'brunch' | 'dinner' | 'snack';
+export type EventType = 'basic' | 'plus' | 'premium';
 
 export interface FeatureFlags {
   showCalculator: boolean;
@@ -119,6 +119,7 @@ export interface EventRatioConfig {
     mainsCoverage: number;    
     plattersCoverage: number; 
     dessertsCoverage: number; 
+    dipsCoverage: number;
 }
 
 export interface AdvancedCalculationSettings {
@@ -138,4 +139,9 @@ export interface AppSettings {
 
 export interface GuestCalculationResult {
   [itemId: string]: number;
+}
+
+export interface AboutUsConfig {
+  story_he: string;
+  story_en: string;
 }

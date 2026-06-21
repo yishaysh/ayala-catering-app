@@ -24,16 +24,18 @@ export const HostHelper: React.FC = () => {
     const TRAY_CAPACITY = 10;
     const PLATTER_CAPACITY = 12;
     const DESSERT_CAPACITY = 15;
+    const DIPS_CAPACITY = 10;
 
     const weightedCount = adultCount + (childCount * 0.66);
 
     return {
-        sandwiches: Math.ceil(weightedCount * ratios.sandwiches),
-        pastries: Math.ceil(weightedCount * ratios.pastries),
-        salads: Math.ceil((weightedCount * ratios.saladsCoverage) / TRAY_CAPACITY * 10),
-        mains: Math.ceil((weightedCount * ratios.mainsCoverage) / TRAY_CAPACITY * 10),
-        platters: Math.ceil((weightedCount * ratios.plattersCoverage) / PLATTER_CAPACITY * 12),
-        desserts: Math.ceil((weightedCount * ratios.dessertsCoverage) / DESSERT_CAPACITY * 15),
+        sandwiches: Math.ceil(weightedCount * (ratios.sandwiches ?? 0)),
+        pastries: Math.ceil(weightedCount * (ratios.pastries ?? 0)),
+        salads: Math.ceil((weightedCount * (ratios.saladsCoverage ?? 0)) / TRAY_CAPACITY),
+        mains: Math.ceil((weightedCount * (ratios.mainsCoverage ?? 0)) / TRAY_CAPACITY),
+        platters: Math.ceil((weightedCount * (ratios.plattersCoverage ?? 0)) / PLATTER_CAPACITY),
+        desserts: Math.ceil((weightedCount * (ratios.dessertsCoverage ?? 0)) / DESSERT_CAPACITY),
+        dips: Math.ceil((weightedCount * (ratios.dipsCoverage ?? 0)) / DIPS_CAPACITY),
     };
   }, [adultCount, childCount, eventType, advancedSettings]);
 
@@ -95,16 +97,16 @@ export const HostHelper: React.FC = () => {
           <div className="bg-themeCardBg p-6 md:p-8">
               <label className="text-xs font-bold text-themeText/50 uppercase tracking-widest mb-4 block">{t.eventType}</label>
               <div className="grid grid-cols-3 gap-3">
-                  {(['brunch', 'dinner', 'snack'] as EventType[]).map((type) => (
+                  {(['basic', 'plus', 'premium'] as EventType[]).map((type) => (
                       <button
                         key={type}
                         onClick={() => setEventType(type)}
                         className={`relative p-4 rounded-xl border transition-all duration-300 flex flex-col items-center gap-2 ${eventType === type ? 'bg-themePrimary/15 border-themePrimary text-themePrimary' : 'bg-themeBg/50 border-transparent text-themeText/60 hover:text-themeText'}`}
                       >
-                          {type === 'brunch' && <Sun size={24} />}
-                          {type === 'dinner' && <UtensilsCrossed size={24} />}
-                          {type === 'snack' && <Wine size={24} />}
-                          <span className="text-sm font-bold">{(t as any)[type]}</span>
+                          {type === 'basic' && <Wine size={24} />}
+                          {type === 'plus' && <UtensilsCrossed size={24} />}
+                          {type === 'premium' && <Sparkles size={24} />}
+                          <span className="text-sm font-bold">{type === 'basic' ? t.basicEvent : type === 'plus' ? t.plusEvent : t.premiumEvent}</span>
                       </button>
                   ))}
               </div>
@@ -117,42 +119,62 @@ export const HostHelper: React.FC = () => {
                     <h3 className="text-xl font-serif font-bold text-themeText">{t.calcResults}</h3>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                    {recommendations.sandwiches > 0 && (
-                        <button onClick={() => scrollToSection('Sandwiches')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95">
-                            <span className="block text-3xl font-bold text-themePrimary mb-1">{recommendations.sandwiches}</span>
-                            <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{t.sandwiches}</span>
-                        </button>
-                    )}
-                    {recommendations.pastries > 0 && (
-                        <button onClick={() => scrollToSection('Pastries')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95">
-                            <span className="block text-3xl font-bold text-themeText mb-1">{recommendations.pastries}</span>
-                            <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{(t.categories as any)['Pastries']}</span>
-                        </button>
-                    )}
-                     {recommendations.salads > 0 && (
-                        <button onClick={() => scrollToSection('Salads')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95">
-                            <span className="block text-3xl font-bold text-themeText mb-1">{recommendations.salads}</span>
-                            <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{language === 'he' ? 'סלטים' : 'Salads'}</span>
-                        </button>
-                    )}
-                     {recommendations.mains > 0 && (
-                        <button onClick={() => scrollToSection('Main Courses')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95">
-                            <span className="block text-3xl font-bold text-themeText mb-1">{recommendations.mains}</span>
-                            <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{(t.categories as any)['Main Courses']}</span>
-                        </button>
-                    )}
-                     {recommendations.platters > 0 && (
-                        <button onClick={() => scrollToSection('Cold Platters')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95">
-                            <span className="block text-3xl font-bold text-themeText mb-1">{recommendations.platters}</span>
-                            <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{(t.categories as any)['Cold Platters']}</span>
-                        </button>
-                    )}
-                     {recommendations.desserts > 0 && (
-                        <button onClick={() => scrollToSection('Desserts')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95">
-                            <span className="block text-3xl font-bold text-themePrimary mb-1">{recommendations.desserts}</span>
-                            <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{(t.categories as any)['Desserts']}</span>
-                        </button>
+                <div className="space-y-6">
+                    <div className="text-start">
+                        <h4 className="text-xs font-bold text-themeText/50 mb-3 uppercase tracking-widest px-1">{t.requiredDishes}</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {/* Salads */}
+                            <button onClick={() => scrollToSection('Salads')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95 text-start">
+                                <span className="block text-3xl font-bold text-themePrimary mb-1">{recommendations.salads}</span>
+                                <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{(t.categories as any)['Salads']}</span>
+                            </button>
+                            {/* Cold Platters */}
+                            <button onClick={() => scrollToSection('Cold Platters')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95 text-start">
+                                <span className="block text-3xl font-bold text-themeText mb-1">{recommendations.platters}</span>
+                                <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{(t.categories as any)['Cold Platters']}</span>
+                            </button>
+                            {/* Main Courses */}
+                            <button onClick={() => scrollToSection('Main Courses')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95 text-start">
+                                <span className="block text-3xl font-bold text-themeText mb-1">{recommendations.mains}</span>
+                                <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{(t.categories as any)['Main Courses']}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {(recommendations.sandwiches > 0 || recommendations.dips > 0 || recommendations.pastries > 0 || recommendations.desserts > 0) && (
+                        <div className="text-start">
+                            <h4 className="text-xs font-bold text-themeText/50 mb-3 uppercase tracking-widest px-1">{t.enrichDishes}</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                {/* Sandwiches */}
+                                {recommendations.sandwiches > 0 && (
+                                    <button onClick={() => scrollToSection('Sandwiches')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95 text-start">
+                                        <span className="block text-3xl font-bold text-themeText mb-1">{recommendations.sandwiches}</span>
+                                        <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{(t.categories as any)['Sandwiches']}</span>
+                                    </button>
+                                )}
+                                {/* Dips */}
+                                {recommendations.dips > 0 && (
+                                    <button onClick={() => scrollToSection('Dips')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95 text-start">
+                                        <span className="block text-3xl font-bold text-themeText mb-1">{recommendations.dips}</span>
+                                        <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{(t.categories as any)['Dips']}</span>
+                                    </button>
+                                )}
+                                {/* Pastries */}
+                                {recommendations.pastries > 0 && (
+                                    <button onClick={() => scrollToSection('Pastries')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95 text-start">
+                                        <span className="block text-3xl font-bold text-themeText mb-1">{recommendations.pastries}</span>
+                                        <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{(t.categories as any)['Pastries']}</span>
+                                    </button>
+                                )}
+                                {/* Desserts */}
+                                {recommendations.desserts > 0 && (
+                                    <button onClick={() => scrollToSection('Desserts')} className="bg-themeBg/50 rounded-xl p-4 border border-themeText/10 group hover:border-themePrimary/50 transition-all active:scale-95 text-start">
+                                        <span className="block text-3xl font-bold text-themePrimary mb-1">{recommendations.desserts}</span>
+                                        <span className="text-[11px] text-themeText/70 uppercase tracking-wider">{(t.categories as any)['Desserts']}</span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     )}
                 </div>
             </div>

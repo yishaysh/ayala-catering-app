@@ -24,7 +24,7 @@ const CATEGORY_OPTIONS: Category[] = [
 ];
 
 const UNIT_OPTIONS: UnitType[] = ['tray', 'unit', 'liter', 'weight'];
-const EVENT_TYPES: EventType[] = ['brunch', 'dinner', 'snack'];
+const EVENT_TYPES: EventType[] = ['basic', 'plus', 'premium'];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const {
@@ -35,7 +35,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         language, getCoupons, createCoupon, deleteCoupon,
         appConfig, updateAppConfig,
         theme, updateTheme, gallery, updateGallery, kosherCertUrl, updateKosherCertUrl,
-        reviews, fetchReviews, deleteReview
+        reviews, fetchReviews, deleteReview,
+        aboutUs, updateAboutUs
     } = useStore();
 
     // Ensure the view starts at the top when entering admin mode
@@ -55,6 +56,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [showAdvancedCalc, setShowAdvancedCalc] = useState(false);
     const [showCoupons, setShowCoupons] = useState(false);
     const [showThemeSettings, setShowThemeSettings] = useState(false);
+    const [showAboutUsSettings, setShowAboutUsSettings] = useState(false);
     const [showGallerySettings, setShowGallerySettings] = useState(false);
     const [showKosherSettings, setShowKosherSettings] = useState(false);
     const [showOrders, setShowOrders] = useState(true);
@@ -62,6 +64,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [uploading, setUploading] = useState(false);
     const [orders, setOrders] = useState<Order[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
+
+    // About Us State
+    const [storyHe, setStoryHe] = useState('');
+    const [storyEn, setStoryEn] = useState('');
+
+    useEffect(() => {
+        if (aboutUs) {
+            setStoryHe(aboutUs.story_he || '');
+            setStoryEn(aboutUs.story_en || '');
+        }
+    }, [aboutUs]);
 
     // Coupon State
     const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -592,7 +605,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     };
 
     return (
-        <div className="p-8 bg-stone-100 min-h-screen font-sans animate-fade-in" dir={language === 'he' ? 'rtl' : 'ltr'}>
+        <div className="p-8 bg-themeBg text-themeText min-h-screen font-sans animate-fade-in" dir={language === 'he' ? 'rtl' : 'ltr'}>
 
             <FeedbackModal
                 isOpen={feedback.isOpen}
@@ -614,75 +627,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             />
 
             <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 text-start">
-                <h1 className="text-3xl font-serif font-bold text-stone-900">{t.title}</h1>
+                <h1 className="text-3xl font-serif font-bold text-themeText">{t.title}</h1>
                 <div className="flex gap-4">
-                    <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 bg-gold-500 text-stone-900 px-4 py-2 rounded-lg hover:bg-gold-400 transition font-bold shadow-md"><Plus size={18} /><span>{t.addItem}</span></button>
-                    <button onClick={onExit} className="flex items-center gap-2 bg-stone-900 text-white px-4 py-2 rounded-lg hover:bg-stone-800 transition shadow-md"><LogOut size={18} /><span>{t.exit}</span></button>
+                    <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 bg-themePrimary text-themeHeaderBg px-4 py-2 rounded-lg hover:opacity-90 transition font-bold shadow-md"><Plus size={18} /><span>{t.addItem}</span></button>
+                    <button onClick={onExit} className="flex items-center gap-2 bg-themeHeaderBg text-themeHeaderTxt px-4 py-2 rounded-lg hover:opacity-90 transition shadow-md"><LogOut size={18} /><span>{t.exit}</span></button>
                 </div>
             </div>
 
             {/* Top Stats & Feature Toggles */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 text-start">
-                <div className="bg-white p-6 rounded-lg shadow-sm">
-                    <h3 className="text-sm font-bold text-stone-400 uppercase mb-2">{t.minOrder}</h3>
+                <div className="bg-themeCardBg p-6 rounded-lg shadow-sm border border-themeText/5">
+                    <h3 className="text-sm font-bold text-themeText/40 uppercase mb-2">{t.minOrder}</h3>
                     <div className="flex items-center gap-1">
-                        <span className="text-lg font-bold text-stone-800">₪</span>
+                        <span className="text-lg font-bold text-themeText">₪</span>
                         <input
                             type="number"
                             value={appConfig.min_order_price}
                             onChange={(e) => updateAppConfig({ min_order_price: Number(e.target.value) })}
-                            className="w-full border-b border-stone-300 text-2xl font-bold pb-2 focus:outline-none focus:border-gold-500"
+                            className="w-full bg-transparent border-b border-themeText/20 text-2xl font-bold pb-2 focus:outline-none focus:border-themePrimary text-themeText"
                         />
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col justify-between">
-                    <h3 className="text-sm font-bold text-stone-400 uppercase mb-4">{t.featureMgmt}</h3>
+                <div className="bg-themeCardBg p-6 rounded-lg shadow-sm flex flex-col justify-between border border-themeText/5">
+                    <h3 className="text-sm font-bold text-themeText/40 uppercase mb-4">{t.featureMgmt}</h3>
                     <div className="space-y-3">
                         <button
                             onClick={() => updateFeatureFlags({ showCalculator: !featureFlags?.showCalculator })}
-                            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags?.showCalculator ? 'bg-gold-50 border-gold-200 text-gold-900' : 'bg-stone-50 border-stone-200 text-stone-400'}`}
+                            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags?.showCalculator ? 'bg-themePrimary/15 border-themePrimary/30 text-themePrimary' : 'bg-themeBg border-themeText/10 text-themeText/40'}`}
                         >
                             <span className="text-xs font-bold">{t.showCalc}</span>
-                            {featureFlags?.showCalculator ? <ToggleRight className="text-gold-500" /> : <ToggleLeft />}
+                            {featureFlags?.showCalculator ? <ToggleRight className="text-themePrimary" /> : <ToggleLeft />}
                         </button>
                         <button
                             onClick={() => updateFeatureFlags({ showAI: !featureFlags?.showAI })}
-                            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags?.showAI ? 'bg-gold-50 border-gold-200 text-gold-900' : 'bg-stone-50 border-stone-200 text-stone-400'}`}
+                            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags?.showAI ? 'bg-themePrimary/15 border-themePrimary/30 text-themePrimary' : 'bg-themeBg border-themeText/10 text-themeText/40'}`}
                         >
                             <span className="text-xs font-bold">{t.showAI}</span>
-                            {featureFlags?.showAI ? <ToggleRight className="text-gold-500" /> : <ToggleLeft />}
+                            {featureFlags?.showAI ? <ToggleRight className="text-themePrimary" /> : <ToggleLeft />}
                         </button>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-lg shadow-sm md:col-span-2 relative overflow-hidden">
+                <div className="bg-themeCardBg p-6 rounded-lg shadow-sm md:col-span-2 relative overflow-hidden border border-themeText/5">
                     <div className="flex items-center gap-2 mb-4">
-                        <div className="p-1.5 bg-gold-100 rounded text-gold-600"><Calculator size={16} /></div>
-                        <h3 className="text-sm font-bold text-stone-900 uppercase">{t.calcSettings}</h3>
+                        <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Calculator size={16} /></div>
+                        <h3 className="text-sm font-bold text-themeText uppercase">{t.calcSettings}</h3>
                     </div>
                     <div className="grid grid-cols-3 gap-3 md:gap-6 items-end">
                         <div className="flex flex-col">
-                            <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.sandwichesPerPerson}</label>
-                            <input type="number" step="0.1" value={calculationSettings?.sandwichesPerPerson || 1.5} onChange={(e) => updateCalculationSettings({ sandwichesPerPerson: parseFloat(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
+                            <label className="text-[10px] md:text-xs text-themeText/50 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.sandwichesPerPerson}</label>
+                            <input type="number" step="0.1" value={calculationSettings?.sandwichesPerPerson || 1.5} onChange={(e) => updateCalculationSettings({ sandwichesPerPerson: parseFloat(e.target.value) })} className="w-full bg-transparent border-b border-themeText/20 text-xl font-bold pb-1 focus:outline-none focus:border-themePrimary text-themeText" />
                         </div>
                         <div className="flex flex-col">
-                            <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.pastriesPerPerson}</label>
-                            <input type="number" step="0.1" value={calculationSettings?.pastriesPerPerson || 1.0} onChange={(e) => updateCalculationSettings({ pastriesPerPerson: parseFloat(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
+                            <label className="text-[10px] md:text-xs text-themeText/50 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.pastriesPerPerson}</label>
+                            <input type="number" step="0.1" value={calculationSettings?.pastriesPerPerson || 1.0} onChange={(e) => updateCalculationSettings({ pastriesPerPerson: parseFloat(e.target.value) })} className="w-full bg-transparent border-b border-themeText/20 text-xl font-bold pb-1 focus:outline-none focus:border-themePrimary text-themeText" />
                         </div>
                         <div className="flex flex-col">
-                            <label className="text-[10px] md:text-xs text-stone-500 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.trayCapacity}</label>
-                            <input type="number" value={calculationSettings?.averageTrayCapacity || 10} onChange={(e) => updateCalculationSettings({ averageTrayCapacity: parseInt(e.target.value) })} className="w-full border-b border-stone-300 text-xl font-bold pb-1 focus:outline-none focus:border-gold-500" />
+                            <label className="text-[10px] md:text-xs text-themeText/50 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.trayCapacity}</label>
+                            <input type="number" value={calculationSettings?.averageTrayCapacity || 10} onChange={(e) => updateCalculationSettings({ averageTrayCapacity: parseInt(e.target.value) })} className="w-full bg-transparent border-b border-themeText/20 text-xl font-bold pb-1 focus:outline-none focus:border-themePrimary text-themeText" />
                         </div>
                     </div>
-            </div>
+                </div>
         </div>
 
             {/* Incoming Orders Section */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
-                <button onClick={() => setShowOrders(!showOrders)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
+            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
+                <button onClick={() => setShowOrders(!showOrders)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
                     <div className="flex items-center gap-3">
-                        <ShoppingBag size={20} className="text-gold-500" />
+                        <ShoppingBag size={20} className="text-themePrimary" />
                         <span className="font-serif font-bold text-lg">{language === 'he' ? 'הזמנות נכנסות' : 'Incoming Orders'}</span>
                         {orders.filter(o => o.status === 'pending').length > 0 && (
                             <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
@@ -978,23 +991,75 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                             <th className="p-2 text-start">{t.tableMains}</th>
                                             <th className="p-2 text-start">{t.tablePlatters}</th>
                                             <th className="p-2 text-start">{t.tableDesserts}</th>
+                                            <th className="p-2 text-start">{t.tableDips}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {EVENT_TYPES.map(eType => (
                                             <tr key={eType} className="border-b border-stone-200 hover:bg-white transition-colors">
-                                                <td className="p-2 font-bold text-stone-800 text-sm capitalize">{rootT[eType] || eType}</td>
+                                                <td className="p-2 font-bold text-stone-800 text-sm capitalize">{eType === 'basic' ? rootT.basicEvent : eType === 'plus' ? rootT.plusEvent : rootT.premiumEvent}</td>
                                                 <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.sandwiches || 0} onChange={(e) => handleEventRatioChange(eType, 'sandwiches', e.target.value)} /></td>
                                                 <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.pastries || 0} onChange={(e) => handleEventRatioChange(eType, 'pastries', e.target.value)} /></td>
                                                 <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.saladsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'saladsCoverage', e.target.value)} /></td>
                                                 <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.mainsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'mainsCoverage', e.target.value)} /></td>
                                                 <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.plattersCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'plattersCoverage', e.target.value)} /></td>
                                                 <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.dessertsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'dessertsCoverage', e.target.value)} /></td>
+                                                <td className="p-2"><input type="number" step="0.1" className="w-14 p-1 border rounded text-xs" value={advancedSettings?.eventRatios?.[eType]?.dipsCoverage || 0} onChange={(e) => handleEventRatioChange(eType, 'dipsCoverage', e.target.value)} /></td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Our Story Settings Customizer */}
+            <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8 text-start">
+                <button onClick={() => setShowAboutUsSettings(!showAboutUsSettings)} className="w-full p-6 flex items-center justify-between bg-stone-900 text-white hover:bg-stone-800 transition">
+                    <div className="flex items-center gap-3"><Award size={20} className="text-gold-500" /><span className="font-serif font-bold text-lg">{language === 'he' ? 'עריכת הסיפור שלנו' : 'Edit Our Story'}</span></div>
+                    {showAboutUsSettings ? <ChevronUp /> : <ChevronDown />}
+                </button>
+                {showAboutUsSettings && (
+                    <div className="p-6 bg-stone-50 animate-slide-in-top space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-stone-700 mb-1">{language === 'he' ? 'הסיפור שלנו בעברית' : 'Our Story (Hebrew)'}</label>
+                            <textarea
+                                value={storyHe}
+                                onChange={(e) => setStoryHe(e.target.value)}
+                                className="w-full h-40 p-3 border border-stone-300 rounded-lg focus:outline-none focus:border-gold-500 text-sm"
+                                placeholder="כתוב את הסיפור בעברית..."
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-stone-700 mb-1">{language === 'he' ? 'הסיפור שלנו באנגלית' : 'Our Story (English)'}</label>
+                            <textarea
+                                value={storyEn}
+                                onChange={(e) => setStoryEn(e.target.value)}
+                                className="w-full h-40 p-3 border border-stone-300 rounded-lg focus:outline-none focus:border-gold-500 text-sm"
+                                placeholder="Write the story in English..."
+                            />
+                        </div>
+                        <div className="flex justify-end pt-2">
+                            <button
+                                onClick={async () => {
+                                    setUploading(true);
+                                    await updateAboutUs({ story_he: storyHe, story_en: storyEn });
+                                    setUploading(false);
+                                    setFeedback({
+                                        isOpen: true,
+                                        type: 'success',
+                                        title: language === 'he' ? 'השמירה הצליחה' : 'Saved Successfully',
+                                        message: language === 'he' ? 'הסיפור שלנו עודכן בהצלחה!' : 'Our story has been updated successfully!'
+                                    });
+                                }}
+                                disabled={uploading}
+                                className="px-6 py-2.5 bg-stone-900 hover:bg-stone-800 text-white font-bold rounded-xl flex items-center gap-2 shadow-sm transition active:scale-[0.98]"
+                            >
+                                {uploading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                                <span>{t.save}</span>
+                            </button>
                         </div>
                     </div>
                 )}
@@ -1462,7 +1527,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             <div className="flex gap-4">
                                 <div className="flex-1">
                                     <label className="block text-sm font-bold text-stone-700 mb-1">{t.category}</label>
-                                    <select value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value as Category })} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white">
+                                    <select 
+                                        value={newItem.category} 
+                                        onChange={(e) => {
+                                            const cat = e.target.value as Category;
+                                            let sMin = 10;
+                                            let sMax = 10;
+                                            if (cat === 'Salads') {
+                                                sMin = 10; sMax = 10;
+                                            } else if (cat === 'Main Courses') {
+                                                sMin = 10; sMax = 15;
+                                            }
+                                            setNewItem({ ...newItem, category: cat, serves_min: sMin, serves_max: sMax });
+                                        }} 
+                                        className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white"
+                                    >
                                         {CATEGORY_OPTIONS.map(cat => (
                                             <option key={cat} value={cat}>{(rootT.categories as any)[cat] || cat}</option>
                                         ))}
@@ -1595,7 +1674,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             <div className="flex gap-4">
                                 <div className="flex-1">
                                     <label className="block text-sm font-bold text-stone-700 mb-1">{t.category}</label>
-                                    <select value={editCategory} onChange={(e) => setEditCategory(e.target.value as Category)} className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white">
+                                    <select 
+                                        value={editCategory} 
+                                        onChange={(e) => {
+                                            const cat = e.target.value as Category;
+                                            setEditCategory(cat);
+                                            if (cat === 'Salads') {
+                                                setEditServesMin(10);
+                                                setEditServesMax(10);
+                                            } else if (cat === 'Main Courses') {
+                                                setEditServesMin(10);
+                                                setEditServesMax(15);
+                                            }
+                                        }} 
+                                        className="w-full p-2 border border-stone-300 rounded focus:border-gold-500 outline-none bg-white"
+                                    >
                                         {CATEGORY_OPTIONS.map(cat => (
                                             <option key={cat} value={cat}>{(rootT.categories as any)[cat] || cat}</option>
                                         ))}

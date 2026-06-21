@@ -20,7 +20,7 @@ const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || '2024';
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isKosherOpen, setIsKosherOpen] = useState(false);
-  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, featureFlags, fetchSettings, kosherCertUrl, fetchReviews, theme } = useStore();
+  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, featureFlags, fetchSettings, kosherCertUrl, fetchReviews, theme, aboutUs } = useStore();
   
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -265,18 +265,11 @@ export default function App() {
                     <div className="max-w-3xl mx-auto text-center">
                         <h2 className="text-3xl font-serif font-bold text-themePrimary mb-4">{language === 'he' ? 'הסיפור שלנו - איילה פשוט טעים' : 'Our Story - Ayala Simply Delicious'}</h2>
                         <div className="w-12 h-1 bg-themePrimary mx-auto mb-6 rounded-full"></div>
-                        <p className="text-themeText/80 leading-relaxed text-base md:text-lg mb-4 text-start font-serif">
-                            {language === 'he' 
-                                ? 'ברוכים הבאים לקייטרינג הבוטיק החלבי שלי. אצלי תמצאו שילוב מושלם של חומרי גלם טריים ואיכותיים ביותר, תשומת לב קפדנית לפרטים הקטנים, והמון אהבה ותשוקה לאוכל ואירוח.'
-                                : 'Welcome to my dairy boutique catering service. Here you will find a perfect combination of the freshest, highest quality ingredients, meticulous attention to the smallest details, and a lot of love and passion for food and hosting.'
-                            }
-                        </p>
-                        <p className="text-themeText/80 leading-relaxed text-base md:text-lg text-start font-serif">
-                            {language === 'he'
-                                ? 'אני מתמחה בבניית תפריטים עשירים ומגוונים לכל סוגי האירועים - החל ממפגשים משפחתיים קטנים, בראנצ׳ים מפנקים, הרמות כוסית, ועד לאירועים עסקיים יוקרתיים. כל מגש אירוח, סלט טרי, קיש או מאפה נעשה בעבודת יד מוקפדת עם דגש על אסתטיקה מרהיבה וטעם בלתי נשכח. הכשרות היא חלבי כשר למהדרין כדי שכולם יוכלו ליהנות בלב שקט.'
-                                : 'I specialize in creating rich, diverse menus for all types of events - from small family gatherings and luxurious brunches to toasts and prestigious corporate events. Each hosting tray, fresh salad, quiche, or pastry is handmade with an emphasis on spectacular aesthetics and unforgettable taste. The catering is Kosher Mehadrin Dairy so that everyone can enjoy with peace of mind.'
-                            }
-                        </p>
+                        {(language === 'he' ? (aboutUs?.story_he || '') : (aboutUs?.story_en || '')).split('\n').filter(Boolean).map((para, idx) => (
+                            <p key={idx} className="text-themeText/80 leading-relaxed text-base md:text-lg mb-4 text-start font-serif last:mb-0">
+                                {para}
+                            </p>
+                        ))}
                     </div>
                 </section>
 

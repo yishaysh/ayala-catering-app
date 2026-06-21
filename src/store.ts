@@ -1,7 +1,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon, AppSettings, ThemeConfig, GalleryItem, Review } from './types';
+import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon, AppSettings, ThemeConfig, GalleryItem, Review, AboutUsConfig } from './types';
 import { supabase } from './lib/supabase';
 
 type Language = 'he' | 'en';
@@ -67,9 +67,11 @@ export interface Translations {
   aiApplying: string;
   aiApply: string;
   aiExplanation: string;
-  brunch: string;
-  dinner: string;
-  snack: string;
+  basicEvent: string;
+  plusEvent: string;
+  premiumEvent: string;
+  requiredDishes: string;
+  enrichDishes: string;
   customerName: string;
   customerPhone: string;
   eventLocation: string;
@@ -128,6 +130,7 @@ export interface Translations {
     tableMains: string;
     tablePlatters: string;
     tableDesserts: string;
+    tableDips: string;
     featureMgmt: string;
     showCalc: string;
     showAI: string;
@@ -227,9 +230,11 @@ export const translations: Record<Language, Translations> = {
     aiApplying: "מנתח...",
     aiApply: "החל המלצה על העגלה",
     aiExplanation: "למה בחרתי את זה?",
-    brunch: "בראנץ'",
-    dinner: "ארוחת ערב",
-    snack: "אירוח קליל",
+    basicEvent: "אירוע בסיס",
+    plusEvent: "אירוע פלוס",
+    premiumEvent: "אירוע פרימיום",
+    requiredDishes: "מנות חובה לאירוע",
+    enrichDishes: "להעשרת האירוע (אופציונלי)",
     customerName: "שם מלא",
     customerPhone: "טלפון ליצירת קשר",
     eventLocation: "מיקום האירוע (עיר/כתובת)",
@@ -297,6 +302,7 @@ export const translations: Record<Language, Translations> = {
         tableMains: "עיקריות",
         tablePlatters: "מגשים",
         tableDesserts: "קינוחים",
+        tableDips: "מטבלים",
         featureMgmt: "ניהול פיצ'רים",
         showCalc: "הצג מחשבון אירוח",
         showAI: "הצג קונסיירז' AI",
@@ -394,9 +400,11 @@ export const translations: Record<Language, Translations> = {
     aiApplying: "Analyzing...",
     aiApply: "Apply Recommendation",
     aiExplanation: "Why this choice?",
-    brunch: "Brunch",
-    dinner: "Dinner",
-    snack: "Light / Cocktail",
+    basicEvent: "Base Event",
+    plusEvent: "Plus Event",
+    premiumEvent: "Premium Event",
+    requiredDishes: "Required Dishes",
+    enrichDishes: "To Enrich (Optional)",
     customerName: "Full Name",
     customerPhone: "Contact Phone",
     eventLocation: "Event Location (City/Address)",
@@ -475,6 +483,7 @@ export const translations: Record<Language, Translations> = {
         tableMains: "Mains",
         tablePlatters: "Platters",
         tableDesserts: "Desserts",
+        tableDips: "Dips",
         usageLimit: "Usage Limit",
         unlimited: "Unlimited",
         usage: "Used",
@@ -521,6 +530,7 @@ interface AppState {
   gallery: GalleryItem[];
   kosherCertUrl: string;
   reviews: Review[];
+  aboutUs: AboutUsConfig;
 
   fetchMenuItems: () => Promise<void>;
   fetchSettings: () => Promise<void>;
@@ -541,6 +551,7 @@ interface AppState {
   updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
   updateAppConfig: (config: Partial<AppSettings>) => Promise<void>;
   updateTheme: (theme: Partial<ThemeConfig>) => Promise<void>;
+  updateAboutUs: (aboutUs: Partial<AboutUsConfig>) => Promise<void>;
   updateGallery: (gallery: GalleryItem[]) => Promise<void>;
   updateKosherCertUrl: (url: string) => Promise<void>;
   clearCart: () => void;
@@ -569,6 +580,11 @@ const defaultTheme: ThemeConfig = {
   card_text_color: '#1c1917'
 };
 
+const defaultAboutUs: AboutUsConfig = {
+  story_he: 'ברוכים הבאים לקייטרינג הבוטיק החלבי שלי. אצלי תמצאו שילוב מושלם של חומרי גלם טריים ואיכותיים ביותר, תשומת לב קפדנית לפרטים הקטנים, והמון אהבה ותשוקה לאוכל ואירוח.\n\nאני מתמחה בבניית תפריטים עשירים ומגוונים לכל סוגי האירועים - החל ממפגשים משפחתיים קטנים, בראנצ׳ים מפנקים, הרמות כוסית, ועד לאירועים עסקיים יוקרתיים. כל מגש אירוח, סלט טרי, קיש או מאפה נעשה בעבודת יד מוקפדת עם דגש על אסתטיקה מרהיבה וטעם בלתי נשכח. הכשרות היא חלבי כשר למהדרין כדי שכולם יוכלו ליהנות בלב שקט.',
+  story_en: 'Welcome to my dairy boutique catering service. Here you will find a perfect combination of the freshest, highest quality ingredients, meticulous attention to the smallest details, and a lot of love and passion for food and hosting.\n\nI specialize in creating rich, diverse menus for all types of events - from small family gatherings and luxurious brunches to toasts and prestigious corporate events. Each hosting tray, fresh salad, quiche, or pastry is handmade with an emphasis on spectacular aesthetics and unforgettable taste. The catering is Kosher Mehadrin Dairy so that everyone can enjoy with peace of mind.'
+};
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -580,8 +596,9 @@ export const useStore = create<AppState>()(
       customerDetails: { name: '', phone: '', location: '', distanceKm: 0 },
       language: 'he',
       isLoading: false,
-      eventType: 'snack',
+      eventType: 'basic',
       featureFlags: { showCalculator: true, showAI: false },
+      aboutUs: defaultAboutUs,
       appConfig: {
         min_order_price: 500,
         lead_time_hours: 48,
@@ -601,9 +618,9 @@ export const useStore = create<AppState>()(
       },
       advancedSettings: {
         eventRatios: {
-            brunch: { sandwiches: 1.0, pastries: 1.5, saladsCoverage: 0.8, mainsCoverage: 0.5, plattersCoverage: 0.6, dessertsCoverage: 0.4 },
-            dinner: { sandwiches: 0.5, pastries: 0.5, saladsCoverage: 1.0, mainsCoverage: 1.0, plattersCoverage: 0.4, dessertsCoverage: 0.5 },
-            snack: { sandwiches: 2.0, pastries: 0.5, saladsCoverage: 0.3, mainsCoverage: 0.0, plattersCoverage: 0.8, dessertsCoverage: 0.3 },
+            basic: { sandwiches: 0.0, pastries: 0.0, saladsCoverage: 1.0, mainsCoverage: 1.0, plattersCoverage: 0.8, dessertsCoverage: 0.0, dipsCoverage: 0.0 },
+            plus: { sandwiches: 1.0, pastries: 0.8, saladsCoverage: 1.2, mainsCoverage: 1.2, plattersCoverage: 1.0, dessertsCoverage: 0.6, dipsCoverage: 0.5 },
+            premium: { sandwiches: 1.5, pastries: 1.2, saladsCoverage: 1.5, mainsCoverage: 1.5, plattersCoverage: 1.4, dessertsCoverage: 1.0, dipsCoverage: 1.0 },
         }
       },
       activeCoupon: null,
@@ -658,6 +675,14 @@ export const useStore = create<AppState>()(
         const { data: kosherData } = await supabase.from('app_settings').select('*').eq('key', 'kosher');
         if (kosherData && kosherData.length > 0 && kosherData[0].value) {
             set({ kosherCertUrl: kosherData[0].value as string });
+        }
+
+        // Fetch About Us
+        const { data: aboutData } = await supabase.from('app_settings').select('*').eq('key', 'about');
+        if (aboutData && aboutData.length > 0 && aboutData[0].value) {
+            set({ aboutUs: aboutData[0].value as AboutUsConfig });
+        } else {
+            set({ aboutUs: defaultAboutUs });
         }
       },
 
@@ -814,6 +839,12 @@ export const useStore = create<AppState>()(
         await supabase.from('app_settings').upsert({ key: 'theme', value: newTheme });
       },
 
+      updateAboutUs: async (aboutUsUpdates) => {
+        const newAboutUs = { ...get().aboutUs, ...aboutUsUpdates };
+        set({ aboutUs: newAboutUs });
+        await supabase.from('app_settings').upsert({ key: 'about', value: newAboutUs });
+      },
+
       updateGallery: async (gallery) => {
         set({ gallery });
         await supabase.from('app_settings').upsert({ key: 'gallery', value: gallery });
@@ -894,7 +925,7 @@ export const useStore = create<AppState>()(
       }
     }),
     {
-      name: 'ayala-catering-storage-v13', 
+      name: 'ayala-catering-storage-v14', 
       partialize: (state) => ({ 
           cart: state.cart, 
           guestCount: state.guestCount,
@@ -910,7 +941,8 @@ export const useStore = create<AppState>()(
           appConfig: state.appConfig,
           theme: state.theme,
           gallery: state.gallery,
-          kosherCertUrl: state.kosherCertUrl
+          kosherCertUrl: state.kosherCertUrl,
+          aboutUs: state.aboutUs
       }), 
     }
   )

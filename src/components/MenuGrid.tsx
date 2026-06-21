@@ -134,12 +134,22 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                           <h4 className="text-sm md:text-lg font-bold text-themeText leading-tight line-clamp-2 min-h-[2.5em]">{localItem.name}</h4>
                       </div>
                       
-                      <div className="flex items-baseline gap-1 mb-2">
+                      <div className="flex items-baseline gap-1 mb-1">
                            <span className="text-base md:text-xl font-bold text-themeText">₪{item.price}</span>
                            <span className="text-[10px] md:text-xs text-themeText/50 font-normal">/ {getUnitName(item.unit_type)}</span>
                            {item.is_tray && item.units_per_tray && (
                                <span className="text-[10px] md:text-xs text-themePrimary font-bold">({item.units_per_tray} {language === 'he' ? 'יח\'' : 'pcs'})</span>
                            )}
+                      </div>
+                      
+                      <div className="text-[10px] md:text-xs text-themeText/60 mb-2 flex items-center gap-1">
+                           <Info size={12} className="text-themePrimary shrink-0" />
+                           <span>
+                               {item.serves_min === item.serves_max 
+                                   ? `${t.serves}${item.serves_min} ${t.people}`
+                                   : `${t.serves}${item.serves_min}-${item.serves_max} ${t.people}`
+                               }
+                           </span>
                       </div>
                       
                       <p className="hidden md:block text-themeText/70 text-xs md:text-sm mb-3 leading-relaxed line-clamp-2">
@@ -243,6 +253,19 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         <p className="text-themeText/80 text-xs md:text-sm leading-relaxed">
                             {getLocalizedItem(itemToAdd, language).description || t.description}
                         </p>
+                    </div>
+
+                    <div className="flex items-center justify-between bg-themeCardBg p-3 rounded-xl border border-themeText/5 shadow-sm text-xs md:text-sm text-themeText/80">
+                        <span className="font-bold flex items-center gap-1.5"><Info size={16} className="text-themePrimary" /> {language === 'he' ? 'כמות / סועדים' : 'Servings / Quantity'}</span>
+                        <span className="font-semibold">
+                            {itemToAdd.serves_min === itemToAdd.serves_max 
+                                ? `${t.serves}${itemToAdd.serves_min} ${t.people}`
+                                : `${t.serves}${itemToAdd.serves_min}-${itemToAdd.serves_max} ${t.people}`
+                            }
+                            {itemToAdd.is_tray && itemToAdd.units_per_tray && (
+                                ` (${itemToAdd.units_per_tray} ${language === 'he' ? 'יחידות במגש' : 'units per tray'})`
+                            )}
+                        </span>
                     </div>
 
                     <div className="flex items-center justify-between bg-themeCardBg p-3 rounded-xl border border-themeText/5 shadow-sm">
