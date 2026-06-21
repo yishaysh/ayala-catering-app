@@ -7,6 +7,13 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 20px);
   }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 nav::-webkit-scrollbar {

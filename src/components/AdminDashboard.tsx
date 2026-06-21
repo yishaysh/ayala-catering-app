@@ -53,17 +53,67 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [showAdvancedCalc, setShowAdvancedCalc] = useState(false);
-    const [showCoupons, setShowCoupons] = useState(false);
-    const [showThemeSettings, setShowThemeSettings] = useState(false);
-    const [showAboutUsSettings, setShowAboutUsSettings] = useState(false);
-    const [showGallerySettings, setShowGallerySettings] = useState(false);
-    const [showKosherSettings, setShowKosherSettings] = useState(false);
-    const [showOrders, setShowOrders] = useState(true);
-    const [showReviews, setShowReviews] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [orders, setOrders] = useState<Order[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
+
+    // Tab state and controls
+    const [activeTab, setActiveTab] = useState(0);
+    const tabsContainerRef = React.useRef<HTMLDivElement>(null);
+    const isScrolling = React.useRef(false);
+
+    const TABS = [
+        { id: 'orders', label: language === 'he' ? 'הזמנות נכנסות' : 'Incoming Orders', icon: ShoppingBag },
+        { id: 'menu', label: language === 'he' ? 'ניהול תפריט ומלאי' : 'Menu & Inventory', icon: Pencil },
+        { id: 'calculator', label: language === 'he' ? 'מחשבון כמויות' : 'Calculator Config', icon: Calculator },
+        { id: 'media', label: language === 'he' ? 'מדיה וביקורות' : 'Gallery & Reviews', icon: ImageIcon },
+        { id: 'settings', label: language === 'he' ? 'הגדרות ועיצוב' : 'Settings & Themes', icon: Settings }
+    ];
+
+    const handleScroll = () => {
+        if (isScrolling.current || !tabsContainerRef.current) return;
+        const container = tabsContainerRef.current;
+        const scrollLeft = Math.abs(container.scrollLeft);
+        const width = container.clientWidth;
+        if (width === 0) return;
+        const index = Math.round(scrollLeft / width);
+        const newActiveTab = Math.min(Math.max(0, index), TABS.length - 1);
+        if (newActiveTab !== activeTab) {
+            setActiveTab(newActiveTab);
+        }
+    };
+
+    const handleTabClick = (index: number) => {
+        if (!tabsContainerRef.current) return;
+        isScrolling.current = true;
+        setActiveTab(index);
+        const container = tabsContainerRef.current;
+        const width = container.clientWidth;
+        const isRtl = document.documentElement.dir === 'rtl';
+        const targetScroll = isRtl ? -(index * width) : (index * width);
+        
+        container.scrollTo({
+            left: targetScroll,
+            behavior: 'smooth'
+        });
+
+        setTimeout(() => {
+            isScrolling.current = false;
+        }, 500);
+    };
+
+    useEffect(() => {
+        const handleResize = () => {
+            if (!tabsContainerRef.current) return;
+            const container = tabsContainerRef.current;
+            const width = container.clientWidth;
+            const isRtl = document.documentElement.dir === 'rtl';
+            const targetScroll = isRtl ? -(activeTab * width) : (activeTab * width);
+            container.scrollLeft = targetScroll;
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [activeTab]);
 
     // About Us State
     const [storyHe, setStoryHe] = useState('');
@@ -223,6 +273,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         setEditServesMax(item.serves_max);
         const mods = language === 'he' ? item.allowed_modifications : (item.allowed_modifications_en || item.allowed_modifications);
         setEditMods(mods ? mods.join(', ') : '');
+    };
+
+    const handleEventRatioChange = (eType: EventType, field: string, value: string) => {
+        const newRatios = { ...advancedSettings.eventRatios };
+        newRatios[eType] = { ...newRatios[eType], [field]: parseFloat(value) || 0 };
+        updateAdvancedSettings({ eventRatios: newRatios });
     };
 
     const applyThemePreset = async (preset: 'classic' | 'olive' | 'midnight' | 'rosegold' | 'forest' | 'burgundy' | 'ocean') => {
@@ -595,13 +651,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         };
         await addMenuItem(itemToSave);
         setIsAddModalOpen(false);
-        setNewItem({ name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], image_url: '', is_tray: false, units_per_tray: null });
-    };
-
-    const handleEventRatioChange = (eType: EventType, field: string, value: string) => {
-        const newRatios = { ...advancedSettings.eventRatios };
-        newRatios[eType] = { ...newRatios[eType], [field]: parseFloat(value) || 0 };
-        updateAdvancedSettings({ eventRatios: newRatios });
+        setNewItem({
+            name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], image_url: '', is_tray: false, units_per_tray: null
+        });
+        setAddMods('');
     };
 
     return (
@@ -626,349 +679,287 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 cancelText={language === 'he' ? 'ביטול' : 'Cancel'}
             />
 
-            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4 text-start">
+            <div className="flex justify-between items-center mb-6 gap-4 text-start">
                 <h1 className="text-3xl font-serif font-bold text-themeText">{t.title}</h1>
-                <div className="flex gap-4">
-                    <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 bg-themePrimary text-themeHeaderBg px-4 py-2 rounded-lg hover:opacity-90 transition font-bold shadow-md"><Plus size={18} /><span>{t.addItem}</span></button>
-                    <button onClick={onExit} className="flex items-center gap-2 bg-themeHeaderBg text-themeHeaderTxt px-4 py-2 rounded-lg hover:opacity-90 transition shadow-md"><LogOut size={18} /><span>{t.exit}</span></button>
-                </div>
-            </div>
-
-            {/* Top Stats & Feature Toggles */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8 text-start">
-                <div className="bg-themeCardBg p-6 rounded-lg shadow-sm border border-themeText/5">
-                    <h3 className="text-sm font-bold text-themeText/40 uppercase mb-2">{t.minOrder}</h3>
-                    <div className="flex items-center gap-1">
-                        <span className="text-lg font-bold text-themeText">₪</span>
-                        <input
-                            type="number"
-                            value={appConfig.min_order_price}
-                            onChange={(e) => updateAppConfig({ min_order_price: Number(e.target.value) })}
-                            className="w-full bg-transparent border-b border-themeText/20 text-2xl font-bold pb-2 focus:outline-none focus:border-themePrimary text-themeText"
-                        />
-                    </div>
-                </div>
-
-                <div className="bg-themeCardBg p-6 rounded-lg shadow-sm flex flex-col justify-between border border-themeText/5">
-                    <h3 className="text-sm font-bold text-themeText/40 uppercase mb-4">{t.featureMgmt}</h3>
-                    <div className="space-y-3">
-                        <button
-                            onClick={() => updateFeatureFlags({ showCalculator: !featureFlags?.showCalculator })}
-                            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags?.showCalculator ? 'bg-themePrimary/15 border-themePrimary/30 text-themePrimary' : 'bg-themeBg border-themeText/10 text-themeText/40'}`}
-                        >
-                            <span className="text-xs font-bold">{t.showCalc}</span>
-                            {featureFlags?.showCalculator ? <ToggleRight className="text-themePrimary" /> : <ToggleLeft />}
-                        </button>
-                        <button
-                            onClick={() => updateFeatureFlags({ showAI: !featureFlags?.showAI })}
-                            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${featureFlags?.showAI ? 'bg-themePrimary/15 border-themePrimary/30 text-themePrimary' : 'bg-themeBg border-themeText/10 text-themeText/40'}`}
-                        >
-                            <span className="text-xs font-bold">{t.showAI}</span>
-                            {featureFlags?.showAI ? <ToggleRight className="text-themePrimary" /> : <ToggleLeft />}
-                        </button>
-                    </div>
-                </div>
-
-                <div className="bg-themeCardBg p-6 rounded-lg shadow-sm md:col-span-2 relative overflow-hidden border border-themeText/5">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Calculator size={16} /></div>
-                        <h3 className="text-sm font-bold text-themeText uppercase">{t.calcSettings}</h3>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 md:gap-6 items-end">
-                        <div className="flex flex-col">
-                            <label className="text-[10px] md:text-xs text-themeText/50 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.sandwichesPerPerson}</label>
-                            <input type="number" step="0.1" value={calculationSettings?.sandwichesPerPerson || 1.5} onChange={(e) => updateCalculationSettings({ sandwichesPerPerson: parseFloat(e.target.value) })} className="w-full bg-transparent border-b border-themeText/20 text-xl font-bold pb-1 focus:outline-none focus:border-themePrimary text-themeText" />
-                        </div>
-                        <div className="flex flex-col">
-                            <label className="text-[10px] md:text-xs text-themeText/50 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.pastriesPerPerson}</label>
-                            <input type="number" step="0.1" value={calculationSettings?.pastriesPerPerson || 1.0} onChange={(e) => updateCalculationSettings({ pastriesPerPerson: parseFloat(e.target.value) })} className="w-full bg-transparent border-b border-themeText/20 text-xl font-bold pb-1 focus:outline-none focus:border-themePrimary text-themeText" />
-                        </div>
-                        <div className="flex flex-col">
-                            <label className="text-[10px] md:text-xs text-themeText/50 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.trayCapacity}</label>
-                            <input type="number" value={calculationSettings?.averageTrayCapacity || 10} onChange={(e) => updateCalculationSettings({ averageTrayCapacity: parseInt(e.target.value) })} className="w-full bg-transparent border-b border-themeText/20 text-xl font-bold pb-1 focus:outline-none focus:border-themePrimary text-themeText" />
-                        </div>
-                    </div>
-                </div>
-        </div>
-
-            {/* Incoming Orders Section */}
-            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
-                <button onClick={() => setShowOrders(!showOrders)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
-                    <div className="flex items-center gap-3">
-                        <ShoppingBag size={20} className="text-themePrimary" />
-                        <span className="font-serif font-bold text-lg">{language === 'he' ? 'הזמנות נכנסות' : 'Incoming Orders'}</span>
-                        {orders.filter(o => o.status === 'pending').length > 0 && (
-                            <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
-                                {orders.filter(o => o.status === 'pending').length} {language === 'he' ? 'חדשות' : 'New'}
-                            </span>
-                        )}
-                    </div>
-                    {showOrders ? <ChevronUp /> : <ChevronDown />}
+                <button onClick={onExit} className="flex items-center gap-2 bg-themeHeaderBg text-themeHeaderTxt px-5 py-2.5 rounded-xl hover:opacity-90 transition shadow-md font-bold text-sm">
+                    <LogOut size={16} />
+                    <span>{t.exit}</span>
                 </button>
-                {showOrders && (
-                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top space-y-6">
-                        {loadingOrders ? (
-                            <div className="flex justify-center py-8">
-                                <Loader2 className="animate-spin text-gold-500" size={32} />
-                            </div>
-                        ) : orders.length > 0 ? (
-                            <div className="space-y-4">
-                                {orders.map(order => {
-                                    const dateStr = order.created_at ? new Date(order.created_at).toLocaleString(language === 'he' ? 'he-IL' : 'en-US') : '';
-                                    const partialId = order.id ? order.id.slice(0, 8) : 'NEW';
-                                    
-                                    const statusColors: Record<string, string> = {
-                                        pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/25',
-                                        approved: 'bg-blue-500/10 text-blue-500 border-blue-500/25',
-                                        completed: 'bg-green-500/10 text-green-500 border-green-500/25',
-                                        cancelled: 'bg-red-500/10 text-red-500 border-red-500/25'
-                                    };
-                                    
-                                    const statusLabel: Record<string, string> = {
-                                        pending: language === 'he' ? 'ממתין' : 'Pending',
-                                        approved: language === 'he' ? 'מאושר' : 'Approved',
-                                        completed: language === 'he' ? 'הושלם' : 'Completed',
-                                        cancelled: language === 'he' ? 'מבוטל' : 'Cancelled'
-                                    };
-
-                                    return (
-                                        <div key={order.id} className="bg-themeCardBg p-5 rounded-xl border border-themeText/10 shadow-sm space-y-4 hover:border-themePrimary/20 transition-all">
-                                            {/* Order Card Header */}
-                                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-themeText/10 pb-3">
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-bold text-themeText">#{partialId}</span>
-                                                        <span className="text-xs text-themeText/60 flex items-center gap-1"><Calendar size={12} /> {dateStr}</span>
-                                                    </div>
-                                                    <div className="text-xs font-bold text-themeText/80 mt-1">
-                                                        👤 {order.customer_name} | 📞 {order.customer_phone}
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusColors[order.status] || 'bg-themeBg text-themeText/80 border-themeText/10'}`}>
-                                                        {statusLabel[order.status] || order.status}
-                                                    </span>
-                                                    <span className="text-lg font-bold text-themeText font-serif">₪{order.total_price}</span>
-                                                </div>
-                                            </div>
-
-                                            {/* Order Items */}
-                                            <div className="space-y-2">
-                                                {((order.items as any) || []).map((item: any, idx: number) => (
-                                                    <div key={idx} className="text-xs text-themeText/70 flex justify-between">
-                                                        <div>
-                                                            <span className="font-bold text-themeText/90">{item.quantity}x</span> {language === 'he' ? item.name : (item.name_en || item.name)}
-                                                            {item.selected_modifications && item.selected_modifications.length > 0 && (
-                                                                <span className="text-themeText/40 block text-[10px] pl-4">
-                                                                    ↳ {item.selected_modifications.join(', ')}
-                                                                </span>
-                                                            )}
-                                                            {item.notes && (
-                                                                <span className="text-themeText/40 italic block text-[10px] pl-4">
-                                                                    ↳ "{item.notes}"
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                        <span className="font-medium text-themeText/85">₪{item.price * item.quantity}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-
-                                            {/* Status Update Actions */}
-                                            <div className="flex flex-wrap gap-2 pt-2 border-t border-themeText/10 justify-end">
-                                                {order.status !== 'approved' && order.status !== 'completed' && (
-                                                    <button
-                                                        onClick={() => handleUpdateOrderStatus(order.id!, 'approved')}
-                                                        className="px-3 py-1.5 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-lg text-xs font-bold hover:bg-blue-500/20 transition-colors"
-                                                    >
-                                                        {language === 'he' ? 'אשר הזמנה' : 'Approve'}
-                                                    </button>
-                                                )}
-                                                {order.status !== 'completed' && (
-                                                    <button
-                                                        onClick={() => handleUpdateOrderStatus(order.id!, 'completed')}
-                                                        className="px-3 py-1.5 bg-green-500/10 text-green-500 border border-green-500/20 rounded-lg text-xs font-bold hover:bg-green-500/20 transition-colors"
-                                                    >
-                                                        {language === 'he' ? 'סמן כהושלם' : 'Complete'}
-                                                    </button>
-                                                )}
-                                                {order.status !== 'cancelled' && (
-                                                    <button
-                                                        onClick={() => handleUpdateOrderStatus(order.id!, 'cancelled')}
-                                                        className="px-3 py-1.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500/20 transition-colors"
-                                                    >
-                                                        {language === 'he' ? 'בטל הזמנה' : 'Cancel'}
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-themeText/40 italic py-4">{language === 'he' ? 'אין הזמנות במערכת' : 'No orders in system yet.'}</p>
-                        )}
-                    </div>
-                )}
             </div>
 
-            {/* Delivery Settings */}
-            <div className="bg-themeCardBg p-6 rounded-lg shadow-sm border border-themeText/10 mb-8 text-start relative overflow-hidden">
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="p-1.5 bg-themePrimary/10 rounded text-themePrimary"><Truck size={16} /></div>
-                    <h3 className="text-sm font-bold text-themeText uppercase">{t.deliverySettings}</h3>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    <div className="flex flex-col">
-                        <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.minFreeDelivery}</label>
-                        <div className="flex items-center gap-1">
-                            <span className="text-themeText/40">₪</span>
-                            <input
-                                type="number"
-                                value={calculationSettings?.minOrderFreeDelivery || 1500}
-                                onChange={(e) => updateCalculationSettings({ minOrderFreeDelivery: Number(e.target.value) })}
-                                className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
-                            />
-                        </div>
-                    </div>
-                    <div className="flex flex-col">
-                        <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.baseDeliveryFee}</label>
-                        <div className="flex items-center gap-1">
-                            <span className="text-themeText/40">₪</span>
-                            <input
-                                type="number"
-                                value={appConfig.delivery_base_fee ?? 60}
-                                onChange={(e) => updateAppConfig({ delivery_base_fee: Number(e.target.value) })}
-                                className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
-                            />
-                        </div>
-                    </div>
-                    <div className="flex flex-col">
-                        <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.pricePerKm}</label>
-                        <div className="flex items-center gap-1">
-                            <span className="text-themeText/40">₪</span>
-                            <input
-                                type="number"
-                                value={appConfig.delivery_price_per_km ?? 4}
-                                onChange={(e) => updateAppConfig({ delivery_price_per_km: Number(e.target.value) })}
-                                className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
-                            />
-                        </div>
-                    </div>
-                    <div className="flex flex-col">
-                        <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.includedRadius}</label>
-                        <div className="flex items-center gap-1">
-                            <span className="text-themeText/40">KM</span>
-                            <input
-                                type="number"
-                                value={appConfig.delivery_min_radius_included ?? 15}
-                                onChange={(e) => updateAppConfig({ delivery_min_radius_included: Number(e.target.value) })}
-                                className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Coupon Manager */}
-            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
-                <button onClick={() => setShowCoupons(!showCoupons)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
-                    <div className="flex items-center gap-3"><Tag size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{t.coupons}</span></div>
-                    {showCoupons ? <ChevronUp /> : <ChevronDown />}
-                </button>
-                {showCoupons && (
-                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top">
-                        <div className="flex flex-col lg:flex-row gap-4 mb-6 items-end border-b border-themeText/10 pb-6">
-                            <div className="flex-1 w-full">
-                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.couponCode}</label>
-                                <input
-                                    type="text"
-                                    value={newCoupon.code}
-                                    onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
-                                    className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded uppercase"
-                                    placeholder="SALE2024"
-                                />
-                            </div>
-                            <div className="flex-1 w-full">
-                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.discountType}</label>
-                                <select
-                                    value={newCoupon.discount_type}
-                                    onChange={(e) => setNewCoupon({ ...newCoupon, discount_type: e.target.value as 'percentage' | 'fixed' })}
-                                    className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded"
-                                >
-                                    <option value="percentage">{t.percentage}</option>
-                                    <option value="fixed">{t.fixedAmount}</option>
-                                </select>
-                            </div>
-                            <div className="flex-1 w-full">
-                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.discountValue}</label>
-                                <input
-                                    type="number"
-                                    value={newCoupon.discount_value}
-                                    onChange={(e) => setNewCoupon({ ...newCoupon, discount_value: parseFloat(e.target.value) })}
-                                    className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded"
-                                />
-                            </div>
-                            <div className="flex-1 w-full">
-                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.usageLimit}</label>
-                                <input
-                                    type="number"
-                                    value={newCoupon.usage_limit || ''}
-                                    onChange={(e) => setNewCoupon({ ...newCoupon, usage_limit: e.target.value ? parseInt(e.target.value) : null })}
-                                    className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded"
-                                    placeholder={t.unlimited}
-                                />
-                            </div>
+            {/* Sticky Tabs Navigation Bar */}
+            <div className="sticky top-[72px] md:top-0 z-30 bg-themeBg/95 backdrop-blur-md border-b border-themeText/10 -mx-8 px-8 py-3 mb-8 shadow-sm">
+                <div className="flex gap-2 justify-start md:justify-center overflow-x-auto scrollbar-none py-1">
+                    {TABS.map((tab, idx) => {
+                        const Icon = tab.icon;
+                        const isActive = activeTab === idx;
+                        return (
                             <button
-                                onClick={handleCreateCoupon}
-                                className="bg-themePrimary text-themeHeaderBg font-bold px-6 py-2 rounded hover:opacity-90 transition w-full lg:w-auto"
+                                key={tab.id}
+                                onClick={() => handleTabClick(idx)}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 shrink-0 select-none
+                                    ${isActive 
+                                        ? 'bg-themePrimary text-themeHeaderBg shadow-md scale-105' 
+                                        : 'bg-themeCardBg text-themeText/75 border border-themeText/10 hover:border-themePrimary hover:text-themeText'
+                                    }`}
                             >
-                                {t.createCoupon}
+                                <Icon size={16} />
+                                <span>{tab.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Swipable Tabs Content Viewport */}
+            <div 
+                ref={tabsContainerRef}
+                onScroll={handleScroll}
+                className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-none touch-pan-x gap-4 pb-8"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+                {/* Tab 1: Orders */}
+                <div className="w-full shrink-0 snap-start snap-always px-1">
+                    <div className="bg-themeCardBg rounded-2xl shadow-sm border border-themeText/5 overflow-hidden text-start">
+                        <div className="p-6 bg-themeHeaderBg text-themeHeaderTxt flex items-center gap-3">
+                            <ShoppingBag size={20} className="text-themePrimary" />
+                            <span className="font-serif font-bold text-lg">{language === 'he' ? 'הזמנות נכנסות' : 'Incoming Orders'}</span>
+                            {orders.filter(o => o.status === 'pending').length > 0 && (
+                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                                    {orders.filter(o => o.status === 'pending').length} {language === 'he' ? 'חדשות' : 'New'}
+                                </span>
+                            )}
+                        </div>
+                        <div className="p-6 bg-themeBg/30 space-y-6">
+                            {loadingOrders ? (
+                                <div className="flex justify-center py-8">
+                                    <Loader2 className="animate-spin text-themePrimary" size={32} />
+                                </div>
+                            ) : orders.length > 0 ? (
+                                <div className="space-y-4">
+                                    {orders.map(order => {
+                                        const dateStr = order.created_at ? new Date(order.created_at).toLocaleString(language === 'he' ? 'he-IL' : 'en-US') : '';
+                                        const partialId = order.id ? order.id.slice(0, 8) : 'NEW';
+                                        
+                                        const statusColors: Record<string, string> = {
+                                            pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/25',
+                                            approved: 'bg-blue-500/10 text-blue-500 border-blue-500/25',
+                                            completed: 'bg-green-500/10 text-green-500 border-green-500/25',
+                                            cancelled: 'bg-red-500/10 text-red-500 border-red-500/25'
+                                        };
+                                        
+                                        const statusLabel: Record<string, string> = {
+                                            pending: language === 'he' ? 'ממתין' : 'Pending',
+                                            approved: language === 'he' ? 'מאושר' : 'Approved',
+                                            completed: language === 'he' ? 'הושלם' : 'Completed',
+                                            cancelled: language === 'he' ? 'מבוטל' : 'Cancelled'
+                                        };
+
+                                        return (
+                                            <div key={order.id} className="bg-themeCardBg p-5 rounded-xl border border-themeText/10 shadow-sm space-y-4 hover:border-themePrimary/20 transition-all text-themeText">
+                                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-themeText/10 pb-3">
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm font-bold text-themeText">#{partialId}</span>
+                                                            <span className="text-xs text-themeText/60 flex items-center gap-1"><Calendar size={12} /> {dateStr}</span>
+                                                        </div>
+                                                        <div className="text-xs font-bold text-themeText/80 mt-1">
+                                                            👤 {order.customer_name} | 📞 {order.customer_phone}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusColors[order.status] || 'bg-themeBg text-themeText/80 border-themeText/10'}`}>
+                                                            {statusLabel[order.status] || order.status}
+                                                        </span>
+                                                        <span className="text-lg font-bold text-themeText font-serif">₪{order.total_price}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    {((order.items as any) || []).map((item: any, idx: number) => (
+                                                        <div key={idx} className="text-xs text-themeText/70 flex justify-between">
+                                                            <div>
+                                                                <span className="font-bold text-themeText/90">{item.quantity}x</span> {language === 'he' ? item.name : (item.name_en || item.name)}
+                                                                {item.selected_modifications && item.selected_modifications.length > 0 && (
+                                                                    <span className="text-themeText/40 block text-[10px] pl-4">
+                                                                        ↳ {item.selected_modifications.join(', ')}
+                                                                    </span>
+                                                                )}
+                                                                {item.notes && (
+                                                                    <span className="text-themeText/40 italic block text-[10px] pl-4">
+                                                                        ↳ "{item.notes}"
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <span className="font-medium text-themeText/85">₪{item.price * item.quantity}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-2 pt-2 border-t border-themeText/10 justify-end">
+                                                    {order.status !== 'approved' && order.status !== 'completed' && (
+                                                        <button
+                                                            onClick={() => handleUpdateOrderStatus(order.id!, 'approved')}
+                                                            className="px-3 py-1.5 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-lg text-xs font-bold hover:bg-blue-500/20 transition-colors"
+                                                        >
+                                                            {language === 'he' ? 'אשר הזמנה' : 'Approve'}
+                                                        </button>
+                                                    )}
+                                                    {order.status !== 'completed' && (
+                                                        <button
+                                                            onClick={() => handleUpdateOrderStatus(order.id!, 'completed')}
+                                                            className="px-3 py-1.5 bg-green-500/10 text-green-500 border border-green-500/20 rounded-lg text-xs font-bold hover:bg-green-500/20 transition-colors"
+                                                        >
+                                                            {language === 'he' ? 'סמן כהושלם' : 'Complete'}
+                                                        </button>
+                                                    )}
+                                                    {order.status !== 'cancelled' && (
+                                                        <button
+                                                            onClick={() => handleUpdateOrderStatus(order.id!, 'cancelled')}
+                                                            className="px-3 py-1.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500/20 transition-colors"
+                                                        >
+                                                            {language === 'he' ? 'בטל הזמנה' : 'Cancel'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-themeText/40 italic py-4">{language === 'he' ? 'אין הזמנות במערכת' : 'No orders in system yet.'}</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tab 2: Menu Items */}
+                <div className="w-full shrink-0 snap-start snap-always px-1">
+                    <div className="bg-themeCardBg rounded-2xl shadow-sm border border-themeText/10 overflow-hidden text-start text-themeText">
+                        <div className="p-4 border-b border-themeText/10 flex flex-col md:flex-row justify-between items-center gap-4 bg-themeBg/20">
+                            <input 
+                                type="text" 
+                                placeholder={t.searchPlaceholder} 
+                                className="w-full md:max-w-md p-2.5 border border-themeText/20 bg-themeCardBg text-themeText rounded-xl focus:border-themePrimary focus:outline-none text-sm" 
+                                onChange={(e) => setSearchTerm(e.target.value)} 
+                            />
+                            <button 
+                                onClick={() => setIsAddModalOpen(true)} 
+                                className="w-full md:w-auto flex items-center justify-center gap-2 bg-themePrimary text-themeHeaderBg px-5 py-2.5 rounded-xl hover:opacity-90 transition font-bold shadow-sm shrink-0 text-sm"
+                            >
+                                <Plus size={18} />
+                                <span>{t.addItem}</span>
                             </button>
                         </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-start">
+                                <thead className="bg-themeBg text-themeText/65 text-sm border-b border-themeText/10">
+                                    <tr>
+                                        <th className="p-4 text-start">{t.productName}</th>
+                                        <th className="p-4 text-start">{t.image}</th>
+                                        <th className="p-4 text-start">{t.category}</th>
+                                        <th className="p-4 text-start">{t.price}</th>
+                                        <th className="p-4 text-start">{t.status}</th>
+                                        <th className="p-4 text-start">{t.modifications}</th>
+                                        <th className="p-4 text-start">{t.edit}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(filteredItems || []).map(item => {
+                                        const localItem = getLocalizedItem(item, language);
+                                        return (
+                                            <tr key={item.id} className="border-b border-themeText/10 hover:bg-themeBg/40">
+                                                <td className="p-4 font-bold text-themeText/95">{localItem.name}</td>
+                                                <td className="p-4">
+                                                    {item.image_url ? (
+                                                        <img src={item.image_url} alt="mini" className="w-10 h-10 object-cover rounded-md border border-themeText/15" />
+                                                    ) : (
+                                                        <div className="w-10 h-10 bg-themeBg/40 rounded-md border border-themeText/15 flex items-center justify-center text-themeText/30">
+                                                            <ImageIcon size={16} />
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="p-4 text-themeText/70">{(rootT.categories as Record<string, string>)?.[item.category] || item.category}</td>
+                                                <td className="p-4">₪{item.price}</td>
+                                                <td className="p-4">
+                                                    <span className={`px-3 py-1 rounded text-xs font-bold ${item.availability_status ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                                                        {item.availability_status ? t.active : t.outOfStock}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 text-sm text-themeText/50 max-w-xs truncate">{localItem.modifications?.join(', ') || '-'}</td>
+                                                <td className="p-4">
+                                                    <button onClick={() => handleEditClick(item)} className="p-2 text-themeText/40 hover:text-themePrimary transition-colors">
+                                                        <Pencil size={18} />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
 
-                        <div>
-                            <h4 className="text-sm font-bold text-themeText/40 uppercase mb-3">{t.activeCoupons}</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                {coupons.map(coupon => (
-                                    <div key={coupon.code} className="bg-themeCardBg p-3 rounded border border-themeText/10 flex justify-between items-center shadow-sm">
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <span className="block font-bold text-themeText">{coupon.code}</span>
-                                                <span className="text-[10px] bg-themeBg px-1.5 rounded text-themeText/60 border border-themeText/10">
-                                                    {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₪${coupon.discount_value}`}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-xs text-themeText/40 mt-1">
-                                                <Users size={12} />
-                                                <span>{t.usage}: {coupon.usage_count || 0} / {coupon.usage_limit || '∞'}</span>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => handleDeleteCoupon(coupon.code)}
-                                            className="text-themeText/40 hover:text-red-500 transition-colors"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
+                {/* Tab 3: Calculator settings */}
+                <div className="w-full shrink-0 snap-start snap-always px-1 space-y-8 text-start">
+                    {/* General Calculator Settings Card */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10 relative overflow-hidden">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Calculator size={16} /></div>
+                            <h3 className="text-sm font-bold text-themeText uppercase">{t.calcSettings}</h3>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start mb-6">
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-bold text-themeText/40 uppercase tracking-wider">{t.featureMgmt}</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => updateFeatureFlags({ showCalculator: !featureFlags?.showCalculator })}
+                                        className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${featureFlags?.showCalculator ? 'bg-themePrimary/15 border-themePrimary/30 text-themePrimary' : 'bg-themeBg border-themeText/10 text-themeText/40'}`}
+                                    >
+                                        <span className="text-xs font-bold">{t.showCalc}</span>
+                                        {featureFlags?.showCalculator ? <ToggleRight className="text-themePrimary" /> : <ToggleLeft />}
+                                    </button>
+                                    <button
+                                        onClick={() => updateFeatureFlags({ showAI: !featureFlags?.showAI })}
+                                        className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${featureFlags?.showAI ? 'bg-themePrimary/15 border-themePrimary/30 text-themePrimary' : 'bg-themeBg border-themeText/10 text-themeText/40'}`}
+                                    >
+                                        <span className="text-xs font-bold">{t.showAI}</span>
+                                        {featureFlags?.showAI ? <ToggleRight className="text-themePrimary" /> : <ToggleLeft />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="text-xs font-bold text-themeText/40 uppercase tracking-wider">{language === 'he' ? 'פרמטרים של המחשבון' : 'Calculator Parameters'}</h4>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <div className="flex flex-col">
+                                        <label className="text-[10px] md:text-xs text-themeText/50 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.sandwichesPerPerson}</label>
+                                        <input type="number" step="0.1" value={calculationSettings?.sandwichesPerPerson || 1.5} onChange={(e) => updateCalculationSettings({ sandwichesPerPerson: parseFloat(e.target.value) })} className="w-full bg-transparent border-b border-themeText/20 text-xl font-bold pb-1 focus:outline-none focus:border-themePrimary text-themeText" />
                                     </div>
-                                ))}
-                                {coupons.length === 0 && <p className="text-sm text-themeText/40 italic">No coupons yet.</p>}
+                                    <div className="flex flex-col">
+                                        <label className="text-[10px] md:text-xs text-themeText/50 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.pastriesPerPerson}</label>
+                                        <input type="number" step="0.1" value={calculationSettings?.pastriesPerPerson || 1.0} onChange={(e) => updateCalculationSettings({ pastriesPerPerson: parseFloat(e.target.value) })} className="w-full bg-transparent border-b border-themeText/20 text-xl font-bold pb-1 focus:outline-none focus:border-themePrimary text-themeText" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <label className="text-[10px] md:text-xs text-themeText/50 font-bold block mb-1 min-h-[2.5rem] flex items-end">{t.trayCapacity}</label>
+                                        <input type="number" value={calculationSettings?.averageTrayCapacity || 10} onChange={(e) => updateCalculationSettings({ averageTrayCapacity: parseInt(e.target.value) })} className="w-full bg-transparent border-b border-themeText/20 text-xl font-bold pb-1 focus:outline-none focus:border-themePrimary text-themeText" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
 
-            {/* Advanced Calculator Settings */}
-            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
-                <button onClick={() => setShowAdvancedCalc(!showAdvancedCalc)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
-                    <div className="flex items-center gap-3"><Settings size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{t.advCalc}</span></div>
-                    {showAdvancedCalc ? <ChevronUp /> : <ChevronDown />}
-                </button>
-                {showAdvancedCalc && (
-                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top">
-                        <div className="mb-8 border-b border-themeText/10 pb-8">
-                            <h4 className="text-themeText font-bold mb-2 flex items-center gap-2"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{t.aiInstructions}</h4>
+                    {/* Advanced Calculator Settings Card */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10 text-start space-y-6">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Settings size={16} /></div>
+                            <h3 className="text-sm font-bold text-themeText uppercase">{t.advCalc}</h3>
+                        </div>
+                        
+                        <div className="border-b border-themeText/10 pb-6">
+                            <h4 className="text-themeText font-bold mb-2 flex items-center gap-2 text-sm"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{t.aiInstructions}</h4>
                             <textarea
                                 value={calculationSettings?.aiCustomInstructions || ''}
                                 onChange={(e) => updateCalculationSettings({ aiCustomInstructions: e.target.value })}
@@ -978,7 +969,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         </div>
 
                         <div>
-                            <h4 className="text-themeText font-bold mb-2 flex items-center gap-2"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{t.eventLogic}</h4>
+                            <h4 className="text-themeText font-bold mb-2 flex items-center gap-2 text-sm"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{t.eventLogic}</h4>
                             <p className="text-[11px] text-themeText/60 italic mb-4 px-2">{t.eventLogicExpl}</p>
                             <div className="overflow-x-auto">
                                 <table className="w-full border-collapse">
@@ -1012,155 +1003,432 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
 
-            {/* Our Story Settings Customizer */}
-            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
-                <button onClick={() => setShowAboutUsSettings(!showAboutUsSettings)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
-                    <div className="flex items-center gap-3"><Award size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{language === 'he' ? 'עריכת הסיפור שלנו' : 'Edit Our Story'}</span></div>
-                    {showAboutUsSettings ? <ChevronUp /> : <ChevronDown />}
-                </button>
-                {showAboutUsSettings && (
-                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top space-y-4">
-                        <div>
-                            <label className="block text-xs font-bold text-themeText/70 mb-1">{language === 'he' ? 'הסיפור שלנו בעברית' : 'Our Story (Hebrew)'}</label>
-                            <textarea
-                                value={storyHe}
-                                onChange={(e) => setStoryHe(e.target.value)}
-                                className="w-full h-40 p-3 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg focus:outline-none focus:border-themePrimary text-sm"
-                                placeholder="כתוב את הסיפור בעברית..."
-                            />
+                {/* Tab 4: Media & Reviews */}
+                <div className="w-full shrink-0 snap-start snap-always px-1 space-y-8 text-start">
+                    {/* Gallery Settings Card */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><ImageIcon size={16} /></div>
+                            <h3 className="text-sm font-bold text-themeText uppercase">{t.galleryTitle}</h3>
                         </div>
-                        <div>
-                            <label className="block text-xs font-bold text-themeText/70 mb-1">{language === 'he' ? 'הסיפור שלנו באנגלית' : 'Our Story (English)'}</label>
-                            <textarea
-                                value={storyEn}
-                                onChange={(e) => setStoryEn(e.target.value)}
-                                className="w-full h-40 p-3 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg focus:outline-none focus:border-themePrimary text-sm"
-                                placeholder="Write the story in English..."
-                            />
-                        </div>
-                        <div className="flex justify-end pt-2">
-                            <button
-                                onClick={async () => {
-                                    setUploading(true);
-                                    await updateAboutUs({ story_he: storyHe, story_en: storyEn });
-                                    setUploading(false);
-                                    setFeedback({
-                                        isOpen: true,
-                                        type: 'success',
-                                        title: language === 'he' ? 'השמירה הצליחה' : 'Saved Successfully',
-                                        message: language === 'he' ? 'הסיפור שלנו עודכן בהצלחה!' : 'Our story has been updated successfully!'
-                                    });
-                                }}
-                                disabled={uploading}
-                                className="px-6 py-2.5 bg-themePrimary text-themeHeaderBg font-bold rounded-xl flex items-center gap-2 shadow-sm transition active:scale-[0.98] hover:opacity-90"
-                            >
-                                {uploading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                                <span>{t.save}</span>
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* Theme Settings Customizer */}
-            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
-                <button onClick={() => setShowThemeSettings(!showThemeSettings)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
-                    <div className="flex items-center gap-3"><Palette size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{t.themeSettings}</span></div>
-                    {showThemeSettings ? <ChevronUp /> : <ChevronDown />}
-                </button>
-                {showThemeSettings && (
-                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top space-y-8">
-                        {/* Theme Presets */}
-                        <div>
-                            <h4 className="text-themeText font-bold mb-3 flex items-center gap-2"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{language === 'he' ? 'ערכות נושא מוכנות' : 'Theme Presets'}</h4>
-                            <div className="flex flex-wrap gap-3">
-                                <button
-                                    onClick={() => applyThemePreset('classic')}
-                                    className="px-4 py-2.5 bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-all shadow-sm font-bold text-xs"
-                                >
-                                    {language === 'he' ? 'קלאסי (זהב ושחור)' : 'Classic (Gold & Dark)'}
-                                </button>
-                                <button
-                                    onClick={() => applyThemePreset('olive')}
-                                    className="px-4 py-2.5 bg-emerald-800 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-sm font-bold text-xs"
-                                >
-                                    {language === 'he' ? 'ירוק זית וקרם' : 'Olive Green & Cream'}
-                                </button>
-                                <button
-                                    onClick={() => applyThemePreset('midnight')}
-                                    className="px-4 py-2.5 bg-zinc-950 text-yellow-500 rounded-xl hover:bg-zinc-900 border border-yellow-500/20 transition-all shadow-sm font-bold text-xs"
-                                >
-                                    {language === 'he' ? 'לילה יוקרתי (Midnight)' : 'Midnight Luxury (Dark)'}
-                                </button>
-                                <button
-                                    onClick={() => applyThemePreset('rosegold')}
-                                    className="px-4 py-2.5 bg-[#e0a899] text-stone-900 rounded-xl hover:bg-[#d59a8c] transition-all shadow-sm font-bold text-xs"
-                                >
-                                    {language === 'he' ? 'רוז גולד (Modern Romance)' : 'Rose Gold (Modern)'}
-                                </button>
-                                <button
-                                    onClick={() => applyThemePreset('forest')}
-                                    className="px-4 py-2.5 bg-[#1e2e28] text-amber-500 rounded-xl hover:bg-[#16221d] transition-all shadow-sm font-bold text-xs"
-                                >
-                                    {language === 'he' ? 'יער ואדמה (Forest)' : 'Forest Ochre (Organic)'}
-                                </button>
-                                <button
-                                    onClick={() => applyThemePreset('burgundy')}
-                                    className="px-4 py-2.5 bg-[#3d1620] text-[#d4af37] rounded-xl hover:bg-[#2d1017] transition-all shadow-sm font-bold text-xs"
-                                >
-                                    {language === 'he' ? 'מלכותי בורגונדי (Burgundy)' : 'Royal Burgundy (Premium)'}
-                                </button>
-                                <button
-                                    onClick={() => applyThemePreset('ocean')}
-                                    className="px-4 py-2.5 bg-[#0f172a] text-teal-400 rounded-xl hover:bg-[#0c1222] transition-all shadow-sm font-bold text-xs"
-                                >
-                                    {language === 'he' ? 'אוקיינוס וטורקיז (Ocean)' : 'Ocean Slate (Coastal)'}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Theme Color Inputs */}
-                        <div className="border-t border-themeText/10 pt-6">
-                            <h4 className="text-themeText font-bold mb-3 flex items-center gap-2"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{language === 'he' ? 'התאמת צבעים אישית' : 'Custom Theme Colors'}</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {[
-                                    { key: 'bg_color', label: language === 'he' ? 'צבע רקע כללי' : 'General Background' },
-                                    { key: 'text_color', label: language === 'he' ? 'צבע טקסט כללי' : 'General Text Color' },
-                                    { key: 'primary_color', label: language === 'he' ? 'צבע ראשי (כפתורים וזהב)' : 'Primary Theme Color' },
-                                    { key: 'secondary_color', label: language === 'he' ? 'צבע משני' : 'Secondary Theme Color' },
-                                    { key: 'header_bg_color', label: language === 'he' ? 'רקע תפריט עליון' : 'Header Background' },
-                                    { key: 'header_text_color', label: language === 'he' ? 'טקסט תפריט עליון' : 'Header Text Color' },
-                                    { key: 'hero_bg_color', label: language === 'he' ? 'רקע אזור הירו (פתיחה)' : 'Hero Background' },
-                                    { key: 'card_bg_color', label: language === 'he' ? 'רקע כרטיס מנה' : 'Dish Card Background' },
-                                    { key: 'card_text_color', label: language === 'he' ? 'טקסט כרטיס מנה' : 'Dish Card Text Color' },
-                                ].map(({ key, label }) => (
-                                    <div key={key} className="flex items-center justify-between p-3 bg-themeCardBg rounded-lg border border-themeText/10 shadow-sm">
-                                        <span className="text-xs font-bold text-themeText/80">{label}</span>
+                        
+                        <div className="space-y-6">
+                            <div className="bg-themeBg/30 p-4 rounded-xl border border-themeText/10 space-y-4">
+                                <h4 className="font-bold text-themeText text-sm">{t.addGalleryItem}</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                    <div>
+                                        <label className="block text-xs font-bold text-themeText/60 mb-1">{t.mediaType}</label>
+                                        <select
+                                            value={newGalleryItem.type}
+                                            onChange={(e) => setNewGalleryItem({ ...newGalleryItem, type: e.target.value as 'image' | 'video', url: '' })}
+                                            className="w-full p-2.5 border border-themeText/20 bg-themeCardBg text-themeText text-sm rounded-lg"
+                                        >
+                                            <option value="image">{language === 'he' ? 'תמונה' : 'Image'}</option>
+                                            <option value="video">{language === 'he' ? 'סרטון' : 'Video'}</option>
+                                        </select>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-bold text-themeText/60 mb-1">
+                                            {newGalleryItem.type === 'video' 
+                                                ? (language === 'he' ? 'סרטון' : 'Video') 
+                                                : (language === 'he' ? 'תמונה' : 'Image')}
+                                        </label>
+                                        {newGalleryItem.type === 'video' ? (
+                                            <div className="space-y-2">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setVideoSourceType('file'); setNewGalleryItem(prev => ({ ...prev, url: '' })); }}
+                                                        className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${videoSourceType === 'file' ? 'bg-themePrimary text-themeHeaderBg border-themePrimary shadow-sm' : 'bg-themeBg text-themeText/70 hover:border-themeText/30'}`}
+                                                    >
+                                                        {language === 'he' ? 'העלאת קובץ' : 'Upload File'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setVideoSourceType('url'); setNewGalleryItem(prev => ({ ...prev, url: '' })); }}
+                                                        className={`px-3 py-1.5 text-xs font-bold rounded-full border transition-all ${videoSourceType === 'url' ? 'bg-themePrimary text-themeHeaderBg border-themePrimary shadow-sm' : 'bg-themeBg text-themeText/70 hover:border-themeText/30'}`}
+                                                    >
+                                                        {language === 'he' ? 'קישור URL' : 'URL Link'}
+                                                    </button>
+                                                </div>
+                                                {videoSourceType === 'url' ? (
+                                                    <input
+                                                        type="text"
+                                                        value={newGalleryItem.url}
+                                                        onChange={(e) => setNewGalleryItem({ ...newGalleryItem, url: e.target.value })}
+                                                        className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText text-sm rounded-lg"
+                                                        placeholder="https://www.youtube.com/watch?v=..."
+                                                    />
+                                                ) : (
+                                                    <div className="flex items-center gap-4">
+                                                        {newGalleryItem.url && (
+                                                            <span className="text-xs text-emerald-500 font-bold bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/25 truncate max-w-[150px]">
+                                                                {language === 'he' ? 'סרטון הועלה' : 'Video uploaded'}
+                                                            </span>
+                                                        )}
+                                                        <label className="flex items-center justify-center gap-2 flex-1 p-2 border-2 border-dashed border-themeText/20 rounded cursor-pointer hover:border-themePrimary transition text-themeText/60 font-bold text-xs bg-themeCardBg">
+                                                            <Upload size={14} />
+                                                            <span>{uploading ? '...' : (language === 'he' ? 'העלאת סרטון' : 'Upload Video')}</span>
+                                                            <input type="file" accept="video/*" onChange={handleGalleryVideoUpload} className="hidden" disabled={uploading} />
+                                                        </label>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-4">
+                                                {newGalleryItem.url && (
+                                                    <img src={newGalleryItem.url} alt="Gallery Preview" className="w-10 h-10 object-cover rounded" />
+                                                )}
+                                                <label className="flex items-center justify-center gap-2 flex-1 p-2 border-2 border-dashed border-themeText/20 rounded cursor-pointer hover:border-themePrimary transition text-themeText/60 font-bold text-xs bg-themeCardBg">
+                                                    <Upload size={14} />
+                                                    <span>{uploading ? '...' : t.upload}</span>
+                                                    <input type="file" accept="image/*" onChange={(e) => handleGalleryImageUpload(e)} className="hidden" disabled={uploading} />
+                                                </label>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                    <div className="md:col-span-3">
+                                        <label className="block text-xs font-bold text-themeText/60 mb-1">{t.caption}</label>
                                         <input
-                                            type="color"
-                                            value={(theme as any)[key] || '#ffffff'}
-                                            onChange={(e) => updateTheme({ [key]: e.target.value })}
-                                            className="w-8 h-8 rounded cursor-pointer border border-themeText/20 bg-transparent"
+                                            type="text"
+                                            value={newGalleryItem.caption}
+                                            onChange={(e) => setNewGalleryItem({ ...newGalleryItem, caption: e.target.value })}
+                                            className="w-full p-2.5 border border-themeText/20 bg-themeCardBg text-themeText text-sm rounded-lg"
+                                            placeholder={language === 'he' ? 'לדוגמה: שולחן קינוחים מעוצב' : 'e.g. Dessert table design'}
                                         />
                                     </div>
-                                ))}
+                                    <button
+                                        onClick={handleAddGalleryItem}
+                                        disabled={!newGalleryItem.url || uploading}
+                                        className="bg-themePrimary text-themeHeaderBg font-bold px-6 py-3 rounded-xl hover:opacity-90 transition w-full disabled:opacity-50 text-sm"
+                                    >
+                                        {language === 'he' ? 'הוסף לגלריה' : 'Add Item'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h4 className="text-xs font-bold text-themeText/40 uppercase mb-3">{language === 'he' ? 'פריטים בגלריה' : 'Items in Gallery'}</h4>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                    {(gallery || []).map(item => (
+                                        <div key={item.id} className="relative group bg-themeBg border border-themeText/10 rounded-xl overflow-hidden shadow-sm aspect-square flex flex-col justify-between">
+                                            <div className="relative flex-1 w-full bg-themeBg/40 flex items-center justify-center overflow-hidden">
+                                                {item.type === 'video' ? (
+                                                    getYoutubeId(item.url) ? (
+                                                        <div className="relative w-full h-full">
+                                                            <img src={`https://img.youtube.com/vi/${getYoutubeId(item.url)}/hqdefault.jpg`} className="w-full h-full object-cover" alt="YouTube Preview" />
+                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                                                <span className="font-bold text-red-500 text-[10px] uppercase border border-red-500 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">YouTube</span>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="relative w-full h-full font-bold">
+                                                            <video src={item.url} className="w-full h-full object-cover" preload="metadata" muted playsInline />
+                                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                                                <span className="font-bold text-emerald-500 text-[10px] uppercase border border-emerald-500 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">Video</span>
+                                                            </div>
+                                                        </div>
+                                                    )
+                                                ) : (
+                                                    <img src={item.url} alt={item.caption} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" />
+                                                )}
+                                            </div>
+                                            {item.caption && (
+                                                <div className="p-1.5 text-[10px] text-themeText/60 font-medium truncate border-t border-themeText/10 bg-themeBg/30">
+                                                    {item.caption}
+                                                </div>
+                                            )}
+                                            <button
+                                                onClick={() => handleDeleteGalleryItem(item.id)}
+                                                className="absolute top-2 left-2 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors opacity-0 group-hover:opacity-100 animate-fade-in"
+                                                title="Delete"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {(gallery || []).length === 0 && (
+                                        <p className="text-sm text-themeText/40 italic col-span-full">No gallery items yet.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
 
-            {/* Kosher Certificate Section */}
-            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
-                <button onClick={() => setShowKosherSettings(!showKosherSettings)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
-                    <div className="flex items-center gap-3"><Award size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{t.kosherCert}</span></div>
-                    {showKosherSettings ? <ChevronUp /> : <ChevronDown />}
-                </button>
-                {showKosherSettings && (
-                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top">
+                    {/* Reviews Moderation Card */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><MessageSquare size={16} /></div>
+                            <h3 className="text-sm font-bold text-themeText uppercase">{language === 'he' ? 'ניהול חוות דעת' : 'Manage Reviews'}</h3>
+                        </div>
+                        
+                        <div>
+                            {reviews.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {reviews.map(review => {
+                                        const dateStr = review.created_at ? new Date(review.created_at).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US') : '';
+                                        return (
+                                            <div key={review.id} className="bg-themeBg/40 p-4 rounded-xl border border-themeText/10 shadow-sm flex flex-col justify-between hover:border-themePrimary/20 transition-all text-themeText">
+                                                <div>
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div>
+                                                            <h5 className="font-bold text-themeText text-sm">{review.customer_name}</h5>
+                                                            <span className="text-[10px] text-themeText/50">{dateStr}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-0.5">
+                                                            {[...Array(5)].map((_, i) => (
+                                                                <svg
+                                                                    key={i}
+                                                                    className={`w-4 h-4 ${i < review.rating ? 'text-themePrimary fill-themePrimary' : 'text-themeText/20 fill-themeText/20'}`}
+                                                                    viewBox="0 0 20 20"
+                                                                    fill="currentColor"
+                                                                >
+                                                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                                                </svg>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-xs text-themeText/80 italic mt-2">"{review.comment}"</p>
+                                                </div>
+                                                <div className="flex justify-end mt-4 pt-2 border-t border-themeText/10">
+                                                    <button
+                                                        onClick={() => handleDeleteReview(review.id!)}
+                                                        className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-bold hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                        <span>{language === 'he' ? 'מחק חוות דעת' : 'Delete'}</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-themeText/40 italic py-4">{language === 'he' ? 'אין חוות דעת במערכת' : 'No reviews in system yet.'}</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tab 5: Settings & Themes */}
+                <div className="w-full shrink-0 snap-start snap-always px-1 space-y-8 text-start">
+                    {/* Order and Delivery Settings Card */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Truck size={16} /></div>
+                            <h3 className="text-sm font-bold text-themeText uppercase">{language === 'he' ? 'הגדרות הזמנה ומשלוח' : 'Order & Delivery Settings'}</h3>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-6">
+                            <div className="flex flex-col">
+                                <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.minOrder}</label>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-themeText/40">₪</span>
+                                    <input
+                                        type="number"
+                                        value={appConfig.min_order_price}
+                                        onChange={(e) => updateAppConfig({ min_order_price: Number(e.target.value) })}
+                                        className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.minFreeDelivery}</label>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-themeText/40">₪</span>
+                                    <input
+                                        type="number"
+                                        value={calculationSettings?.minOrderFreeDelivery || 1500}
+                                        onChange={(e) => updateCalculationSettings({ minOrderFreeDelivery: Number(e.target.value) })}
+                                        className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.baseDeliveryFee}</label>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-themeText/40">₪</span>
+                                    <input
+                                        type="number"
+                                        value={appConfig.delivery_base_fee ?? 60}
+                                        onChange={(e) => updateAppConfig({ delivery_base_fee: Number(e.target.value) })}
+                                        className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.pricePerKm}</label>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-themeText/40">₪</span>
+                                    <input
+                                        type="number"
+                                        value={appConfig.delivery_price_per_km ?? 4}
+                                        onChange={(e) => updateAppConfig({ delivery_price_per_km: Number(e.target.value) })}
+                                        className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex flex-col">
+                                <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.includedRadius}</label>
+                                <div className="flex items-center gap-1">
+                                    <span className="text-themeText/40">KM</span>
+                                    <input
+                                        type="number"
+                                        value={appConfig.delivery_min_radius_included ?? 15}
+                                        onChange={(e) => updateAppConfig({ delivery_min_radius_included: Number(e.target.value) })}
+                                        className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Coupons Management Card */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Tag size={16} /></div>
+                            <h3 className="text-sm font-bold text-themeText uppercase">{t.coupons}</h3>
+                        </div>
+                        
+                        <div className="flex flex-col lg:flex-row gap-4 mb-6 items-end border-b border-themeText/10 pb-6">
+                            <div className="flex-1 w-full">
+                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.couponCode}</label>
+                                <input
+                                    type="text"
+                                    value={newCoupon.code}
+                                    onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/20 text-themeText rounded-xl uppercase text-sm"
+                                    placeholder="SALE2024"
+                                />
+                            </div>
+                            <div className="flex-1 w-full">
+                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.discountType}</label>
+                                <select
+                                    value={newCoupon.discount_type}
+                                    onChange={(e) => setNewCoupon({ ...newCoupon, discount_type: e.target.value as 'percentage' | 'fixed' })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/20 text-themeText text-sm rounded-xl"
+                                >
+                                    <option value="percentage">{t.percentage}</option>
+                                    <option value="fixed">{t.fixedAmount}</option>
+                                </select>
+                            </div>
+                            <div className="flex-1 w-full">
+                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.discountValue}</label>
+                                <input
+                                    type="number"
+                                    value={newCoupon.discount_value}
+                                    onChange={(e) => setNewCoupon({ ...newCoupon, discount_value: parseFloat(e.target.value) })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/20 text-themeText text-sm rounded-xl"
+                                />
+                            </div>
+                            <div className="flex-1 w-full">
+                                <label className="block text-xs font-bold text-themeText/60 mb-1">{t.usageLimit}</label>
+                                <input
+                                    type="number"
+                                    value={newCoupon.usage_limit || ''}
+                                    onChange={(e) => setNewCoupon({ ...newCoupon, usage_limit: e.target.value ? parseInt(e.target.value) : null })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/20 text-themeText text-sm rounded-xl"
+                                    placeholder={t.unlimited}
+                                />
+                            </div>
+                            <button
+                                onClick={handleCreateCoupon}
+                                className="bg-themePrimary text-themeHeaderBg font-bold px-6 py-2.5 rounded-xl hover:opacity-90 transition w-full lg:w-auto text-sm shrink-0"
+                            >
+                                {t.createCoupon}
+                            </button>
+                        </div>
+
+                        <div>
+                            <h4 className="text-xs font-bold text-themeText/40 uppercase mb-3">{t.activeCoupons}</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {coupons.map(coupon => (
+                                    <div key={coupon.code} className="bg-themeBg/40 p-3 rounded-xl border border-themeText/10 flex justify-between items-center shadow-sm text-themeText">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="block font-bold text-themeText">{coupon.code}</span>
+                                                <span className="text-[10px] bg-themeBg px-1.5 rounded text-themeText/60 border border-themeText/10">
+                                                    {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₪${coupon.discount_value}`}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center gap-1 text-xs text-themeText/40 mt-1">
+                                                <Users size={12} />
+                                                <span>{t.usage}: {coupon.usage_count || 0} / {coupon.usage_limit || '∞'}</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => handleDeleteCoupon(coupon.code)}
+                                            className="text-themeText/40 hover:text-red-500 transition-colors"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {coupons.length === 0 && <p className="text-sm text-themeText/40 italic">No coupons yet.</p>}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Story Details Card */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Award size={16} /></div>
+                            <h3 className="text-sm font-bold text-themeText uppercase">{language === 'he' ? 'עריכת הסיפור שלנו' : 'Edit Our Story'}</h3>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-themeText/70 mb-1">{language === 'he' ? 'הסיפור שלנו בעברית' : 'Our Story (Hebrew)'}</label>
+                                <textarea
+                                    value={storyHe}
+                                    onChange={(e) => setStoryHe(e.target.value)}
+                                    className="w-full h-40 p-3 border border-themeText/20 bg-themeBg/20 text-themeText rounded-xl focus:outline-none focus:border-themePrimary text-sm"
+                                    placeholder="כתוב את הסיפור בעברית..."
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-themeText/70 mb-1">{language === 'he' ? 'הסיפור שלנו באנגלית' : 'Our Story (English)'}</label>
+                                <textarea
+                                    value={storyEn}
+                                    onChange={(e) => setStoryEn(e.target.value)}
+                                    className="w-full h-40 p-3 border border-themeText/20 bg-themeBg/20 text-themeText rounded-xl focus:outline-none focus:border-themePrimary text-sm"
+                                    placeholder="Write the story in English..."
+                                />
+                            </div>
+                            <div className="flex justify-end pt-2">
+                                <button
+                                    onClick={async () => {
+                                        setUploading(true);
+                                        await updateAboutUs({ story_he: storyHe, story_en: storyEn });
+                                        setUploading(false);
+                                        setFeedback({
+                                            isOpen: true,
+                                            type: 'success',
+                                            title: language === 'he' ? 'השמירה הצליחה' : 'Saved Successfully',
+                                            message: language === 'he' ? 'הסיפור שלנו עודכן בהצלחה!' : 'Our story has been updated successfully!'
+                                        });
+                                    }}
+                                    disabled={uploading}
+                                    className="px-6 py-2.5 bg-themePrimary text-themeHeaderBg font-bold rounded-xl flex items-center gap-2 shadow-sm transition active:scale-[0.98] hover:opacity-90 text-sm"
+                                >
+                                    {uploading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                                    <span>{t.save}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Kosher Certificate Section Card */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Award size={16} /></div>
+                            <h3 className="text-sm font-bold text-themeText uppercase">{t.kosherCert}</h3>
+                        </div>
+                        
                         <div className="flex flex-col sm:flex-row items-center gap-6">
                             <div className="w-32 h-32 bg-themeBg/30 rounded-lg overflow-hidden border border-themeText/10 flex items-center justify-center shrink-0">
                                 {kosherCertUrl ? (
@@ -1171,7 +1439,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             </div>
                             <div className="flex-1 w-full space-y-2">
                                 <label className={`
-                                    flex items-center justify-center gap-2 w-full max-w-xs p-3 border-2 border-dashed border-themeText/20 rounded-lg cursor-pointer hover:border-themePrimary hover:text-themePrimary transition-colors text-themeText/60 font-bold text-sm bg-themeCardBg
+                                    flex items-center justify-center gap-2 w-full max-w-xs p-3 border-2 border-dashed border-themeText/20 rounded-xl cursor-pointer hover:border-themePrimary hover:text-themePrimary transition-colors text-themeText/60 font-bold text-sm bg-themeBg/30
                                     ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                                 `}>
                                     <Upload size={16} />
@@ -1180,12 +1448,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 </label>
                                 <p className="text-[10px] text-themeText/40">{t.imageHint}</p>
                                 {kosherCertUrl && (
-                                            <div className="flex gap-2">
+                                    <div className="flex gap-2">
                                         <input
                                             type="text"
                                             readOnly
                                             value={kosherCertUrl}
-                                            className="w-full max-w-md p-1.5 border border-themeText/20 rounded text-xs text-themeText/60 bg-themeBg/30"
+                                            className="w-full max-w-md p-1.5 border border-themeText/20 rounded-lg text-xs text-themeText/60 bg-themeBg/30"
                                         />
                                         <button
                                             onClick={() => updateKosherCertUrl('')}
@@ -1198,278 +1466,70 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
 
-            {/* Gallery Settings Customizer */}
-            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
-                <button onClick={() => setShowGallerySettings(!showGallerySettings)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
-                    <div className="flex items-center gap-3"><ImageIcon size={20} className="text-themePrimary" /><span className="font-serif font-bold text-lg">{t.galleryTitle}</span></div>
-                    {showGallerySettings ? <ChevronUp /> : <ChevronDown />}
-                </button>
-                {showGallerySettings && (
-                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top space-y-6">
-                        {/* Add Gallery Item Form */}
-                        <div className="bg-themeCardBg p-4 rounded-xl border border-themeText/10 space-y-4">
-                            <h4 className="font-bold text-themeText text-sm">{t.addGalleryItem}</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                                <div>
-                                    <label className="block text-xs font-bold text-themeText/60 mb-1">{t.mediaType}</label>
-                                    <select
-                                        value={newGalleryItem.type}
-                                        onChange={(e) => setNewGalleryItem({ ...newGalleryItem, type: e.target.value as 'image' | 'video', url: '' })}
-                                        className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText text-sm rounded"
-                                    >
-                                        <option value="image">{language === 'he' ? 'תמונה' : 'Image'}</option>
-                                        <option value="video">{language === 'he' ? 'סרטון' : 'Video'}</option>
-                                    </select>
-                                </div>
-                                <div className="md:col-span-2">
-                                    <label className="block text-xs font-bold text-themeText/60 mb-1">
-                                        {newGalleryItem.type === 'video' 
-                                            ? (language === 'he' ? 'סרטון' : 'Video') 
-                                            : (language === 'he' ? 'תמונה' : 'Image')}
-                                    </label>
-                                    {newGalleryItem.type === 'video' ? (
-                                        <div className="space-y-2">
-                                            <div className="flex gap-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { setVideoSourceType('file'); setNewGalleryItem(prev => ({ ...prev, url: '' })); }}
-                                                    className={`px-3 py-1 text-xs font-bold rounded-full border transition-all ${videoSourceType === 'file' ? 'bg-themePrimary text-themeHeaderBg border-themePrimary shadow-sm' : 'bg-themeBg text-themeText/70 hover:border-themeText/30'}`}
-                                                >
-                                                    {language === 'he' ? 'העלאת קובץ' : 'Upload File'}
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { setVideoSourceType('url'); setNewGalleryItem(prev => ({ ...prev, url: '' })); }}
-                                                    className={`px-3 py-1 text-xs font-bold rounded-full border transition-all ${videoSourceType === 'url' ? 'bg-themePrimary text-themeHeaderBg border-themePrimary shadow-sm' : 'bg-themeBg text-themeText/70 hover:border-themeText/30'}`}
-                                                >
-                                                    {language === 'he' ? 'קישור URL' : 'URL Link'}
-                                                </button>
-                                            </div>
-                                            {videoSourceType === 'url' ? (
-                                                <input
-                                                    type="text"
-                                                    value={newGalleryItem.url}
-                                                    onChange={(e) => setNewGalleryItem({ ...newGalleryItem, url: e.target.value })}
-                                                    className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText text-sm rounded"
-                                                    placeholder="https://www.youtube.com/watch?v=..."
-                                                />
-                                            ) : (
-                                                <div className="flex items-center gap-4">
-                                                    {newGalleryItem.url && (
-                                                        <span className="text-xs text-emerald-500 font-bold bg-emerald-500/10 px-2.5 py-1.5 rounded-lg border border-emerald-500/25 truncate max-w-[150px]">
-                                                            {language === 'he' ? 'סרטון הועלה' : 'Video uploaded'}
-                                                        </span>
-                                                    )}
-                                                    <label className="flex items-center justify-center gap-2 flex-1 p-2 border-2 border-dashed border-themeText/20 rounded cursor-pointer hover:border-themePrimary transition text-themeText/60 font-bold text-xs bg-themeBg/30">
-                                                        <Upload size={14} />
-                                                        <span>{uploading ? '...' : (language === 'he' ? 'העלאת סרטון' : 'Upload Video')}</span>
-                                                        <input type="file" accept="video/*" onChange={handleGalleryVideoUpload} className="hidden" disabled={uploading} />
-                                                    </label>
-                                                </div>
-                                            )}
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-4">
-                                            {newGalleryItem.url && (
-                                                <img src={newGalleryItem.url} alt="Gallery Preview" className="w-10 h-10 object-cover rounded" />
-                                            )}
-                                            <label className="flex items-center justify-center gap-2 flex-1 p-2 border-2 border-dashed border-themeText/20 rounded cursor-pointer hover:border-themePrimary transition text-themeText/60 font-bold text-xs bg-themeBg/30">
-                                                <Upload size={14} />
-                                                <span>{uploading ? '...' : t.upload}</span>
-                                                <input type="file" accept="image/*" onChange={(e) => handleGalleryImageUpload(e)} className="hidden" disabled={uploading} />
-                                            </label>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                                <div className="md:col-span-3">
-                                    <label className="block text-xs font-bold text-themeText/60 mb-1">{t.caption}</label>
-                                    <input
-                                        type="text"
-                                        value={newGalleryItem.caption}
-                                        onChange={(e) => setNewGalleryItem({ ...newGalleryItem, caption: e.target.value })}
-                                        className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText text-sm rounded"
-                                        placeholder={language === 'he' ? 'לדוגמה: שולחן קינוחים מעוצב' : 'e.g. Dessert table design'}
-                                    />
-                                </div>
-                                <button
-                                    onClick={handleAddGalleryItem}
-                                    disabled={!newGalleryItem.url || uploading}
-                                    className="bg-themePrimary text-themeHeaderBg font-bold px-6 py-2 rounded hover:opacity-90 transition w-full disabled:opacity-50 text-sm"
-                                >
-                                    {language === 'he' ? 'הוסף לגלריה' : 'Add Item'}
-                                </button>
-                            </div>
+                    {/* Theme Settings Customizer Card */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Palette size={16} /></div>
+                            <h3 className="text-sm font-bold text-themeText uppercase">{t.themeSettings}</h3>
                         </div>
+                        
+                        <div className="space-y-6">
+                            <div>
+                                <h4 className="text-themeText font-bold mb-3 flex items-center gap-2 text-sm"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{language === 'he' ? 'ערכות נושא מוכנות' : 'Theme Presets'}</h4>
+                                <div className="flex flex-wrap gap-3">
+                                    <button onClick={() => applyThemePreset('classic')} className="px-4 py-2.5 bg-zinc-900 text-white rounded-xl hover:bg-zinc-800 transition-all shadow-sm font-bold text-xs">
+                                        {language === 'he' ? 'קלאסי (זהב ושחור)' : 'Classic (Gold & Dark)'}
+                                    </button>
+                                    <button onClick={() => applyThemePreset('olive')} className="px-4 py-2.5 bg-emerald-800 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-sm font-bold text-xs">
+                                        {language === 'he' ? 'ירוק זית וקרם' : 'Olive Green & Cream'}
+                                    </button>
+                                    <button onClick={() => applyThemePreset('midnight')} className="px-4 py-2.5 bg-zinc-950 text-yellow-500 rounded-xl hover:bg-zinc-900 border border-yellow-500/20 transition-all shadow-sm font-bold text-xs">
+                                        {language === 'he' ? 'לילה יוקרתי (Midnight)' : 'Midnight Luxury (Dark)'}
+                                    </button>
+                                    <button onClick={() => applyThemePreset('rosegold')} className="px-4 py-2.5 bg-[#e0a899] text-stone-900 rounded-xl hover:bg-[#d59a8c] transition-all shadow-sm font-bold text-xs">
+                                        {language === 'he' ? 'רוז גולד (Modern Romance)' : 'Rose Gold (Modern)'}
+                                    </button>
+                                    <button onClick={() => applyThemePreset('forest')} className="px-4 py-2.5 bg-[#1e2e28] text-amber-500 rounded-xl hover:bg-[#16221d] transition-all shadow-sm font-bold text-xs">
+                                        {language === 'he' ? 'יער ואדמה (Forest)' : 'Forest Ochre (Organic)'}
+                                    </button>
+                                    <button onClick={() => applyThemePreset('burgundy')} className="px-4 py-2.5 bg-[#3d1620] text-[#d4af37] rounded-xl hover:bg-[#2d1017] transition-all shadow-sm font-bold text-xs">
+                                        {language === 'he' ? 'מלכותי בורגונדי (Burgundy)' : 'Royal Burgundy (Premium)'}
+                                    </button>
+                                    <button onClick={() => applyThemePreset('ocean')} className="px-4 py-2.5 bg-[#0f172a] text-teal-400 rounded-xl hover:bg-[#0c1222] transition-all shadow-sm font-bold text-xs">
+                                        {language === 'he' ? 'אוקיינוס וטורקיז (Ocean)' : 'Ocean Slate (Coastal)'}
+                                    </button>
+                                </div>
+                            </div>
 
-                        {/* Gallery List */}
-                        <div>
-                            <h4 className="text-sm font-bold text-themeText/40 uppercase mb-3">{language === 'he' ? 'פריטים בגלריה' : 'Items in Gallery'}</h4>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                                {(gallery || []).map(item => (
-                                    <div key={item.id} className="relative group bg-themeCardBg border border-themeText/10 rounded-lg overflow-hidden shadow-sm aspect-square flex flex-col justify-between">
-                                        <div className="relative flex-1 w-full bg-themeBg/40 flex items-center justify-center overflow-hidden">
-                                            {item.type === 'video' ? (
-                                                getYoutubeId(item.url) ? (
-                                                    <div className="relative w-full h-full">
-                                                        <img src={`https://img.youtube.com/vi/${getYoutubeId(item.url)}/hqdefault.jpg`} className="w-full h-full object-cover" alt="YouTube Preview" />
-                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                                                            <span className="font-bold text-red-500 text-[10px] uppercase border border-red-500 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">YouTube</span>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <div className="relative w-full h-full font-bold">
-                                                        <video src={item.url} className="w-full h-full object-cover" preload="metadata" muted playsInline />
-                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                                                            <span className="font-bold text-emerald-500 text-[10px] uppercase border border-emerald-500 px-1.5 py-0.5 rounded bg-black/60 backdrop-blur-sm">Video</span>
-                                                        </div>
-                                                    </div>
-                                                )
-                                            ) : (
-                                                <img src={item.url} alt={item.caption} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" />
-                                            )}
+                            <div className="border-t border-themeText/10 pt-6">
+                                <h4 className="text-themeText font-bold mb-3 flex items-center gap-2 text-sm"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{language === 'he' ? 'התאמת צבעים אישית' : 'Custom Theme Colors'}</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {[
+                                        { key: 'bg_color', label: language === 'he' ? 'צבע רקע כללי' : 'General Background' },
+                                        { key: 'text_color', label: language === 'he' ? 'צבע טקסט כללי' : 'General Text Color' },
+                                        { key: 'primary_color', label: language === 'he' ? 'צבע ראשי (כפתורים וזהב)' : 'Primary Theme Color' },
+                                        { key: 'secondary_color', label: language === 'he' ? 'צבע משני' : 'Secondary Theme Color' },
+                                        { key: 'header_bg_color', label: language === 'he' ? 'רקע תפריט עליון' : 'Header Background' },
+                                        { key: 'header_text_color', label: language === 'he' ? 'טקסט תפריט עליון' : 'Header Text Color' },
+                                        { key: 'hero_bg_color', label: language === 'he' ? 'רקע אזור הירו (פתיחה)' : 'Hero Background' },
+                                        { key: 'card_bg_color', label: language === 'he' ? 'רקע כרטיס מנה' : 'Dish Card Background' },
+                                        { key: 'card_text_color', label: language === 'he' ? 'טקסט כרטיס מנה' : 'Dish Card Text Color' },
+                                    ].map(({ key, label }) => (
+                                        <div key={key} className="flex items-center justify-between p-3 bg-themeBg/40 rounded-xl border border-themeText/10 shadow-sm">
+                                            <span className="text-xs font-bold text-themeText/80">{label}</span>
+                                            <input
+                                                type="color"
+                                                value={(theme as any)[key] || '#ffffff'}
+                                                onChange={(e) => updateTheme({ [key]: e.target.value })}
+                                                className="w-8 h-8 rounded cursor-pointer border border-themeText/20 bg-transparent"
+                                            />
                                         </div>
-                                        {item.caption && (
-                                            <div className="p-1.5 text-[10px] text-themeText/60 font-medium truncate border-t border-themeText/10 bg-themeBg/30">
-                                                {item.caption}
-                                            </div>
-                                        )}
-                                        <button
-                                            onClick={() => handleDeleteGalleryItem(item.id)}
-                                            className="absolute top-2 left-2 p-1.5 bg-black/60 hover:bg-red-600 text-white rounded-full transition-colors opacity-0 group-hover:opacity-100 animate-fade-in"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={12} />
-                                        </button>
-                                    </div>
-                                ))}
-                                {(gallery || []).length === 0 && (
-                                    <p className="text-sm text-themeText/40 italic col-span-full">No gallery items yet.</p>
-                                )}
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>
-                )}
-            </div>
-
-            {/* Reviews Moderation */}
-            <div className="bg-themeCardBg rounded-lg shadow-sm overflow-hidden mb-8 text-start border border-themeText/5">
-                <button onClick={() => setShowReviews(!showReviews)} className="w-full p-6 flex items-center justify-between bg-themeHeaderBg text-themeHeaderTxt hover:opacity-90 transition">
-                    <div className="flex items-center gap-3">
-                        <MessageSquare size={20} className="text-themePrimary" />
-                        <span className="font-serif font-bold text-lg">{language === 'he' ? 'ניהול חוות דעת' : 'Manage Reviews'}</span>
-                        {reviews.length > 0 && (
-                            <span className="bg-themePrimary text-themeHeaderBg text-xs font-bold px-2 py-0.5 rounded-full">
-                                {reviews.length}
-                            </span>
-                        )}
-                    </div>
-                    {showReviews ? <ChevronUp /> : <ChevronDown />}
-                </button>
-                {showReviews && (
-                    <div className="p-6 bg-themeBg/50 border-x border-b border-themeText/10 rounded-b-lg animate-slide-in-top space-y-6">
-                        {reviews.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {reviews.map(review => {
-                                    const dateStr = review.created_at ? new Date(review.created_at).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US') : '';
-                                    return (
-                                        <div key={review.id} className="bg-themeCardBg p-4 rounded-xl border border-themeText/10 shadow-sm flex flex-col justify-between hover:border-themePrimary/20 transition-all text-themeText">
-                                            <div>
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div>
-                                                        <h5 className="font-bold text-themeText text-sm">{review.customer_name}</h5>
-                                                        <span className="text-[10px] text-themeText/50">{dateStr}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-0.5">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <svg
-                                                                key={i}
-                                                                className={`w-4 h-4 ${i < review.rating ? 'text-themePrimary fill-themePrimary' : 'text-themeText/20 fill-themeText/20'}`}
-                                                                viewBox="0 0 20 20"
-                                                                fill="currentColor"
-                                                            >
-                                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                                                            </svg>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <p className="text-xs text-themeText/80 italic mt-2">"{review.comment}"</p>
-                                            </div>
-                                            <div className="flex justify-end mt-4 pt-2 border-t border-themeText/10">
-                                                <button
-                                                    onClick={() => handleDeleteReview(review.id!)}
-                                                    className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-bold hover:bg-red-500/10 px-2 py-1 rounded transition-colors"
-                                                >
-                                                    <Trash2 size={14} />
-                                                    <span>{language === 'he' ? 'מחק חוות דעת' : 'Delete'}</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-themeText/40 italic py-4">{language === 'he' ? 'אין חוות דעת במערכת' : 'No reviews in system yet.'}</p>
-                        )}
-                    </div>
-                )}
-            </div>
-
-            {/* Menu Items Table */}
-            <div className="bg-themeCardBg rounded-lg shadow-sm border border-themeText/10 overflow-hidden text-start text-themeText">
-                <div className="p-4 border-b border-themeText/10">
-                    <input type="text" placeholder={t.searchPlaceholder} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded" onChange={(e) => setSearchTerm(e.target.value)} />
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-start">
-                        <thead className="bg-themeBg text-themeText/65 text-sm">
-                            <tr>
-                                <th className="p-4 text-start">{t.productName}</th>
-                                <th className="p-4 text-start">{t.image}</th>
-                                <th className="p-4 text-start">{t.category}</th>
-                                <th className="p-4 text-start">{t.price}</th>
-                                <th className="p-4 text-start">{t.status}</th>
-                                <th className="p-4 text-start">{t.modifications}</th>
-                                <th className="p-4 text-start">{t.edit}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {(filteredItems || []).map(item => {
-                                const localItem = getLocalizedItem(item, language);
-                                return (
-                                    <tr key={item.id} className="border-b border-themeText/10 hover:bg-themeBg/40">
-                                        <td className="p-4 font-bold text-themeText/95">{localItem.name}</td>
-                                        <td className="p-4">
-                                            {item.image_url ? (
-                                                <img src={item.image_url} alt="mini" className="w-10 h-10 object-cover rounded-md border border-themeText/15" />
-                                            ) : (
-                                                <div className="w-10 h-10 bg-themeBg/40 rounded-md border border-themeText/15 flex items-center justify-center text-themeText/30">
-                                                    <ImageIcon size={16} />
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="p-4 text-themeText/70">{(rootT.categories as Record<string, string>)?.[item.category] || item.category}</td>
-                                        <td className="p-4">₪{item.price}</td>
-                                        <td className="p-4">
-                                            <span className={`px-3 py-1 rounded text-xs font-bold ${item.availability_status ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                                                {item.availability_status ? t.active : t.outOfStock}
-                                            </span>
-                                        </td>
-                                        <td className="p-4 text-sm text-themeText/50 max-w-xs truncate">{localItem.modifications?.join(', ') || '-'}</td>
-                                        <td className="p-4">
-                                            <button onClick={() => handleEditClick(item)} className="p-2 text-themeText/40 hover:text-themePrimary transition-colors">
-                                                <Pencil size={18} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
                 </div>
             </div>
 
