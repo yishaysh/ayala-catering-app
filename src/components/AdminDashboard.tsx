@@ -715,7 +715,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             <div 
                 ref={tabsContainerRef}
                 onScroll={handleScroll}
-                className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-none touch-pan-x gap-4 pb-8"
+                className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth scrollbar-none gap-4 pb-8"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
                 {/* Tab 1: Orders */}
