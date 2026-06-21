@@ -212,7 +212,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         setEditMods(mods ? mods.join(', ') : '');
     };
 
-    const applyThemePreset = async (preset: 'classic' | 'olive') => {
+    const applyThemePreset = async (preset: 'classic' | 'olive' | 'midnight' | 'rosegold' | 'forest' | 'burgundy' | 'ocean') => {
         if (preset === 'classic') {
             await updateTheme({
                 bg_color: '#fafaf9',
@@ -225,7 +225,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 card_bg_color: '#ffffff',
                 card_text_color: '#1c1917'
             });
-        } else {
+        } else if (preset === 'olive') {
             await updateTheme({
                 bg_color: '#f4f6f0',
                 text_color: '#2d3a1a',
@@ -236,6 +236,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 hero_bg_color: '#3d4b24',
                 card_bg_color: '#ffffff',
                 card_text_color: '#2d3a1a'
+            });
+        } else if (preset === 'midnight') {
+            await updateTheme({
+                bg_color: '#0c0a09',
+                text_color: '#f5f5f4',
+                primary_color: '#eab308',
+                secondary_color: '#ca8a04',
+                header_bg_color: '#1c1917',
+                header_text_color: '#ffffff',
+                hero_bg_color: '#1c1917',
+                card_bg_color: '#1c1917',
+                card_text_color: '#f5f5f4'
+            });
+        } else if (preset === 'rosegold') {
+            await updateTheme({
+                bg_color: '#faf8f8',
+                text_color: '#27272a',
+                primary_color: '#e0a899',
+                secondary_color: '#c48b7d',
+                header_bg_color: '#18181b',
+                header_text_color: '#faf8f8',
+                hero_bg_color: '#18181b',
+                card_bg_color: '#ffffff',
+                card_text_color: '#27272a'
+            });
+        } else if (preset === 'forest') {
+            await updateTheme({
+                bg_color: '#faf6f0',
+                text_color: '#2c3531',
+                primary_color: '#d97706',
+                secondary_color: '#b45309',
+                header_bg_color: '#1e2e28',
+                header_text_color: '#faf6f0',
+                hero_bg_color: '#1e2e28',
+                card_bg_color: '#ffffff',
+                card_text_color: '#2c3531'
+            });
+        } else if (preset === 'burgundy') {
+            await updateTheme({
+                bg_color: '#fbf9f6',
+                text_color: '#2d1a1e',
+                primary_color: '#d4af37',
+                secondary_color: '#b4941f',
+                header_bg_color: '#3d1620',
+                header_text_color: '#fbf9f6',
+                hero_bg_color: '#3d1620',
+                card_bg_color: '#ffffff',
+                card_text_color: '#2d1a1e'
+            });
+        } else if (preset === 'ocean') {
+            await updateTheme({
+                bg_color: '#f0f4f8',
+                text_color: '#1e293b',
+                primary_color: '#0d9488',
+                secondary_color: '#0f766e',
+                header_bg_color: '#0f172a',
+                header_text_color: '#f8fafc',
+                hero_bg_color: '#0f172a',
+                card_bg_color: '#ffffff',
+                card_text_color: '#1e293b'
             });
         }
     };
@@ -951,18 +1011,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         {/* Theme Presets */}
                         <div>
                             <h4 className="text-stone-900 font-bold mb-3 flex items-center gap-2"><span className="w-2 h-6 bg-gold-500 rounded-sm"></span>{language === 'he' ? 'ערכות נושא מוכנות' : 'Theme Presets'}</h4>
-                            <div className="flex gap-4">
+                            <div className="flex flex-wrap gap-3">
                                 <button
                                     onClick={() => applyThemePreset('classic')}
-                                    className="px-4 py-2 bg-stone-900 text-white rounded hover:bg-stone-800 transition font-bold text-xs"
+                                    className="px-4 py-2.5 bg-stone-900 text-white rounded-xl hover:bg-stone-800 transition-all shadow-sm font-bold text-xs"
                                 >
                                     {language === 'he' ? 'קלאסי (זהב ושחור)' : 'Classic (Gold & Dark)'}
                                 </button>
                                 <button
                                     onClick={() => applyThemePreset('olive')}
-                                    className="px-4 py-2 bg-emerald-800 text-white rounded hover:bg-emerald-700 transition font-bold text-xs"
+                                    className="px-4 py-2.5 bg-emerald-800 text-white rounded-xl hover:bg-emerald-700 transition-all shadow-sm font-bold text-xs"
                                 >
                                     {language === 'he' ? 'ירוק זית וקרם' : 'Olive Green & Cream'}
+                                </button>
+                                <button
+                                    onClick={() => applyThemePreset('midnight')}
+                                    className="px-4 py-2.5 bg-zinc-950 text-yellow-500 rounded-xl hover:bg-zinc-900 border border-yellow-500/20 transition-all shadow-sm font-bold text-xs"
+                                >
+                                    {language === 'he' ? 'לילה יוקרתי (Midnight)' : 'Midnight Luxury (Dark)'}
+                                </button>
+                                <button
+                                    onClick={() => applyThemePreset('rosegold')}
+                                    className="px-4 py-2.5 bg-[#e0a899] text-stone-900 rounded-xl hover:bg-[#d59a8c] transition-all shadow-sm font-bold text-xs"
+                                >
+                                    {language === 'he' ? 'רוז גולד (Modern Romance)' : 'Rose Gold (Modern)'}
+                                </button>
+                                <button
+                                    onClick={() => applyThemePreset('forest')}
+                                    className="px-4 py-2.5 bg-[#1e2e28] text-amber-500 rounded-xl hover:bg-[#16221d] transition-all shadow-sm font-bold text-xs"
+                                >
+                                    {language === 'he' ? 'יער ואדמה (Forest)' : 'Forest Ochre (Organic)'}
+                                </button>
+                                <button
+                                    onClick={() => applyThemePreset('burgundy')}
+                                    className="px-4 py-2.5 bg-[#3d1620] text-[#d4af37] rounded-xl hover:bg-[#2d1017] transition-all shadow-sm font-bold text-xs"
+                                >
+                                    {language === 'he' ? 'מלכותי בורגונדי (Burgundy)' : 'Royal Burgundy (Premium)'}
+                                </button>
+                                <button
+                                    onClick={() => applyThemePreset('ocean')}
+                                    className="px-4 py-2.5 bg-[#0f172a] text-teal-400 rounded-xl hover:bg-[#0c1222] transition-all shadow-sm font-bold text-xs"
+                                >
+                                    {language === 'he' ? 'אוקיינוס וטורקיז (Ocean)' : 'Ocean Slate (Coastal)'}
                                 </button>
                             </div>
                         </div>

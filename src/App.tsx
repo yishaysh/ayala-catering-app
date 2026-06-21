@@ -75,14 +75,22 @@ export default function App() {
   useBackButton(isMenuOpen, () => setIsMenuOpen(false));
 
   const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-        const headerHeight = 72; 
-        const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-        window.scrollTo({
-            top: elementPosition - headerHeight,
-            behavior: 'smooth'
-        });
+    try {
+      const element = document.getElementById(id);
+      if (element) {
+          const headerHeight = 72; 
+          const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+          const offsetPosition = elementPosition - headerHeight;
+          window.scrollTo({
+              top: offsetPosition,
+              behavior: 'smooth'
+          });
+      } else {
+          console.warn(`Element with id ${id} not found.`);
+      }
+    } catch (error) {
+        console.error("Error scrolling to section:", error);
+    } finally {
         setIsMenuOpen(false);
     }
   };
@@ -98,9 +106,9 @@ export default function App() {
     return brightness < 128;
   })();
 
-  const isCardBgDark = (() => {
-    if (!theme?.card_bg_color) return false;
-    const hex = theme.card_bg_color.replace('#', '');
+  const isPageBgDark = (() => {
+    if (!theme?.bg_color) return false;
+    const hex = theme.bg_color.replace('#', '');
     if (hex.length !== 6) return false;
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
@@ -114,11 +122,11 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-themeBg text-themeText font-sans pb-48 overflow-x-hidden">
+    <div className="min-h-screen bg-themeBg text-themeText font-sans pb-48 overflow-x-hidden pt-[72px]">
       <ThemeStyles />
       
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-themeHeaderBg text-themeHeaderTxt shadow-lg border-b border-themeHeaderBg/10 h-[72px]">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-themeHeaderBg text-themeHeaderTxt shadow-lg border-b border-themeHeaderBg/10 h-[72px]">
         <div className="container mx-auto px-4 py-3 flex justify-between items-center h-full relative z-10">
             <div className="flex items-center gap-4">
                 {/* Hamburger Menu Button */}
@@ -197,12 +205,12 @@ export default function App() {
 
       <main className="container mx-auto px-4 mt-6 relative z-20">
         {/* Brand Banner Section with big Logo and Seal Watermark */}
-        <div className="relative w-full py-12 md:py-16 flex flex-col items-center justify-center overflow-hidden rounded-2xl bg-themeCardBg border border-themeText/5 shadow-sm mb-6">
+        <div className="relative w-full py-12 md:py-16 flex flex-col items-center justify-center overflow-hidden mb-6">
             {/* Background Seal Watermark */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
                 <div 
-                    className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[340px] h-[340px] md:w-[420px] md:h-[420px] bg-center bg-no-repeat bg-contain opacity-[0.06] ${
-                        isCardBgDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
+                    className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] md:w-[650px] md:h-[650px] bg-center bg-no-repeat bg-contain opacity-[0.06] ${
+                        isPageBgDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
                     }`}
                     style={{ backgroundImage: 'url("/seal_stamp.png")' }}
                 />
@@ -214,7 +222,7 @@ export default function App() {
                     src={BRAND_LOGO_SRC} 
                     alt="Ayala Simply Delicious" 
                     className={`h-20 md:h-28 w-auto object-contain ${
-                        isCardBgDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
+                        isPageBgDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
                     }`}
                 />
             </div>
