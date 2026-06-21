@@ -218,7 +218,7 @@ export default function App() {
             {/* Background Seal Watermark */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
                 <div 
-                    className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] md:w-[650px] md:h-[650px] bg-center bg-no-repeat bg-contain opacity-[0.06] ${
+                    className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] md:w-[350px] md:h-[350px] bg-center bg-no-repeat bg-contain opacity-[0.09] ${
                         isPageBgDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
                     }`}
                     style={{ backgroundImage: 'url("/seal_stamp.png")' }}
@@ -230,7 +230,7 @@ export default function App() {
                 <img 
                     src={BRAND_LOGO_SRC} 
                     alt="Ayala Simply Delicious" 
-                    className={`h-20 md:h-28 w-auto object-contain ${
+                    className={`h-28 md:h-40 w-auto object-contain ${
                         isPageBgDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
                     }`}
                 />
