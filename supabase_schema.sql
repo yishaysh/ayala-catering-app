@@ -6,13 +6,7 @@
 -- Run this only when you want a fresh start.
 -- =============================================
 
--- 1. Clean Up (Drop existing objects)
-DROP FUNCTION IF EXISTS increment_coupon_usage;
-DROP TABLE IF EXISTS orders CASCADE;
-DROP TABLE IF EXISTS menu_items CASCADE;
-DROP TABLE IF EXISTS coupons CASCADE;
-DROP TABLE IF EXISTS app_settings CASCADE;
-DROP TABLE IF EXISTS reviews CASCADE;
+-- 1. Clean Up (No destructive drops, safe to re-run)
 
 -- 2. Enable Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -20,7 +14,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 3. Create Tables
 
 -- A. Menu Items
-CREATE TABLE menu_items (
+CREATE TABLE IF NOT EXISTS menu_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     category VARCHAR(50) NOT NULL,
     name VARCHAR(100) NOT NULL,
@@ -43,7 +37,7 @@ CREATE TABLE menu_items (
 );
 
 -- B. Orders
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     customer_name VARCHAR(100),
     customer_phone VARCHAR(20),
@@ -58,7 +52,7 @@ CREATE TABLE orders (
 );
 
 -- C. Coupons
-CREATE TABLE coupons (
+CREATE TABLE IF NOT EXISTS coupons (
     code VARCHAR(50) PRIMARY KEY,
     discount_type VARCHAR(20) CHECK (discount_type IN ('percentage', 'fixed')),
     discount_value DECIMAL(10, 2) NOT NULL,
@@ -69,13 +63,13 @@ CREATE TABLE coupons (
 );
 
 -- D. App Settings (Key-Value Store)
-CREATE TABLE app_settings (
+CREATE TABLE IF NOT EXISTS app_settings (
     key VARCHAR(50) PRIMARY KEY,
     value JSONB
 );
 
 -- E. Reviews
-CREATE TABLE reviews (
+CREATE TABLE IF NOT EXISTS reviews (
     id TEXT PRIMARY KEY,
     customer_name VARCHAR(100) NOT NULL,
     rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
@@ -95,24 +89,35 @@ ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 -- Since this app uses a client-side PIN logic, we allow public writes but rely on the app logic.
 
 -- Menu Items
+DROP POLICY IF EXISTS "Enable read access for all users" ON menu_items;
 CREATE POLICY "Enable read access for all users" ON menu_items FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Enable write access for all users" ON menu_items;
 CREATE POLICY "Enable write access for all users" ON menu_items FOR ALL USING (true) WITH CHECK (true);
 
 -- Orders
+DROP POLICY IF EXISTS "Enable read access for all users" ON orders;
 CREATE POLICY "Enable read access for all users" ON orders FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Enable insert access for all users" ON orders;
 CREATE POLICY "Enable insert access for all users" ON orders FOR INSERT WITH CHECK (true);
 
 -- Coupons
+DROP POLICY IF EXISTS "Enable read access for all users" ON coupons;
 CREATE POLICY "Enable read access for all users" ON coupons FOR SELECT USING (true); 
+DROP POLICY IF EXISTS "Enable write access for all users" ON coupons;
 CREATE POLICY "Enable write access for all users" ON coupons FOR ALL USING (true) WITH CHECK (true);
 
 -- App Settings
+DROP POLICY IF EXISTS "Enable read access for all users" ON app_settings;
 CREATE POLICY "Enable read access for all users" ON app_settings FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Enable write access for all users" ON app_settings;
 CREATE POLICY "Enable write access for all users" ON app_settings FOR ALL USING (true) WITH CHECK (true);
 
 -- Reviews
+DROP POLICY IF EXISTS "Enable read access for all users" ON reviews;
 CREATE POLICY "Enable read access for all users" ON reviews FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Enable insert access for all users" ON reviews;
 CREATE POLICY "Enable insert access for all users" ON reviews FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Enable delete access for all users" ON reviews;
 CREATE POLICY "Enable delete access for all users" ON reviews FOR DELETE USING (true);
 
 -- 6. Helper Functions (RPC)
@@ -133,9 +138,11 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 INSERT INTO app_settings (key, value)
 VALUES 
   ('config', '{"min_order_price": 500, "lead_time_hours": 48, "delivery_fee": 50, "is_shop_open": true}'::jsonb),
-  ('features', '{"showCalculator": true, "showAI": false}'::jsonb);
+  ('features', '{"showCalculator": true, "showAI": false}'::jsonb)
+ON CONFLICT (key) DO NOTHING;
 
 -- Optional: Sample Coupon
 INSERT INTO coupons (code, discount_type, discount_value, usage_limit)
-VALUES ('WELCOME10', 'percentage', 10, 100);
+VALUES ('WELCOME10', 'percentage', 10, 100)
+ON CONFLICT (code) DO NOTHING;
 
