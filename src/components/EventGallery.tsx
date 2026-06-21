@@ -12,6 +12,7 @@ export const EventGallery: React.FC = () => {
     const videoRef = useRef<HTMLVideoElement>(null);
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const touchStartRef = useRef<number | null>(null);
+    const isSwipingRef = useRef<boolean>(false);
 
     const filteredGallery = gallery ? gallery.filter(item => {
         if (activeTab === 'all') return true;
@@ -105,35 +106,12 @@ export const EventGallery: React.FC = () => {
                 setTimeout(() => {
                     if (iframeRef.current) {
                         iframeRef.current.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&enablejsapi=1`;
-                        if (!isCurrentlyFullscreen) {
-                            const iframe = iframeRef.current;
-                            if (iframe.requestFullscreen) {
-                                iframe.requestFullscreen().catch(err => console.log("Iframe fullscreen error:", err));
-                            } else if ((iframe as any).webkitRequestFullscreen) {
-                                (iframe as any).webkitRequestFullscreen();
-                            } else if ((iframe as any).msRequestFullscreen) {
-                                (iframe as any).msRequestFullscreen();
-                            }
-                        }
                     }
                 }, 50);
             } else {
                 setTimeout(() => {
                     if (videoRef.current) {
                         videoRef.current.src = item.url;
-                        videoRef.current.play().catch(err => console.log("Video play error:", err));
-                        if (!isCurrentlyFullscreen) {
-                            const video = videoRef.current;
-                            if ((video as any).webkitEnterFullscreen) {
-                                (video as any).webkitEnterFullscreen();
-                            } else if (video.requestFullscreen) {
-                                video.requestFullscreen().catch(err => console.log("Video fullscreen error:", err));
-                            } else if ((video as any).webkitRequestFullscreen) {
-                                (video as any).webkitRequestFullscreen();
-                            } else if ((video as any).msRequestFullscreen) {
-                                (video as any).msRequestFullscreen();
-                            }
-                        }
                     }
                 }, 50);
             }
@@ -174,6 +152,7 @@ export const EventGallery: React.FC = () => {
 
     const handleTouchStart = (e: React.TouchEvent) => {
         touchStartRef.current = e.touches[0].clientX;
+        isSwipingRef.current = false;
     };
 
     const handleTouchEnd = (e: React.TouchEvent) => {
@@ -181,12 +160,23 @@ export const EventGallery: React.FC = () => {
         const touchEndX = e.changedTouches[0].clientX;
         const diff = touchStartRef.current - touchEndX;
 
-        if (diff > 50) {
-            handleNextMedia();
-        } else if (diff < -50) {
-            handlePrevMedia();
+        if (Math.abs(diff) > 50) {
+            isSwipingRef.current = true;
+            if (diff > 50) {
+                handleNextMedia();
+            } else {
+                handlePrevMedia();
+            }
+            setTimeout(() => {
+                isSwipingRef.current = false;
+            }, 300);
         }
         touchStartRef.current = null;
+    };
+
+    const handleBackdropClick = (e: React.MouseEvent) => {
+        if (isSwipingRef.current) return;
+        closeMedia();
     };
 
     useBackButton(!!selectedMedia, () => closeMedia());
@@ -194,13 +184,17 @@ export const EventGallery: React.FC = () => {
     useEffect(() => {
         const handleFullscreenChange = () => {
             const isFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement);
-            if (selectedMedia && selectedMedia.type === 'video' && !isFullscreen) {
-                closeMedia();
+            if (!isFullscreen) {
+                if (videoRef.current) {
+                    videoRef.current.pause();
+                }
             }
         };
 
         const handleIOSVideoClose = () => {
-            closeMedia();
+            if (videoRef.current) {
+                videoRef.current.pause();
+            }
         };
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
@@ -336,7 +330,7 @@ export const EventGallery: React.FC = () => {
                 className={`fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 transition-all duration-300 overflow-hidden touch-none ${
                     selectedMedia ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                 }`}
-                onClick={closeMedia}
+                onClick={handleBackdropClick}
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
             >
@@ -387,30 +381,72 @@ export const EventGallery: React.FC = () => {
                             }`}
                             onClick={e => e.stopPropagation()}
                         >
-                            {/* Native Video Element */}
-                            <video
-                                ref={videoRef}
-                                className={`w-full aspect-video bg-black rounded-lg overflow-hidden shadow-2xl object-contain ${
-                                    selectedMedia.type === 'video' && !getYoutubeId(selectedMedia.url) ? 'block' : 'hidden'
-                                }`}
-                                controls
-                                autoPlay
-                            />
+                            {selectedMedia.type === 'video' ? (
+                                <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden shadow-2xl">
+                                    {/* Native Video Element */}
+                                    <video
+                                        ref={videoRef}
+                                        className={`w-full h-full object-contain ${
+                                            !getYoutubeId(selectedMedia.url) ? 'block' : 'hidden'
+                                        }`}
+                                        controls
+                                        autoPlay
+                                    />
 
-                            {/* YouTube Video IFrame */}
-                            <iframe
-                                ref={iframeRef}
-                                className={`w-full aspect-video bg-black rounded-lg overflow-hidden shadow-2xl ${
-                                    selectedMedia.type === 'video' && getYoutubeId(selectedMedia.url) ? 'block' : 'hidden'
-                                }`}
-                                title="YouTube video player"
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                allowFullScreen
-                            />
+                                    {/* YouTube Video IFrame */}
+                                    <iframe
+                                        ref={iframeRef}
+                                        className={`w-full h-full ${
+                                            getYoutubeId(selectedMedia.url) ? 'block' : 'hidden'
+                                        }`}
+                                        title="YouTube video player"
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        allowFullScreen
+                                    />
 
-                            {/* Image Element */}
-                            {selectedMedia.type === 'image' && (
+                                    {/* Overlay to intercept touches/clicks for swipe and fullscreen */}
+                                    <div 
+                                        className="absolute inset-0 z-20 flex items-center justify-center bg-black/30 hover:bg-black/10 transition-colors cursor-pointer"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            const ytId = getYoutubeId(selectedMedia.url);
+                                            if (ytId) {
+                                                const iframe = iframeRef.current;
+                                                if (iframe) {
+                                                    iframe.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&enablejsapi=1`;
+                                                    if (iframe.requestFullscreen) {
+                                                        iframe.requestFullscreen().catch(err => console.log(err));
+                                                    } else if ((iframe as any).webkitRequestFullscreen) {
+                                                        (iframe as any).webkitRequestFullscreen();
+                                                    } else if ((iframe as any).msRequestFullscreen) {
+                                                        (iframe as any).msRequestFullscreen();
+                                                    }
+                                                }
+                                            } else {
+                                                const video = videoRef.current;
+                                                if (video) {
+                                                    video.play().catch(err => console.log(err));
+                                                    if ((video as any).webkitEnterFullscreen) {
+                                                        (video as any).webkitEnterFullscreen();
+                                                    } else if (video.requestFullscreen) {
+                                                        video.requestFullscreen().catch(err => console.log(err));
+                                                    } else if ((video as any).webkitRequestFullscreen) {
+                                                        (video as any).webkitRequestFullscreen();
+                                                    } else if ((video as any).msRequestFullscreen) {
+                                                        (video as any).msRequestFullscreen();
+                                                    }
+                                                }
+                                            }
+                                        }}
+                                    >
+                                        <div className="w-16 h-16 rounded-full bg-themePrimary text-themeHeaderBg flex items-center justify-center shadow-lg transform hover:scale-110 transition-transform">
+                                            <Play size={28} fill="currentColor" className="translate-x-0.5" />
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* Image Element */
                                 <img
                                     src={selectedMedia.url}
                                     alt="zoomed gallery media"
