@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useStore, translations } from '../store';
 import { Play, X, Image as ImageIcon, Video as VideoIcon, Film } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
@@ -7,8 +7,56 @@ export const EventGallery: React.FC = () => {
     const { gallery, language } = useStore();
     const [activeTab, setActiveTab] = useState<'all' | 'image' | 'video'>('all');
     const [selectedMedia, setSelectedMedia] = useState<{ type: 'image' | 'video'; url: string; caption?: string } | null>(null);
+    const modalContainerRef = useRef<HTMLDivElement>(null);
 
-    useBackButton(!!selectedMedia, () => setSelectedMedia(null));
+    const closeMedia = () => {
+        setSelectedMedia(null);
+        if (document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement) {
+            if (document.exitFullscreen) {
+                document.exitFullscreen().catch(err => console.log("Error exiting fullscreen:", err));
+            } else if ((document as any).webkitExitFullscreen) {
+                (document as any).webkitExitFullscreen();
+            } else if ((document as any).msExitFullscreen) {
+                (document as any).msExitFullscreen();
+            }
+        }
+    };
+
+    const openMedia = (item: { type: 'image' | 'video'; url: string; caption?: string }) => {
+        setSelectedMedia(item);
+        if (item.type === 'video' && modalContainerRef.current) {
+            const container = modalContainerRef.current;
+            if (container.requestFullscreen) {
+                container.requestFullscreen().catch(err => {
+                    console.log("Error attempting to enable fullscreen mode:", err);
+                });
+            } else if ((container as any).webkitRequestFullscreen) {
+                (container as any).webkitRequestFullscreen();
+            } else if ((container as any).msRequestFullscreen) {
+                (container as any).msRequestFullscreen();
+            }
+        }
+    };
+
+    useBackButton(!!selectedMedia, () => closeMedia());
+
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            const isFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement);
+            if (selectedMedia && selectedMedia.type === 'video' && !isFullscreen) {
+                setSelectedMedia(null);
+            }
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('msfullscreenchange', handleFullscreenChange);
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+        };
+    }, [selectedMedia]);
 
     if (!gallery || gallery.length === 0) return null;
 
@@ -67,7 +115,7 @@ export const EventGallery: React.FC = () => {
                     return (
                         <div
                             key={item.id}
-                            onClick={() => setSelectedMedia({ type: item.type, url: item.url, caption: item.caption })}
+                            onClick={() => openMedia({ type: item.type, url: item.url, caption: item.caption })}
                             className="group relative aspect-[4/3] bg-themeCardBg rounded-xl overflow-hidden border border-themeText/5 hover:border-themePrimary/40 hover:shadow-xl transition-all duration-300 cursor-pointer shadow-sm"
                         >
                             {item.type === 'video' && !ytId ? (
@@ -111,54 +159,62 @@ export const EventGallery: React.FC = () => {
             </div>
 
             {/* Lightbox / Video Player Modal */}
-            {selectedMedia && (
-                <div
-                    className="fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md animate-fade-in p-4"
-                    onClick={() => setSelectedMedia(null)}
-                >
-                    <button
-                        onClick={() => setSelectedMedia(null)}
-                        className="absolute top-6 right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[210]"
-                    >
-                        <X size={32} />
-                    </button>
+            <div
+                ref={modalContainerRef}
+                className={`fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 transition-all duration-300 ${
+                    selectedMedia ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                }`}
+                onClick={closeMedia}
+            >
+                {selectedMedia && (
+                    <>
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                closeMedia();
+                            }}
+                            className="absolute top-6 right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[210]"
+                        >
+                            <X size={32} />
+                        </button>
 
-                    <div className="relative max-w-4xl w-full max-h-[85vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
-                        {selectedMedia.type === 'video' ? (
-                            <div className="w-full aspect-video bg-black rounded-lg overflow-hidden shadow-2xl">
-                                {getYoutubeId(selectedMedia.url) ? (
-                                    <iframe
-                                        src={`https://www.youtube.com/embed/${getYoutubeId(selectedMedia.url)}?autoplay=1`}
-                                        title="YouTube video player"
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                        allowFullScreen
-                                        className="w-full h-full"
-                                    ></iframe>
-                                ) : (
-                                    <video
-                                        src={selectedMedia.url}
-                                        controls
-                                        autoPlay
-                                        className="w-full h-full object-contain"
-                                    ></video>
-                                )}
-                            </div>
-                        ) : (
-                            <img
-                                src={selectedMedia.url}
-                                alt="zoomed gallery media"
-                                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl animate-zoom-in"
-                            />
-                        )}
-                        {selectedMedia.caption && (
-                            <div className="mt-4 text-center text-white font-bold bg-black/55 backdrop-blur-md px-4 py-2 rounded-lg max-w-lg">
-                                {selectedMedia.caption}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+                        <div className="relative max-w-4xl w-full max-h-[85vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
+                            {selectedMedia.type === 'video' ? (
+                                <div className="w-full aspect-video bg-black rounded-lg overflow-hidden shadow-2xl">
+                                    {getYoutubeId(selectedMedia.url) ? (
+                                        <iframe
+                                            src={`https://www.youtube.com/embed/${getYoutubeId(selectedMedia.url)}?autoplay=1`}
+                                            title="YouTube video player"
+                                            frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                            allowFullScreen
+                                            className="w-full h-full"
+                                        ></iframe>
+                                    ) : (
+                                        <video
+                                            src={selectedMedia.url}
+                                            controls
+                                            autoPlay
+                                            className="w-full h-full object-contain"
+                                        ></video>
+                                    )}
+                                </div>
+                            ) : (
+                                <img
+                                    src={selectedMedia.url}
+                                    alt="zoomed gallery media"
+                                    className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl animate-zoom-in"
+                                />
+                            )}
+                            {selectedMedia.caption && (
+                                <div className="mt-4 text-center text-white font-bold bg-black/55 backdrop-blur-md px-4 py-2 rounded-lg max-w-lg">
+                                    {selectedMedia.caption}
+                                </div>
+                            )}
+                        </div>
+                    </>
+                )}
+            </div>
         </section>
     );
 };

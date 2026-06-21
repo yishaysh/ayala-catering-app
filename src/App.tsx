@@ -13,13 +13,13 @@ import { EventGallery } from './components/EventGallery';
 import { ReviewsSection } from './components/ReviewsSection';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts', 'Picnic Baskets'];
-const LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png";
+const LOGO_SRC = "/logo_text.png";
 const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || '2024';
 
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isKosherOpen, setIsKosherOpen] = useState(false);
-  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, featureFlags, fetchSettings, kosherCertUrl, fetchReviews } = useStore();
+  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, featureFlags, fetchSettings, kosherCertUrl, fetchReviews, theme } = useStore();
   
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -70,6 +70,17 @@ export default function App() {
     }
   };
 
+  const isHeaderDark = (() => {
+    if (!theme?.header_bg_color) return true;
+    const hex = theme.header_bg_color.replace('#', '');
+    if (hex.length !== 6) return true;
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness < 128;
+  })();
+
   if (isAdmin) {
       return <AdminDashboard onExit={() => setIsAdmin(false)} />;
   }
@@ -79,14 +90,26 @@ export default function App() {
       <ThemeStyles />
       
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-themeHeaderBg text-themeHeaderTxt shadow-lg border-b border-themeHeaderBg/10 h-[72px]">
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center h-full">
+      <header className="sticky top-0 z-50 bg-themeHeaderBg text-themeHeaderTxt shadow-lg border-b border-themeHeaderBg/10 h-[72px] overflow-hidden relative">
+        {/* Background Seal Watermark */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden select-none z-0">
+            <div 
+                className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] h-[320px] bg-center bg-no-repeat bg-contain opacity-[0.06] ${
+                    isHeaderDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
+                }`}
+                style={{ backgroundImage: 'url("/seal_stamp.png")' }}
+            />
+        </div>
+
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center h-full relative z-10">
             <div className="flex items-center gap-4">
                 <div className="flex flex-col items-start justify-center">
                     <img 
                         src={LOGO_SRC} 
                         alt="Ayala Logo" 
-                        className="h-9 w-auto object-contain"
+                        className={`h-9 w-auto object-contain ${
+                            isHeaderDark ? 'filter invert mix-blend-screen' : 'mix-blend-multiply'
+                        }`}
                     />
                     <a href="tel:0547474764" className="text-[9px] sm:text-[10px] text-themeHeaderTxt/90 font-bold hover:text-themePrimary transition-colors leading-none mt-0.5">
                         054-747-4764
