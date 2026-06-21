@@ -78,19 +78,28 @@ export default function App() {
     try {
       const element = document.getElementById(id);
       if (element) {
-          const headerHeight = 72; 
-          const elementPosition = element.getBoundingClientRect().top + window.scrollY;
-          const offsetPosition = elementPosition - headerHeight;
-          window.scrollTo({
-              top: offsetPosition,
-              behavior: 'smooth'
-          });
+          const performScroll = () => {
+              const headerHeight = 72; 
+              const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+              const offsetPosition = elementPosition - headerHeight;
+              window.scrollTo({
+                  top: offsetPosition,
+                  behavior: 'smooth'
+              });
+          };
+
+          if (isMenuOpen) {
+              setIsMenuOpen(false);
+              // Wait for history.back() in useBackButton to complete and not cancel the scroll animation
+              setTimeout(performScroll, 150);
+          } else {
+              performScroll();
+          }
       } else {
           console.warn(`Element with id ${id} not found.`);
       }
     } catch (error) {
         console.error("Error scrolling to section:", error);
-    } finally {
         setIsMenuOpen(false);
     }
   };
