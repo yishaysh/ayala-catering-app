@@ -60,6 +60,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     // Tab state and controls
     const [activeTab, setActiveTab] = useState(0);
     const tabsContainerRef = React.useRef<HTMLDivElement>(null);
+    const tabHeadersContainerRef = React.useRef<HTMLDivElement>(null);
     const isScrolling = React.useRef(false);
 
     const TABS = [
@@ -113,6 +114,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
+    }, [activeTab]);
+
+    useEffect(() => {
+        if (tabHeadersContainerRef.current) {
+            const activeBtn = tabHeadersContainerRef.current.children[activeTab] as HTMLElement;
+            if (activeBtn) {
+                activeBtn.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                    inline: 'center'
+                });
+            }
+        }
     }, [activeTab]);
 
     // About Us State
@@ -689,7 +703,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
             {/* Sticky Tabs Navigation Bar */}
             <div className="sticky top-[72px] md:top-0 z-30 bg-themeBg/95 backdrop-blur-md border-b border-themeText/10 -mx-8 px-8 py-3 mb-8 shadow-sm">
-                <div className="flex gap-2 justify-start md:justify-center overflow-x-auto scrollbar-none py-1">
+                <div ref={tabHeadersContainerRef} className="flex gap-2 justify-start md:justify-center overflow-x-auto scrollbar-none py-1">
                     {TABS.map((tab, idx) => {
                         const Icon = tab.icon;
                         const isActive = activeTab === idx;
