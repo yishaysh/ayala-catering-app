@@ -2,13 +2,15 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useStore } from '../store';
 import { Play, X, Image as ImageIcon, Video as VideoIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
-import { flushSync } from 'react-dom';
 
 export const EventGallery: React.FC = () => {
     const { gallery, language } = useStore();
     const [activeTab, setActiveTab] = useState<'all' | 'image' | 'video'>('all');
     const [selectedMedia, setSelectedMedia] = useState<{ type: 'image' | 'video'; url: string; caption?: string } | null>(null);
+    const [slideDirection, setSlideDirection] = useState<'right' | 'left' | 'none'>('none');
     const modalContainerRef = useRef<HTMLDivElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const iframeRef = useRef<HTMLIFrameElement>(null);
     const touchStartRef = useRef<number | null>(null);
 
     const filteredGallery = gallery ? gallery.filter(item => {
@@ -18,6 +20,19 @@ export const EventGallery: React.FC = () => {
 
     const closeMedia = () => {
         setSelectedMedia(null);
+        setSlideDirection('none');
+
+        // Stop native video
+        if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.src = "";
+        }
+        // Stop YouTube iframe
+        if (iframeRef.current) {
+            iframeRef.current.src = "";
+        }
+
+        // Exit fullscreen if any element is fullscreen
         if (document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement) {
             if (document.exitFullscreen) {
                 document.exitFullscreen().catch(err => console.log("Error exiting fullscreen:", err));
@@ -30,55 +45,104 @@ export const EventGallery: React.FC = () => {
     };
 
     const openMedia = (item: { type: 'image' | 'video'; url: string; caption?: string }) => {
+        setSlideDirection('none');
+        setSelectedMedia(item);
+
         if (item.type === 'video') {
-            flushSync(() => {
-                setSelectedMedia(item);
-            });
-            const container = modalContainerRef.current;
-            if (container) {
-                if (container.requestFullscreen) {
-                    container.requestFullscreen().catch(err => {
-                        console.log("Error attempting to enable fullscreen mode:", err);
-                    });
-                } else if ((container as any).webkitRequestFullscreen) {
-                    (container as any).webkitRequestFullscreen();
-                } else if ((container as any).msRequestFullscreen) {
-                    (container as any).msRequestFullscreen();
-                }
+            const ytId = getYoutubeId(item.url);
+            if (ytId) {
+                setTimeout(() => {
+                    if (iframeRef.current) {
+                        iframeRef.current.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&enablejsapi=1`;
+                        const iframe = iframeRef.current;
+                        if (iframe.requestFullscreen) {
+                            iframe.requestFullscreen().catch(err => console.log("Iframe fullscreen error:", err));
+                        } else if ((iframe as any).webkitRequestFullscreen) {
+                            (iframe as any).webkitRequestFullscreen();
+                        } else if ((iframe as any).msRequestFullscreen) {
+                            (iframe as any).msRequestFullscreen();
+                        }
+                    }
+                }, 50);
+            } else {
+                setTimeout(() => {
+                    if (videoRef.current) {
+                        videoRef.current.src = item.url;
+                        videoRef.current.play().catch(err => console.log("Video play error:", err));
+                        const video = videoRef.current;
+                        if ((video as any).webkitEnterFullscreen) {
+                            (video as any).webkitEnterFullscreen();
+                        } else if (video.requestFullscreen) {
+                            video.requestFullscreen().catch(err => console.log("Video fullscreen error:", err));
+                        } else if ((video as any).webkitRequestFullscreen) {
+                            (video as any).webkitRequestFullscreen();
+                        } else if ((video as any).msRequestFullscreen) {
+                            (video as any).msRequestFullscreen();
+                        }
+                    }
+                }, 50);
             }
-        } else {
-            setSelectedMedia(item);
         }
     };
 
     const changeMedia = (item: { type: 'image' | 'video'; url: string; caption?: string }) => {
+        // Pause/reset video and iframe
+        if (videoRef.current) {
+            videoRef.current.pause();
+            videoRef.current.src = "";
+        }
+        if (iframeRef.current) {
+            iframeRef.current.src = "";
+        }
+
+        setSelectedMedia(item);
+
         const isCurrentlyFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement);
-        
-        if (item.type === 'video' && !isCurrentlyFullscreen) {
-            flushSync(() => {
-                setSelectedMedia(item);
-            });
-            const container = modalContainerRef.current;
-            if (container) {
-                if (container.requestFullscreen) {
-                    container.requestFullscreen().catch(err => console.log(err));
-                } else if ((container as any).webkitRequestFullscreen) {
-                    (container as any).webkitRequestFullscreen();
-                }
+
+        if (item.type === 'video') {
+            const ytId = getYoutubeId(item.url);
+            if (ytId) {
+                setTimeout(() => {
+                    if (iframeRef.current) {
+                        iframeRef.current.src = `https://www.youtube.com/embed/${ytId}?autoplay=1&enablejsapi=1`;
+                        if (!isCurrentlyFullscreen) {
+                            const iframe = iframeRef.current;
+                            if (iframe.requestFullscreen) {
+                                iframe.requestFullscreen().catch(err => console.log("Iframe fullscreen error:", err));
+                            } else if ((iframe as any).webkitRequestFullscreen) {
+                                (iframe as any).webkitRequestFullscreen();
+                            } else if ((iframe as any).msRequestFullscreen) {
+                                (iframe as any).msRequestFullscreen();
+                            }
+                        }
+                    }
+                }, 50);
+            } else {
+                setTimeout(() => {
+                    if (videoRef.current) {
+                        videoRef.current.src = item.url;
+                        videoRef.current.play().catch(err => console.log("Video play error:", err));
+                        if (!isCurrentlyFullscreen) {
+                            const video = videoRef.current;
+                            if ((video as any).webkitEnterFullscreen) {
+                                (video as any).webkitEnterFullscreen();
+                            } else if (video.requestFullscreen) {
+                                video.requestFullscreen().catch(err => console.log("Video fullscreen error:", err));
+                            } else if ((video as any).webkitRequestFullscreen) {
+                                (video as any).webkitRequestFullscreen();
+                            } else if ((video as any).msRequestFullscreen) {
+                                (video as any).msRequestFullscreen();
+                            }
+                        }
+                    }
+                }, 50);
             }
         } else if (item.type === 'image' && isCurrentlyFullscreen) {
             if (document.exitFullscreen) {
-                document.exitFullscreen().then(() => {
-                    setSelectedMedia(item);
-                }).catch(err => {
-                    console.log(err);
-                    setSelectedMedia(item);
-                });
-            } else {
-                setSelectedMedia(item);
+                document.exitFullscreen().catch(err => console.log(err));
+            } else if ((document as any).webkitExitFullscreen) {
+                (document as any).webkitExitFullscreen();
             }
-        } else {
-            setSelectedMedia(item);
         }
     };
 
@@ -91,6 +155,7 @@ export const EventGallery: React.FC = () => {
         } else {
             prevItem = filteredGallery[filteredGallery.length - 1];
         }
+        setSlideDirection('left');
         changeMedia(prevItem);
     };
 
@@ -103,6 +168,7 @@ export const EventGallery: React.FC = () => {
         } else {
             nextItem = filteredGallery[0];
         }
+        setSlideDirection('right');
         changeMedia(nextItem);
     };
 
@@ -129,17 +195,30 @@ export const EventGallery: React.FC = () => {
         const handleFullscreenChange = () => {
             const isFullscreen = !!(document.fullscreenElement || (document as any).webkitFullscreenElement || (document as any).msFullscreenElement);
             if (selectedMedia && selectedMedia.type === 'video' && !isFullscreen) {
-                setSelectedMedia(null);
+                closeMedia();
             }
+        };
+
+        const handleIOSVideoClose = () => {
+            closeMedia();
         };
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
         document.addEventListener('msfullscreenchange', handleFullscreenChange);
+
+        const videoEl = videoRef.current;
+        if (videoEl) {
+            videoEl.addEventListener('webkitendfullscreen', handleIOSVideoClose);
+        }
+
         return () => {
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
             document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
             document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+            if (videoEl) {
+                videoEl.removeEventListener('webkitendfullscreen', handleIOSVideoClose);
+            }
         };
     }, [selectedMedia]);
 
@@ -254,7 +333,7 @@ export const EventGallery: React.FC = () => {
             {/* Lightbox / Video Player Modal */}
             <div
                 ref={modalContainerRef}
-                className={`fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 transition-all duration-300 ${
+                className={`fixed inset-0 z-[200] flex items-center justify-center bg-black/95 backdrop-blur-md p-4 transition-all duration-300 overflow-hidden touch-none ${
                     selectedMedia ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                 }`}
                 onClick={closeMedia}
@@ -265,9 +344,9 @@ export const EventGallery: React.FC = () => {
                     <>
                         <button
                             onClick={(e) => {
-                                e.stopPropagation();
-                                closeMedia();
-                            }}
+                                    e.stopPropagation();
+                                    closeMedia();
+                                }}
                             className="absolute top-6 right-6 text-white p-2 hover:bg-white/10 rounded-full transition-colors z-[210]"
                         >
                             <X size={32} />
@@ -276,9 +355,9 @@ export const EventGallery: React.FC = () => {
                         {/* Prev Button */}
                         <button
                             onClick={(e) => {
-                                e.stopPropagation();
-                                handlePrevMedia();
-                            }}
+                                    e.stopPropagation();
+                                    handlePrevMedia();
+                                }}
                             className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2 bg-black/40 hover:bg-black/60 rounded-full transition-colors z-[210] hidden md:block"
                             title="Previous"
                         >
@@ -288,43 +367,57 @@ export const EventGallery: React.FC = () => {
                         {/* Next Button */}
                         <button
                             onClick={(e) => {
-                                e.stopPropagation();
-                                handleNextMedia();
-                            }}
+                                    e.stopPropagation();
+                                    handleNextMedia();
+                                }}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70 hover:text-white p-2 bg-black/40 hover:bg-black/60 rounded-full transition-colors z-[210] hidden md:block"
                             title="Next"
                         >
                             <ChevronRight size={36} />
                         </button>
 
-                        <div className="relative max-w-4xl w-full max-h-[85vh] flex flex-col items-center justify-center" onClick={e => e.stopPropagation()}>
-                            {selectedMedia.type === 'video' ? (
-                                <div className="w-full aspect-video bg-black rounded-lg overflow-hidden shadow-2xl">
-                                    {getYoutubeId(selectedMedia.url) ? (
-                                        <iframe
-                                            src={`https://www.youtube.com/embed/${getYoutubeId(selectedMedia.url)}?autoplay=1`}
-                                            title="YouTube video player"
-                                            frameBorder="0"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                            allowFullScreen
-                                            className="w-full h-full"
-                                        ></iframe>
-                                    ) : (
-                                        <video
-                                            src={selectedMedia.url}
-                                            controls
-                                            autoPlay
-                                            className="w-full h-full object-contain"
-                                        ></video>
-                                    )}
-                                </div>
-                            ) : (
+                        <div 
+                            key={selectedMedia.url}
+                            className={`relative max-w-4xl w-full max-h-[85vh] flex flex-col items-center justify-center transition-all duration-300 touch-none ${
+                                slideDirection === 'right' 
+                                    ? 'animate-slide-in-right' 
+                                    : slideDirection === 'left' 
+                                        ? 'animate-slide-in-left' 
+                                        : 'animate-zoom-in'
+                            }`}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            {/* Native Video Element */}
+                            <video
+                                ref={videoRef}
+                                className={`w-full aspect-video bg-black rounded-lg overflow-hidden shadow-2xl object-contain ${
+                                    selectedMedia.type === 'video' && !getYoutubeId(selectedMedia.url) ? 'block' : 'hidden'
+                                }`}
+                                controls
+                                autoPlay
+                            />
+
+                            {/* YouTube Video IFrame */}
+                            <iframe
+                                ref={iframeRef}
+                                className={`w-full aspect-video bg-black rounded-lg overflow-hidden shadow-2xl ${
+                                    selectedMedia.type === 'video' && getYoutubeId(selectedMedia.url) ? 'block' : 'hidden'
+                                }`}
+                                title="YouTube video player"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allowFullScreen
+                            />
+
+                            {/* Image Element */}
+                            {selectedMedia.type === 'image' && (
                                 <img
                                     src={selectedMedia.url}
                                     alt="zoomed gallery media"
-                                    className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl animate-zoom-in"
+                                    className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl"
                                 />
                             )}
+
                             {selectedMedia.caption && (
                                 <div className="mt-4 text-center text-white font-bold bg-black/55 backdrop-blur-md px-4 py-2 rounded-lg max-w-lg">
                                     {selectedMedia.caption}
