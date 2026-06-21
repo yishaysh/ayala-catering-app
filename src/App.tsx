@@ -150,9 +150,11 @@ export default function App() {
                 </button>
                 <div className="flex flex-col items-start justify-center">
                     <img 
-                        src={NAV_LOGO_SRC} 
+                        src="/seal_stamp.png" 
                         alt="Ayala Logo" 
-                        className="h-9 w-auto object-contain"
+                        className={`h-9 w-auto object-contain ${
+                            isHeaderDark ? 'filter invert' : ''
+                        }`}
                     />
                     <a href="tel:0547474764" className="text-[9px] sm:text-[10px] text-themeHeaderTxt/90 font-bold hover:text-themePrimary transition-colors leading-none mt-0.5">
                         054-747-4764
