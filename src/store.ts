@@ -621,12 +621,14 @@ export const useStore = create<AppState>()(
 
       fetchSettings: async () => {
         // Fetch Features
-        const { data: featuresData } = await supabase.from('app_settings').select('*').eq('key', 'features').single();
-        if (featuresData && featuresData.value) set({ featureFlags: featuresData.value as FeatureFlags });
+        const { data: featuresData } = await supabase.from('app_settings').select('*').eq('key', 'features');
+        if (featuresData && featuresData.length > 0 && featuresData[0].value) {
+            set({ featureFlags: featuresData[0].value as FeatureFlags });
+        }
 
         // Fetch Config
-        const { data: configData } = await supabase.from('app_settings').select('*').eq('key', 'config').single();
-        if (configData && configData.value) {
+        const { data: configData } = await supabase.from('app_settings').select('*').eq('key', 'config');
+        if (configData && configData.length > 0 && configData[0].value) {
             // Merge with defaults to ensure new fields exist
             const defaults = {
                 min_order_price: 500,
@@ -637,25 +639,25 @@ export const useStore = create<AppState>()(
                 delivery_price_per_km: 4,
                 delivery_min_radius_included: 15
             };
-            set({ appConfig: { ...defaults, ...configData.value } });
+            set({ appConfig: { ...defaults, ...configData[0].value } });
         }
 
         // Fetch Theme
-        const { data: themeData } = await supabase.from('app_settings').select('*').eq('key', 'theme').single();
-        if (themeData && themeData.value) {
-            set({ theme: { ...defaultTheme, ...themeData.value } });
+        const { data: themeData } = await supabase.from('app_settings').select('*').eq('key', 'theme');
+        if (themeData && themeData.length > 0 && themeData[0].value) {
+            set({ theme: { ...defaultTheme, ...themeData[0].value } });
         }
 
         // Fetch Gallery
-        const { data: galleryData } = await supabase.from('app_settings').select('*').eq('key', 'gallery').single();
-        if (galleryData && galleryData.value) {
-            set({ gallery: galleryData.value as GalleryItem[] });
+        const { data: galleryData } = await supabase.from('app_settings').select('*').eq('key', 'gallery');
+        if (galleryData && galleryData.length > 0 && galleryData[0].value) {
+            set({ gallery: galleryData[0].value as GalleryItem[] });
         }
 
         // Fetch Kosher Cert
-        const { data: kosherData } = await supabase.from('app_settings').select('*').eq('key', 'kosher').single();
-        if (kosherData && kosherData.value) {
-            set({ kosherCertUrl: kosherData.value as string });
+        const { data: kosherData } = await supabase.from('app_settings').select('*').eq('key', 'kosher');
+        if (kosherData && kosherData.length > 0 && kosherData[0].value) {
+            set({ kosherCertUrl: kosherData[0].value as string });
         }
       },
 
@@ -745,15 +747,14 @@ export const useStore = create<AppState>()(
                   .from('coupons')
                   .select('*')
                   .eq('code', code)
-                  .eq('is_active', true)
-                  .single();
+                  .eq('is_active', true);
 
-              if (error || !data) {
+              if (error || !data || data.length === 0) {
                   return false;
               }
 
               // Check Usage Limit - FIXED TYPE CHECK
-              const coupon = data as Coupon;
+              const coupon = data[0] as Coupon;
               if (typeof coupon.usage_limit === 'number' && (coupon.usage_count || 0) >= coupon.usage_limit) {
                   return false;
               }
