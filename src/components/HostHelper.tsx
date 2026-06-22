@@ -155,6 +155,18 @@ Please put together a balanced and delicious menu matching these quantities and 
               </div>
           </div>
 
+          {totalGuests > 0 && (
+              <div className="bg-themeCardBg px-6 md:px-8 pb-6 pt-2 flex justify-center border-t border-themeText/5">
+                  <button
+                      onClick={handleTransferToChef}
+                      className="bg-themePrimary text-themeCardBg font-bold px-6 py-3.5 rounded-2xl flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-themePrimary/20 text-sm md:text-base group w-full justify-center"
+                  >
+                      <Sparkles size={18} className="animate-pulse" />
+                      <span>{language === 'he' ? 'העבר לשף הדיגיטלי' : 'Transfer to Digital Chef'}</span>
+                  </button>
+              </div>
+          )}
+
           {totalGuests > 0 && recommendations && (
             <div className="bg-themeBg/30 p-6 md:p-8 animate-slide-in-top">
                 <div className="flex items-center gap-3 mb-6">
@@ -219,17 +231,6 @@ Please put together a balanced and delicious menu matching these quantities and 
                             </div>
                         </div>
                     )}
-                </div>
-                
-                {/* Transfer to AI Chef Button */}
-                <div className="mt-8 flex justify-center border-t border-themeText/10 pt-6">
-                    <button
-                        onClick={handleTransferToChef}
-                        className="bg-themePrimary text-themeCardBg font-bold px-6 py-3.5 rounded-2xl flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-themePrimary/20 text-sm md:text-base group"
-                    >
-                        <Sparkles size={18} className="animate-pulse" />
-                        <span>{language === 'he' ? 'העבר לשף הדיגיטלי' : 'Transfer to Digital Chef'}</span>
-                    </button>
                 </div>
             </div>
           )}
