@@ -7,9 +7,8 @@ import { MenuItem } from '../types';
 import { useBackButton } from '../hooks/useBackButton';
 
 export const AIConcierge: React.FC = () => {
-    const { language, menuItems, bulkAddToCart, calculationSettings } = useStore();
+    const { language, menuItems, bulkAddToCart, calculationSettings, aiPrompt, setAiPrompt } = useStore();
     const t: Translations = (translations[language] || translations['he']) as Translations;
-    const [prompt, setPrompt] = useState('');
     const [isGenerating, setIsGenerating] = useState(false);
     const [recommendation, setRecommendation] = useState<{ items: { id: string, quantity: number }[], explanation: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -29,7 +28,7 @@ export const AIConcierge: React.FC = () => {
     const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     const generateRecommendation = async () => {
-        if (!prompt.trim() || !API_KEY) return;
+        if (!aiPrompt.trim() || !API_KEY) return;
         
         setIsGenerating(true);
         setRecommendation(null);
@@ -40,19 +39,41 @@ export const AIConcierge: React.FC = () => {
         let success = false;
 
         const ai = new GoogleGenAI({ apiKey: API_KEY });
-        const menuSummary = (menuItems || []).map(m => ({ id: m.id, name: m.name, cat: m.category, price: m.price, unit: m.unit_type, serves: m.serves_min }));
+        const menuSummary = (menuItems || []).map(m => ({
+            id: m.id,
+            name: m.name,
+            cat: m.category,
+            price: m.price,
+            unit: m.unit_type,
+            serves_min: m.serves_min,
+            serves_max: m.serves_max,
+            is_tray: m.is_tray,
+            units_per_tray: m.units_per_tray
+        }));
 
         const systemInstruction = `
             You are "Ayala", the owner and head chef of a premium boutique dairy catering business.
             Your tone is warm, professional, but VERY CONCISE.
-            STRICT CONSTRAINTS (Guardrails):
-            1. **Budget Profile**: Balanced (80-120 NIS per person).
-            2. **Quantity Logic**: Trays serve 10-15 people.
-            3. **Context**: Use only provided inventory.
-            4. **Language**: Match user prompt language.
-            5. **Explanation**: MAX 20 WORDS.
+            
+            STRICT QUANTITY CALCULATION & BALANCING LOGIC:
+            1. **Detect Guests (G)**: Identify the number of guests (G) from the user's prompt. If not specified, default to G = 10.
+            2. **Target Budget**: The total order price MUST be between 80 to 120 NIS per guest (Total: G * 80 to G * 120 NIS). Under no circumstances exceed G * 130 NIS.
+            3. **Quantity Calculation Rules**:
+               - **Trays (unit = 'tray') / Salad / Main Course**: 1 tray serves 10-12 guests. For G guests, recommend EXACTLY ceil(G / 10) trays in total for that category, distributed among different dishes to give variety. NEVER recommend more than 1 of the same exact tray/dish unless G >= 20.
+               - **Unit-based items (unit = 'unit')**: Recommend 1 to 1.5 units per guest. If the item represents a main dish/sandwich, G * 1.2 units is the max.
+               - **Unit-based trays (is_tray = true, units_per_tray > 0)**: Calculate the total units needed (G * 1.5 units of finger food per guest), then divide by units_per_tray. E.g., for 15 guests and a tray of 20 units: ceil(15 * 1.5 / 20) = 2 trays.
+               - **Liters (unit = 'liter') / Dips**: 1 liter serves 15-20 guests as a dip or 4-5 guests as a soup.
+            4. **Composition Rules**:
+               - Every standard event recommendation MUST consist of at least:
+                 - Salads (סלטים)
+                 - Hosting trays / Cold platters (מגשי אירוח / פלטות קרות)
+                 - Main courses (מנות עיקריות)
+               - If the user wants to enrich the event or if budget allows, you can add Dips, Pastries, or Desserts, but keep the total price within the 80-120 NIS/person budget.
+            5. **Language**: Match the language of the user prompt (usually Hebrew).
+            6. **Explanation**: Write a very warm and concise explanation (MAX 25 WORDS) describing why this selection is perfect for their event size.
+            
             ADDITIONAL CHEF INSTRUCTIONS: ${calculationSettings.aiCustomInstructions || "None"}
-            INPUT: User Prompt: "${prompt}", Menu: ${JSON.stringify(menuSummary)}
+            INPUT: User Prompt: "${aiPrompt}", Menu: ${JSON.stringify(menuSummary)}
             OUTPUT: JSON {items: [{id, quantity}], explanation: string}.
         `;
 
@@ -98,7 +119,7 @@ export const AIConcierge: React.FC = () => {
         if (itemsToApply.length > 0) {
             bulkAddToCart(itemsToApply);
             setRecommendation(null);
-            setPrompt('');
+            setAiPrompt('');
         }
     };
 
@@ -120,7 +141,7 @@ export const AIConcierge: React.FC = () => {
     }, 0) || 0;
 
     return (
-        <div className="bg-themeCardBg border border-themePrimary/30 rounded-3xl p-6 mb-12 shadow-2xl text-start overflow-hidden relative">
+        <div id="digital-chef" className="bg-themeCardBg border border-themePrimary/30 rounded-3xl p-6 mb-12 shadow-2xl text-start overflow-hidden relative">
             <div className="absolute top-0 right-0 w-64 h-64 bg-themePrimary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             <div className="flex items-center gap-3 mb-6 relative z-10">
                 <div className="p-2 bg-themePrimary/20 rounded-lg text-themePrimary"><Sparkles size={24} /></div>
@@ -131,8 +152,8 @@ export const AIConcierge: React.FC = () => {
             ) : (
                 <>
                     <div className="flex flex-col md:flex-row gap-4 mb-6 relative z-10">
-                        <textarea value={prompt} onChange={(e) => {setPrompt(e.target.value); if (error) setError(null);}} placeholder={t.aiPlaceholder} className={`flex-1 bg-themeBg/80 border rounded-2xl p-4 text-themeText h-24 resize-none focus:outline-none focus:border-themePrimary transition-colors backdrop-blur-sm ${error ? 'border-red-500/50' : 'border-themeText/10'}`} />
-                        <button onClick={generateRecommendation} disabled={isGenerating || !prompt.trim()} className="bg-themePrimary text-themeCardBg font-bold rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:opacity-90 transition-colors disabled:opacity-50 min-w-[100px] shadow-lg shadow-themePrimary/20">{isGenerating ? <Loader2 className="animate-spin" /> : <Send size={24} />}<span className="text-xs">{t.aiGenerate}</span></button>
+                        <textarea value={aiPrompt} onChange={(e) => {setAiPrompt(e.target.value); if (error) setError(null);}} placeholder={t.aiPlaceholder} className={`flex-1 bg-themeBg/80 border rounded-2xl p-4 text-themeText h-24 resize-none focus:outline-none focus:border-themePrimary transition-colors backdrop-blur-sm ${error ? 'border-red-500/50' : 'border-themeText/10'}`} />
+                        <button onClick={generateRecommendation} disabled={isGenerating || !aiPrompt.trim()} className="bg-themePrimary text-themeCardBg font-bold rounded-2xl p-4 flex flex-col items-center justify-center gap-2 hover:opacity-90 transition-colors disabled:opacity-50 min-w-[100px] shadow-lg shadow-themePrimary/20">{isGenerating ? <Loader2 className="animate-spin" /> : <Send size={24} />}<span className="text-xs">{t.aiGenerate}</span></button>
                     </div>
                     {error && (<div className="animate-fade-in bg-red-500/10 border border-red-500/20 rounded-2xl p-4 flex items-center gap-3 mb-4"><RefreshCw className="text-red-400 shrink-0" size={20} /><p className="text-red-200 text-sm font-medium">{error}</p></div>)}
                     {recommendation && (

@@ -247,6 +247,83 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         window.open(`https://wa.me/?text=${encoded}`, '_blank');
     };
 
+    const proceedToWhatsApp = (
+        orderId: string | undefined,
+        subtotal: number,
+        discountAmount: number,
+        deliveryFee: number,
+        finalTotal: number
+    ) => {
+        const line = "━━━━━━━━━━━━━━━━";
+        let message = "";
+
+        if (language === 'he') {
+            message += `*פרטי לקוח להזמנה #${orderId || 'NEW'}:* 👤\n`;
+            message += `👤 שם: ${customerDetails.name}\n`;
+            message += `📞 טלפון: ${customerDetails.phone}\n`;
+            if (isDelivery) {
+                message += `📍 מיקום: ${customerDetails.location} ${detectedLocationName ? `(זוהה: ${detectedLocationName})` : ''}\n`;
+                message += `🚗 מרחק משוער: ${customerDetails.distanceKm} ק"מ (מקדומים)\n`;
+            } else {
+                message += `📍 אופן קבלה: איסוף עצמי ממקדומים 🚗\n`;
+            }
+            message += `✨ שירותי עריכה ופינוי: ${wantsSetup ? 'כן (בתיאום מראש) ✅' : 'לא ❌'}\n\n`;
+            message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
+        } else {
+            message += `*Customer Details #${orderId || 'NEW'}:* 👤\n`;
+            message += `👤 Name: ${customerDetails.name}\n`;
+            message += `📞 Phone: ${customerDetails.phone}\n`;
+            if (isDelivery) {
+                message += `📍 Location: ${customerDetails.location} ${detectedLocationName ? `(Verified: ${detectedLocationName})` : ''}\n`;
+                message += `🚗 Est. Distance: ${customerDetails.distanceKm} km (from Kedumim)\n`;
+            } else {
+                message += `📍 Option: Self Pickup from Kedumim 🚗\n`;
+            }
+            message += `✨ Setup & Cleanup Service: ${wantsSetup ? 'Yes, interested ✅' : 'No ❌'}\n\n`;
+            message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
+        }
+        
+        cart.forEach(item => {
+            const displayItem = getLocalizedItem(item, language);
+            const itemTotal = item.price * item.quantity;
+            message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${itemTotal})\n`;
+            
+            if (item.is_tray && item.units_per_tray) {
+                message += `   📦 ${language === 'he' ? `${item.units_per_tray} יחידות במגש` : `${item.units_per_tray} units per tray`}\n`;
+            }
+
+            if (item.selected_modifications && item.selected_modifications.length > 0) {
+                message += `   🔸 שינויים: ${item.selected_modifications.join(', ')}\n`;
+            }
+            if (item.notes) {
+                message += `   ✏️ הערות: ${item.notes}\n`;
+            }
+            message += `\n`; 
+        });
+
+        message += `${line}\n`;
+        
+        // Financial Summary
+        message += `${t.subtotal as string}: ₪${subtotal}\n`;
+        
+        if (discountAmount > 0) {
+            message += `🏷️ ${t.discount as string} (${activeCoupon?.code}): -₪${discountAmount}\n`;
+        }
+        
+        if (isDelivery && deliveryFee > 0) {
+            message += `🚚 ${t.delivery as string} (${customerDetails.distanceKm}km): ₪${deliveryFee}\n`;
+        } else if (isDelivery && customerDetails.distanceKm > 0 && subtotal >= FREE_DELIVERY_THRESHOLD) {
+            message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'חינם (הזמנה גדולה)' : 'Free (Large Order)'}\n`;
+        } else if (!isDelivery) {
+            message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'איסוף עצמי (₪0)' : 'Self Pickup (NIS 0)'}\n`;
+        }
+
+        message += `*${t.finalTotal as string}: ₪${finalTotal}* 💰`;
+        
+        const encoded = encodeURIComponent(message);
+        window.open(`https://wa.me/972547474764?text=${encoded}`, '_blank');
+    };
+
     const handleWhatsAppCheckout = async () => {
         // Prevent double submission
         if (isSubmitting) return;
@@ -285,83 +362,39 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             };
 
             const { error, data } = await supabase.from('orders').insert([orderData]).select('id');
+
+            if (error) {
+                console.error("Failed to save order:", error);
+                setFeedback({
+                    isOpen: true,
+                    type: 'warning',
+                    title: language === 'he' ? 'שגיאה בשמירת ההזמנה במערכת' : 'Order Database Save Error',
+                    message: language === 'he' 
+                        ? `ההזמנה תישלח לוואטסאפ של איילה, אך שים לב שהיא לא נשמרה במערכת הניהול בגלל השגיאה הבאה:\n"${error.message || error.details || 'שגיאה לא ידועה'}"\n\nתרצה להמשיך בשליחה לוואטסאפ?`
+                        : `The order will be sent to WhatsApp, but it could not be saved to the database due to the following error:\n"${error.message || error.details || 'Unknown error'}"\n\nDo you want to continue to WhatsApp anyway?`,
+                    isConfirm: true,
+                    confirmText: language === 'he' ? 'כן, המשך לוואטסאפ' : 'Yes, continue to WhatsApp',
+                    onConfirm: () => {
+                        closeFeedback();
+                        proceedToWhatsApp(undefined, subtotal, discountAmount, deliveryFee, finalTotal);
+                    }
+                });
+                setIsSubmitting(false);
+                return;
+            }
+
             const orderId = data?.[0]?.id?.slice(0, 8); // Get partial ID for reference
-
-            if (error) console.error("Failed to save order:", error);
-
-            // 3. WhatsApp Message Construction
-            const line = "━━━━━━━━━━━━━━━━";
-            let message = "";
-
-            if (language === 'he') {
-                message += `*פרטי לקוח להזמנה #${orderId || 'NEW'}:* 👤\n`;
-                message += `👤 שם: ${customerDetails.name}\n`;
-                message += `📞 טלפון: ${customerDetails.phone}\n`;
-                if (isDelivery) {
-                    message += `📍 מיקום: ${customerDetails.location} ${detectedLocationName ? `(זוהה: ${detectedLocationName})` : ''}\n`;
-                    message += `🚗 מרחק משוער: ${customerDetails.distanceKm} ק"מ (מקדומים)\n`;
-                } else {
-                    message += `📍 אופן קבלה: איסוף עצמי ממקדומים 🚗\n`;
-                }
-                message += `✨ שירותי עריכה ופינוי: ${wantsSetup ? 'כן (בתיאום מראש) ✅' : 'לא ❌'}\n\n`;
-                message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
-            } else {
-                message += `*Customer Details #${orderId || 'NEW'}:* 👤\n`;
-                message += `👤 Name: ${customerDetails.name}\n`;
-                message += `📞 Phone: ${customerDetails.phone}\n`;
-                if (isDelivery) {
-                    message += `📍 Location: ${customerDetails.location} ${detectedLocationName ? `(Verified: ${detectedLocationName})` : ''}\n`;
-                    message += `🚗 Est. Distance: ${customerDetails.distanceKm} km (from Kedumim)\n`;
-                } else {
-                    message += `📍 Option: Self Pickup from Kedumim 🚗\n`;
-                }
-                message += `✨ Setup & Cleanup Service: ${wantsSetup ? 'Yes, interested ✅' : 'No ❌'}\n\n`;
-                message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
-            }
-            
-            cart.forEach(item => {
-                const displayItem = getLocalizedItem(item, language);
-                const itemTotal = item.price * item.quantity;
-                message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${itemTotal})\n`;
-                
-                if (item.is_tray && item.units_per_tray) {
-                    message += `   📦 ${language === 'he' ? `${item.units_per_tray} יחידות במגש` : `${item.units_per_tray} units per tray`}\n`;
-                }
-
-                if (item.selected_modifications && item.selected_modifications.length > 0) {
-                    message += `   🔸 שינויים: ${item.selected_modifications.join(', ')}\n`;
-                }
-                if (item.notes) {
-                    message += `   ✏️ הערות: ${item.notes}\n`;
-                }
-                message += `\n`; 
-            });
-
-            message += `${line}\n`;
-            
-            // Financial Summary
-            message += `${t.subtotal as string}: ₪${subtotal}\n`;
-            
-            if (discountAmount > 0) {
-                message += `🏷️ ${t.discount as string} (${activeCoupon?.code}): -₪${discountAmount}\n`;
-            }
-            
-            if (isDelivery && deliveryFee > 0) {
-                message += `🚚 ${t.delivery as string} (${customerDetails.distanceKm}km): ₪${deliveryFee}\n`;
-            } else if (isDelivery && customerDetails.distanceKm > 0 && subtotal >= FREE_DELIVERY_THRESHOLD) {
-                message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'חינם (הזמנה גדולה)' : 'Free (Large Order)'}\n`;
-            } else if (!isDelivery) {
-                message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'איסוף עצמי (₪0)' : 'Self Pickup (NIS 0)'}\n`;
-            }
-
-            message += `*${t.finalTotal as string}: ₪${finalTotal}* 💰`;
-            
+            proceedToWhatsApp(orderId, subtotal, discountAmount, deliveryFee, finalTotal);
             setIsSubmitting(false);
-
-            const encoded = encodeURIComponent(message);
-            window.open(`https://wa.me/972547474764?text=${encoded}`, '_blank');
-        } catch (err) {
+        } catch (err: any) {
             console.error("Unexpected error process checkout:", err);
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: language === 'he' ? 'שגיאה בלתי צפויה' : 'Unexpected Error',
+                message: err?.message || 'Error occurred',
+                isConfirm: false
+            });
             setIsSubmitting(false);
         }
     };

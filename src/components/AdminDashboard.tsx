@@ -41,7 +41,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
     // Ensure the view starts at the top when entering admin mode
     useEffect(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'instant' });
         loadCoupons();
         loadOrders();
         fetchReviews();
@@ -62,6 +62,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const tabsContainerRef = React.useRef<HTMLDivElement>(null);
     const tabHeadersContainerRef = React.useRef<HTMLDivElement>(null);
     const isScrolling = React.useRef(false);
+
+    // Reset page scroll position to 0 on activeTab change
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        
+        // Also run a small timeout to make sure it scrolls to top after browser paint/state load
+        const timer = setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        }, 100);
+        
+        return () => clearTimeout(timer);
+    }, [activeTab]);
 
     const TABS = [
         { id: 'orders', label: language === 'he' ? 'הזמנות נכנסות' : 'Incoming Orders', icon: ShoppingBag },

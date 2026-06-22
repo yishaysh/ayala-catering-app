@@ -10,7 +10,11 @@ export const HostHelper: React.FC = () => {
     childCount, setChildCount,
     language, 
     eventType, setEventType, 
-    advancedSettings
+    advancedSettings,
+    featureFlags,
+    updateFeatureFlags,
+    aiPrompt,
+    setAiPrompt
   } = useStore();
   
   const t = translations[language];
@@ -50,6 +54,45 @@ export const HostHelper: React.FC = () => {
             behavior: 'smooth'
         });
     }
+  };
+
+  const handleTransferToChef = async () => {
+    if (!featureFlags.showAI) {
+        await updateFeatureFlags({ showAI: true });
+    }
+
+    const generatedPrompt = language === 'he' 
+        ? `היי, אני רוצה לתכנן אירוע ${eventType === 'basic' ? 'בסיס' : eventType === 'plus' ? 'פלוס' : 'פרימיום'} עבור ${adultCount} מבוגרים ו-${childCount} ילדים.
+מתוך המחשבון, נתקבלו כמויות מומלצות אלו:
+מנות חובה שחושבו:
+- סלטים: ${recommendations?.salads || 0} מגשים
+- מגשי אירוח: ${recommendations?.platters || 0} מגשים
+- מנות עיקריות: ${recommendations?.mains || 0} מגשים
+מנות העשרה אופציונליות שחושבו:
+${recommendations?.sandwiches && recommendations.sandwiches > 0 ? `- כריכים וביסים: ${recommendations.sandwiches} יחידות\n` : ''}${recommendations?.dips && recommendations.dips > 0 ? `- מטבלים: ${recommendations.dips} יחידות\n` : ''}${recommendations?.pastries && recommendations.pastries > 0 ? `- מאפים: ${recommendations.pastries} יחידות\n` : ''}${recommendations?.desserts && recommendations.desserts > 0 ? `- קינוחים: ${recommendations.desserts} מגשים\n` : ''}
+אנא הרכב לי תפריט מאוזן וטעים התואם לכמויות וההנחיות הללו.`
+        : `Hi, I'd like to plan a ${eventType} event for ${adultCount} adults and ${childCount} children.
+Calculated required dishes:
+- Salads: ${recommendations?.salads || 0} trays
+- Hosting platters: ${recommendations?.platters || 0} trays
+- Main courses: ${recommendations?.mains || 0} trays
+Calculated optional enrichments:
+${recommendations?.sandwiches && recommendations.sandwiches > 0 ? `- Sandwiches: ${recommendations.sandwiches} units\n` : ''}${recommendations?.dips && recommendations.dips > 0 ? `- Dips: ${recommendations.dips} units\n` : ''}${recommendations?.pastries && recommendations.pastries > 0 ? `- Pastries: ${recommendations.pastries} units\n` : ''}${recommendations?.desserts && recommendations.desserts > 0 ? `- Desserts: ${recommendations.desserts} trays\n` : ''}
+Please put together a balanced and delicious menu matching these quantities and guidelines.`;
+
+    setAiPrompt(generatedPrompt);
+
+    setTimeout(() => {
+        const element = document.getElementById('digital-chef');
+        if (element) {
+            const headerHeight = 135;
+            const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+            window.scrollTo({
+                top: elementPosition - headerHeight,
+                behavior: 'smooth'
+            });
+        }
+    }, 150);
   };
 
   return (
@@ -176,6 +219,17 @@ export const HostHelper: React.FC = () => {
                             </div>
                         </div>
                     )}
+                </div>
+                
+                {/* Transfer to AI Chef Button */}
+                <div className="mt-8 flex justify-center border-t border-themeText/10 pt-6">
+                    <button
+                        onClick={handleTransferToChef}
+                        className="bg-themePrimary text-themeCardBg font-bold px-6 py-3.5 rounded-2xl flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-themePrimary/20 text-sm md:text-base group"
+                    >
+                        <Sparkles size={18} className="animate-pulse" />
+                        <span>{language === 'he' ? 'העבר לשף הדיגיטלי' : 'Transfer to Digital Chef'}</span>
+                    </button>
                 </div>
             </div>
           )}

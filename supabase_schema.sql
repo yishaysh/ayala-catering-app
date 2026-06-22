@@ -99,6 +99,8 @@ DROP POLICY IF EXISTS "Enable read access for all users" ON orders;
 CREATE POLICY "Enable read access for all users" ON orders FOR SELECT USING (true);
 DROP POLICY IF EXISTS "Enable insert access for all users" ON orders;
 CREATE POLICY "Enable insert access for all users" ON orders FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Enable update access for all users" ON orders;
+CREATE POLICY "Enable update access for all users" ON orders FOR UPDATE USING (true) WITH CHECK (true);
 
 -- Coupons
 DROP POLICY IF EXISTS "Enable read access for all users" ON coupons;

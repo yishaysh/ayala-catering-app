@@ -566,6 +566,8 @@ interface AppState {
   fetchReviews: () => Promise<void>;
   addReview: (review: Omit<Review, 'id' | 'created_at'>) => Promise<void>;
   deleteReview: (id: string) => Promise<void>;
+  aiPrompt: string;
+  setAiPrompt: (prompt: string) => void;
 }
 
 const defaultTheme: ThemeConfig = {
@@ -590,6 +592,7 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       cart: [],
       menuItems: [],
+      aiPrompt: '',
       adultCount: 0,
       childCount: 0,
       guestCount: 0,
@@ -922,7 +925,9 @@ export const useStore = create<AppState>()(
           } catch (e) {
               console.error("Error deleting review:", e);
           }
-      }
+      },
+
+      setAiPrompt: (prompt) => set({ aiPrompt: prompt })
     }),
     {
       name: 'ayala-catering-storage-v14', 
@@ -942,7 +947,8 @@ export const useStore = create<AppState>()(
           theme: state.theme,
           gallery: state.gallery,
           kosherCertUrl: state.kosherCertUrl,
-          aboutUs: state.aboutUs
+          aboutUs: state.aboutUs,
+          aiPrompt: state.aiPrompt
       }), 
     }
   )
