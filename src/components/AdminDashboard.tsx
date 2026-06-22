@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { MenuItem, Category, UnitType, EventType, Coupon, ThemeConfig, GalleryItem, Order, Review } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Video, Award, ShoppingBag, Calendar, Eye, MessageSquare } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Video, Award, ShoppingBag, Calendar, Eye, MessageSquare, Check, CheckCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
@@ -57,12 +57,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
     const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
+    const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
+    const [hiddenOrderIds, setHiddenOrderIds] = useState<string[]>(() => {
+        try {
+            const stored = localStorage.getItem('ayala_hidden_orders');
+            return stored ? JSON.parse(stored) : [];
+        } catch (e) {
+            return [];
+        }
+    });
 
     const toggleOrderExpanded = (orderId: string) => {
         setExpandedOrders(prev => ({
             ...prev,
             [orderId]: !prev[orderId]
         }));
+    };
+
+    const handleHideOrder = (orderId: string) => {
+        setConfirmation({
+            isOpen: true,
+            title: language === 'he' ? 'הסתרת הזמנה' : 'Hide Order',
+            message: language === 'he' ? 'האם אתה בטוח שברצונך להסתיר הזמנה זו מהתצוגה? לא יהיה ניתן להחזיר אותה למסך זה.' : 'Are you sure you want to hide this order from the display? This action cannot be undone.',
+            isDestructive: true,
+            onConfirm: () => {
+                const updated = [...hiddenOrderIds, orderId];
+                setHiddenOrderIds(updated);
+                localStorage.setItem('ayala_hidden_orders', JSON.stringify(updated));
+                closeConfirmation();
+            }
+        });
     };
 
     // Tab state and controls
@@ -785,139 +809,204 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 {/* Tab 1: Orders */}
                 <div className="w-full shrink-0 snap-start snap-always px-1">
                     <div className="bg-themeCardBg rounded-2xl shadow-sm border border-themeText/5 overflow-hidden text-start">
-                        <div className="p-6 bg-themeHeaderBg text-themeHeaderTxt flex items-center gap-3">
-                            <ShoppingBag size={20} className="text-themePrimary" />
-                            <span className="font-serif font-bold text-lg">{language === 'he' ? 'הזמנות נכנסות' : 'Incoming Orders'}</span>
-                            {orders.filter(o => o.status === 'pending').length > 0 && (
-                                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
-                                    {orders.filter(o => o.status === 'pending').length} {language === 'he' ? 'חדשות' : 'New'}
-                                </span>
-                            )}
+                        <div className="p-6 bg-themeHeaderBg text-themeHeaderTxt flex items-center justify-between gap-3 flex-wrap">
+                            <div className="flex items-center gap-3">
+                                <ShoppingBag size={20} className="text-themePrimary" />
+                                <span className="font-serif font-bold text-lg">{language === 'he' ? 'הזמנות נכנסות' : 'Incoming Orders'}</span>
+                                {orders.filter(o => o.status === 'pending').length > 0 && (
+                                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse">
+                                        {orders.filter(o => o.status === 'pending').length} {language === 'he' ? 'חדשות' : 'New'}
+                                    </span>
+                                )}
+                            </div>
                         </div>
                         <div className="p-6 bg-themeBg/30 space-y-6">
+                            {/* Filter bar */}
+                            <div className="flex flex-wrap gap-2 border-b border-themeText/5 pb-4">
+                                {[
+                                    { key: 'all', label: language === 'he' ? 'הכל' : 'All' },
+                                    { key: 'pending', label: language === 'he' ? 'ממתין' : 'Pending' },
+                                    { key: 'approved', label: language === 'he' ? 'מאושר' : 'Approved' },
+                                    { key: 'completed', label: language === 'he' ? 'הושלם' : 'Completed' },
+                                    { key: 'cancelled', label: language === 'he' ? 'מבוטל' : 'Cancelled' }
+                                ].map(opt => {
+                                    const isActive = orderStatusFilter === opt.key;
+                                    const count = opt.key === 'all' 
+                                        ? orders.filter(o => !hiddenOrderIds.includes(o.id!)).length
+                                        : orders.filter(o => o.status === opt.key && !hiddenOrderIds.includes(o.id!)).length;
+                                    return (
+                                        <button
+                                            key={opt.key}
+                                            onClick={() => setOrderStatusFilter(opt.key)}
+                                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 border flex items-center gap-1.5 ${
+                                                isActive
+                                                    ? 'bg-themePrimary text-themeHeaderBg border-themePrimary shadow-sm scale-105'
+                                                    : 'bg-themeCardBg text-themeText/75 border-themeText/10 hover:border-themePrimary hover:text-themeText'
+                                            }`}
+                                        >
+                                            <span>{opt.label}</span>
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-themeHeaderBg/25 text-themeHeaderBg' : 'bg-themeBg text-themeText/65'}`}>
+                                                {count}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
                             {loadingOrders ? (
                                 <div className="flex justify-center py-8">
                                     <Loader2 className="animate-spin text-themePrimary" size={32} />
                                 </div>
-                            ) : orders.length > 0 ? (
-                                <div className="space-y-4">
-                                    {orders.map(order => {
-                                        const dateStr = order.created_at ? new Date(order.created_at).toLocaleString(language === 'he' ? 'he-IL' : 'en-US') : '';
-                                        const partialId = order.id ? order.id.slice(0, 8) : 'NEW';
-                                        const isExpanded = !!expandedOrders[order.id!];
-                                        
-                                        const statusColors: Record<string, string> = {
-                                            pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/25',
-                                            approved: 'bg-blue-500/10 text-blue-500 border-blue-500/25',
-                                            completed: 'bg-green-500/10 text-green-500 border-green-500/25',
-                                            cancelled: 'bg-red-500/10 text-red-500 border-red-500/25'
-                                        };
-                                        
-                                        const statusLabel: Record<string, string> = {
-                                            pending: language === 'he' ? 'ממתין' : 'Pending',
-                                            approved: language === 'he' ? 'מאושר' : 'Approved',
-                                            completed: language === 'he' ? 'הושלם' : 'Completed',
-                                            cancelled: language === 'he' ? 'מבוטל' : 'Cancelled'
-                                        };
+                            ) : (() => {
+                                const filteredAndSorted = orders
+                                    .filter(order => !hiddenOrderIds.includes(order.id!))
+                                    .filter(order => orderStatusFilter === 'all' || order.status === orderStatusFilter)
+                                    .sort((a, b) => {
+                                        if (a.status === 'completed' && b.status !== 'completed') return 1;
+                                        if (a.status !== 'completed' && b.status === 'completed') return -1;
+                                        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+                                        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+                                        return dateB - dateA;
+                                    });
 
-                                        return (
-                                            <div key={order.id} className="bg-themeCardBg p-5 rounded-xl border border-themeText/10 shadow-sm space-y-4 hover:border-themePrimary/20 transition-all text-themeText">
-                                                <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-3 ${isExpanded ? 'border-b border-themeText/10' : ''}`}>
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-sm font-bold text-themeText">#{partialId}</span>
-                                                            <span className="text-xs text-themeText/60 flex items-center gap-1"><Calendar size={12} /> {dateStr}</span>
-                                                        </div>
-                                                        <div className="text-xs font-bold text-themeText/80 mt-1 flex items-center flex-wrap gap-2">
-                                                            <span>👤 {order.customer_name}</span>
-                                                            <span>|</span>
-                                                            <span>
-                                                                📞 <a href={`tel:${order.customer_phone}`} className="hover:text-themePrimary transition-colors underline" title={language === 'he' ? 'חייג ללקוח' : 'Call Customer'}>{order.customer_phone}</a>
-                                                            </span>
-                                                            {order.customer_phone && (
-                                                                <a 
-                                                                    href={`https://wa.me/${cleanPhoneForWhatsapp(order.customer_phone)}`} 
-                                                                    target="_blank" 
-                                                                    rel="noopener noreferrer"
-                                                                    className="inline-flex items-center gap-1 bg-green-600/10 text-green-600 hover:bg-green-600/20 px-2 py-0.5 rounded text-[10px] transition-colors"
-                                                                    title={language === 'he' ? 'שלח הודעת וואטסאפ' : 'Send WhatsApp Message'}
-                                                                >
-                                                                    WhatsApp 💬
-                                                                </a>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 md:gap-3">
-                                                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusColors[order.status] || 'bg-themeBg text-themeText/80 border-themeText/10'}`}>
-                                                            {statusLabel[order.status] || order.status}
-                                                        </span>
-                                                        <span className="text-lg font-bold text-themeText font-serif">₪{order.total_price}</span>
-                                                        <button 
-                                                            onClick={() => toggleOrderExpanded(order.id!)}
-                                                            className="p-1.5 text-themeText/60 hover:text-themePrimary hover:bg-themeBg rounded-full transition-colors shrink-0"
-                                                            title={isExpanded ? (language === 'he' ? 'צמצם פריטים' : 'Collapse Items') : (language === 'he' ? 'הצג פריטים' : 'Expand Items')}
-                                                        >
-                                                            {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-                                                        </button>
-                                                    </div>
-                                                </div>
+                                if (filteredAndSorted.length === 0) {
+                                    return (
+                                        <p className="text-sm text-themeText/40 italic py-4">
+                                            {language === 'he' ? 'אין הזמנות התואמות לסינון זה' : 'No orders match this filter.'}
+                                        </p>
+                                    );
+                                }
 
-                                                {isExpanded && (
-                                                    <div className="space-y-2 border-t border-themeText/5 pt-3 animate-fade-in">
-                                                        {((order.items as any) || []).map((item: any, idx: number) => (
-                                                            <div key={idx} className="text-xs text-themeText/70 flex justify-between">
-                                                                <div>
-                                                                    <span className="font-bold text-themeText/90">{item.quantity}x</span> {language === 'he' ? item.name : (item.name_en || item.name)}
-                                                                    {item.selected_modifications && item.selected_modifications.length > 0 && (
-                                                                        <span className="text-themeText/40 block text-[10px] pl-4">
-                                                                            ↳ {item.selected_modifications.join(', ')}
-                                                                        </span>
-                                                                    )}
-                                                                    {item.notes && (
-                                                                        <span className="text-themeText/40 italic block text-[10px] pl-4">
-                                                                            ↳ "{item.notes}"
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <span className="font-medium text-themeText/85">₪{item.price * item.quantity}</span>
+                                return (
+                                    <div className="space-y-4">
+                                        {filteredAndSorted.map(order => {
+                                            const dateStr = order.created_at ? new Date(order.created_at).toLocaleString(language === 'he' ? 'he-IL' : 'en-US') : '';
+                                            const partialId = order.id ? order.id.slice(0, 8) : 'NEW';
+                                            const isExpanded = !!expandedOrders[order.id!];
+                                            
+                                            const statusColors: Record<string, string> = {
+                                                pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/25',
+                                                approved: 'bg-blue-500/10 text-blue-500 border-blue-500/25',
+                                                completed: 'bg-green-500/10 text-green-500 border-green-500/25',
+                                                cancelled: 'bg-red-500/10 text-red-500 border-red-500/25'
+                                            };
+                                            
+                                            const statusLabel: Record<string, string> = {
+                                                pending: language === 'he' ? 'ממתין' : 'Pending',
+                                                approved: language === 'he' ? 'מאושר' : 'Approved',
+                                                completed: language === 'he' ? 'הושלם' : 'Completed',
+                                                cancelled: language === 'he' ? 'מבוטל' : 'Cancelled'
+                                            };
+
+                                            return (
+                                                <div key={order.id} className="bg-themeCardBg p-5 rounded-xl border border-themeText/10 shadow-sm space-y-4 hover:border-themePrimary/20 transition-all text-themeText">
+                                                    <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-3 ${isExpanded ? 'border-b border-themeText/10' : ''}`}>
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-bold text-themeText">#{partialId}</span>
+                                                                <span className="text-xs text-themeText/60 flex items-center gap-1"><Calendar size={12} /> {dateStr}</span>
                                                             </div>
-                                                        ))}
+                                                            <div className="text-xs font-bold text-themeText/80 mt-1 flex items-center flex-wrap gap-2">
+                                                                <span>👤 {order.customer_name}</span>
+                                                                <span>|</span>
+                                                                <span>
+                                                                    📞 <a href={`tel:${order.customer_phone}`} className="hover:text-themePrimary transition-colors underline" title={language === 'he' ? 'חייג ללקוח' : 'Call Customer'}>{order.customer_phone}</a>
+                                                                </span>
+                                                                {order.customer_phone && (
+                                                                    <a 
+                                                                        href={`https://wa.me/${cleanPhoneForWhatsapp(order.customer_phone)}`} 
+                                                                        target="_blank" 
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1 bg-green-600/10 text-green-600 hover:bg-green-600/20 px-2 py-0.5 rounded text-[10px] transition-colors"
+                                                                        title={language === 'he' ? 'שלח הודעת וואטסאפ' : 'Send WhatsApp Message'}
+                                                                    >
+                                                                        WhatsApp 💬
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-2 md:gap-3">
+                                                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusColors[order.status] || 'bg-themeBg text-themeText/80 border-themeText/10'}`}>
+                                                                {statusLabel[order.status] || order.status}
+                                                            </span>
+                                                            <span className="text-lg font-bold text-themeText font-serif">₪{order.total_price}</span>
+                                                            <button 
+                                                                onClick={() => toggleOrderExpanded(order.id!)}
+                                                                className="p-1.5 text-themeText/60 hover:text-themePrimary hover:bg-themeBg rounded-full transition-colors shrink-0"
+                                                                title={isExpanded ? (language === 'he' ? 'צמצם פריטים' : 'Collapse Items') : (language === 'he' ? 'הצג פריטים' : 'Expand Items')}
+                                                            >
+                                                                {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                )}
 
-                                                <div className={`flex flex-wrap gap-2 pt-2 justify-end ${isExpanded ? 'border-t border-themeText/10' : ''}`}>
-                                                    {order.status !== 'approved' && order.status !== 'completed' && (
-                                                        <button
-                                                            onClick={() => handleUpdateOrderStatus(order.id!, 'approved')}
-                                                            className="px-3 py-1.5 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-lg text-xs font-bold hover:bg-blue-500/20 transition-colors"
-                                                        >
-                                                            {language === 'he' ? 'אשר הזמנה' : 'Approve'}
-                                                        </button>
+                                                    {isExpanded && (
+                                                        <div className="space-y-2 border-t border-themeText/5 pt-3 animate-fade-in">
+                                                            {((order.items as any) || []).map((item: any, idx: number) => (
+                                                                <div key={idx} className="text-xs text-themeText/70 flex justify-between">
+                                                                    <div>
+                                                                        <span className="font-bold text-themeText/90">{item.quantity}x</span> {language === 'he' ? item.name : (item.name_en || item.name)}
+                                                                        {item.selected_modifications && item.selected_modifications.length > 0 && (
+                                                                            <span className="text-themeText/40 block text-[10px] pl-4">
+                                                                                ↳ {item.selected_modifications.join(', ')}
+                                                                            </span>
+                                                                        )}
+                                                                        {item.notes && (
+                                                                            <span className="text-themeText/40 italic block text-[10px] pl-4">
+                                                                                ↳ "{item.notes}"
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <span className="font-medium text-themeText/85">₪{item.price * item.quantity}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
                                                     )}
-                                                    {order.status !== 'completed' && (
-                                                        <button
-                                                            onClick={() => handleUpdateOrderStatus(order.id!, 'completed')}
-                                                            className="px-3 py-1.5 bg-green-500/10 text-green-500 border border-green-500/20 rounded-lg text-xs font-bold hover:bg-green-500/20 transition-colors"
-                                                        >
-                                                            {language === 'he' ? 'סמן כהושלם' : 'Complete'}
-                                                        </button>
-                                                    )}
-                                                    {order.status !== 'cancelled' && (
-                                                        <button
-                                                            onClick={() => handleUpdateOrderStatus(order.id!, 'cancelled')}
-                                                            className="px-3 py-1.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg text-xs font-bold hover:bg-red-500/20 transition-colors"
-                                                        >
-                                                            {language === 'he' ? 'בטל הזמנה' : 'Cancel'}
-                                                        </button>
-                                                    )}
+
+                                                    <div className={`flex flex-wrap gap-2 pt-2 justify-end ${isExpanded ? 'border-t border-themeText/10' : ''}`}>
+                                                        {order.status !== 'approved' && order.status !== 'completed' && (
+                                                            <button
+                                                                onClick={() => handleUpdateOrderStatus(order.id!, 'approved')}
+                                                                className="p-2 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-xl hover:bg-blue-500/20 transition-all duration-200"
+                                                                title={language === 'he' ? 'אשר הזמנה' : 'Approve Order'}
+                                                            >
+                                                                <Check size={18} />
+                                                            </button>
+                                                        )}
+                                                        {order.status !== 'completed' && (
+                                                            <button
+                                                                onClick={() => handleUpdateOrderStatus(order.id!, 'completed')}
+                                                                className="p-2 bg-green-500/10 text-green-500 border border-green-500/20 rounded-xl hover:bg-green-500/20 transition-all duration-200"
+                                                                title={language === 'he' ? 'סמן כהושלם' : 'Mark as Completed'}
+                                                            >
+                                                                <CheckCheck size={18} />
+                                                            </button>
+                                                        )}
+                                                        {order.status !== 'cancelled' && (
+                                                            <button
+                                                                onClick={() => handleUpdateOrderStatus(order.id!, 'cancelled')}
+                                                                className="p-2 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-all duration-200"
+                                                                title={language === 'he' ? 'בטל הזמנה' : 'Cancel Order'}
+                                                            >
+                                                                <X size={18} />
+                                                            </button>
+                                                        )}
+                                                        {order.status === 'cancelled' && (
+                                                            <button
+                                                                onClick={() => handleHideOrder(order.id!)}
+                                                                className="p-2 bg-themeText/5 text-themeText/60 border border-themeText/10 rounded-xl hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all duration-200"
+                                                                title={language === 'he' ? 'הסתר מהתצוגה' : 'Hide from view'}
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-themeText/40 italic py-4">{language === 'he' ? 'אין הזמנות במערכת' : 'No orders in system yet.'}</p>
-                            )}
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>
