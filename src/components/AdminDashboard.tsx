@@ -56,6 +56,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [uploading, setUploading] = useState(false);
     const [orders, setOrders] = useState<Order[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
+    const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
+
+    const toggleOrderExpanded = (orderId: string) => {
+        setExpandedOrders(prev => ({
+            ...prev,
+            [orderId]: !prev[orderId]
+        }));
+    };
 
     // Tab state and controls
     const [activeTab, setActiveTab] = useState(0);
@@ -796,6 +804,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                     {orders.map(order => {
                                         const dateStr = order.created_at ? new Date(order.created_at).toLocaleString(language === 'he' ? 'he-IL' : 'en-US') : '';
                                         const partialId = order.id ? order.id.slice(0, 8) : 'NEW';
+                                        const isExpanded = !!expandedOrders[order.id!];
                                         
                                         const statusColors: Record<string, string> = {
                                             pending: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/25',
@@ -813,7 +822,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
                                         return (
                                             <div key={order.id} className="bg-themeCardBg p-5 rounded-xl border border-themeText/10 shadow-sm space-y-4 hover:border-themePrimary/20 transition-all text-themeText">
-                                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-themeText/10 pb-3">
+                                                <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-3 ${isExpanded ? 'border-b border-themeText/10' : ''}`}>
                                                     <div>
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-sm font-bold text-themeText">#{partialId}</span>
@@ -838,36 +847,45 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                             )}
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-2 md:gap-3">
                                                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusColors[order.status] || 'bg-themeBg text-themeText/80 border-themeText/10'}`}>
                                                             {statusLabel[order.status] || order.status}
                                                         </span>
                                                         <span className="text-lg font-bold text-themeText font-serif">₪{order.total_price}</span>
+                                                        <button 
+                                                            onClick={() => toggleOrderExpanded(order.id!)}
+                                                            className="p-1.5 text-themeText/60 hover:text-themePrimary hover:bg-themeBg rounded-full transition-colors shrink-0"
+                                                            title={isExpanded ? (language === 'he' ? 'צמצם פריטים' : 'Collapse Items') : (language === 'he' ? 'הצג פריטים' : 'Expand Items')}
+                                                        >
+                                                            {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                                                        </button>
                                                     </div>
                                                 </div>
 
-                                                <div className="space-y-2">
-                                                    {((order.items as any) || []).map((item: any, idx: number) => (
-                                                        <div key={idx} className="text-xs text-themeText/70 flex justify-between">
-                                                            <div>
-                                                                <span className="font-bold text-themeText/90">{item.quantity}x</span> {language === 'he' ? item.name : (item.name_en || item.name)}
-                                                                {item.selected_modifications && item.selected_modifications.length > 0 && (
-                                                                    <span className="text-themeText/40 block text-[10px] pl-4">
-                                                                        ↳ {item.selected_modifications.join(', ')}
-                                                                    </span>
-                                                                )}
-                                                                {item.notes && (
-                                                                    <span className="text-themeText/40 italic block text-[10px] pl-4">
-                                                                        ↳ "{item.notes}"
-                                                                    </span>
-                                                                )}
+                                                {isExpanded && (
+                                                    <div className="space-y-2 border-t border-themeText/5 pt-3 animate-fade-in">
+                                                        {((order.items as any) || []).map((item: any, idx: number) => (
+                                                            <div key={idx} className="text-xs text-themeText/70 flex justify-between">
+                                                                <div>
+                                                                    <span className="font-bold text-themeText/90">{item.quantity}x</span> {language === 'he' ? item.name : (item.name_en || item.name)}
+                                                                    {item.selected_modifications && item.selected_modifications.length > 0 && (
+                                                                        <span className="text-themeText/40 block text-[10px] pl-4">
+                                                                            ↳ {item.selected_modifications.join(', ')}
+                                                                        </span>
+                                                                    )}
+                                                                    {item.notes && (
+                                                                        <span className="text-themeText/40 italic block text-[10px] pl-4">
+                                                                            ↳ "{item.notes}"
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <span className="font-medium text-themeText/85">₪{item.price * item.quantity}</span>
                                                             </div>
-                                                            <span className="font-medium text-themeText/85">₪{item.price * item.quantity}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
+                                                        ))}
+                                                    </div>
+                                                )}
 
-                                                <div className="flex flex-wrap gap-2 pt-2 border-t border-themeText/10 justify-end">
+                                                <div className={`flex flex-wrap gap-2 pt-2 justify-end ${isExpanded ? 'border-t border-themeText/10' : ''}`}>
                                                     {order.status !== 'approved' && order.status !== 'completed' && (
                                                         <button
                                                             onClick={() => handleUpdateOrderStatus(order.id!, 'approved')}
