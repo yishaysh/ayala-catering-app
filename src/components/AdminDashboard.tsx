@@ -196,7 +196,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         }
     };
 
+    const cleanPhoneForWhatsapp = (phone: string) => {
+        let cleaned = phone.replace(/\D/g, '');
+        if (cleaned.startsWith('05')) {
+            cleaned = '972' + cleaned.substring(1);
+        } else if (cleaned.startsWith('5') && cleaned.length === 9) {
+            cleaned = '972' + cleaned;
+        }
+        return cleaned;
+    };
+
     const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+        const order = orders.find(o => o.id === orderId);
         try {
             const { error } = await supabase
                 .from('orders')
@@ -204,6 +215,25 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 .eq('id', orderId);
             if (!error) {
                 setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as any } : o));
+                
+                if (order && (newStatus === 'approved' || newStatus === 'cancelled')) {
+                    const partialId = orderId.slice(0, 8);
+                    const cleanPhone = cleanPhoneForWhatsapp(order.customer_phone || '');
+                    
+                    let text = "";
+                    if (newStatus === 'approved') {
+                        text = language === 'he'
+                            ? `היי ${order.customer_name}, שמחה לבשר לך שהזמנתך מס' #${partialId} בקייטרינג של איילה אושרה! 🍽️\nסכום סופי לתשלום: ₪${order.total_price}.\nנתראה במועד האירוע! ✨`
+                            : `Hi ${order.customer_name}, I'm happy to inform you that your order #${partialId} with Ayala Catering has been approved! 🍽️\nTotal: ₪${order.total_price}.\nSee you at the event! ✨`;
+                    } else {
+                        text = language === 'he'
+                            ? `היי ${order.customer_name}, הזמנתך מס' #${partialId} בקייטרינג של איילה בוטלה. במידה ויש שאלות, ניתן ליצור קשר.`
+                            : `Hi ${order.customer_name}, your order #${partialId} with Ayala Catering has been cancelled. If you have any questions, feel free to contact us.`;
+                    }
+                    
+                    const encoded = encodeURIComponent(text);
+                    window.open(`https://wa.me/${cleanPhone}?text=${encoded}`, '_blank');
+                }
             }
         } catch (e) {
             console.error("Error updating order status:", e);
@@ -789,8 +819,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                             <span className="text-sm font-bold text-themeText">#{partialId}</span>
                                                             <span className="text-xs text-themeText/60 flex items-center gap-1"><Calendar size={12} /> {dateStr}</span>
                                                         </div>
-                                                        <div className="text-xs font-bold text-themeText/80 mt-1">
-                                                            👤 {order.customer_name} | 📞 {order.customer_phone}
+                                                        <div className="text-xs font-bold text-themeText/80 mt-1 flex items-center flex-wrap gap-2">
+                                                            <span>👤 {order.customer_name}</span>
+                                                            <span>|</span>
+                                                            <span>
+                                                                📞 <a href={`tel:${order.customer_phone}`} className="hover:text-themePrimary transition-colors underline" title={language === 'he' ? 'חייג ללקוח' : 'Call Customer'}>{order.customer_phone}</a>
+                                                            </span>
+                                                            {order.customer_phone && (
+                                                                <a 
+                                                                    href={`https://wa.me/${cleanPhoneForWhatsapp(order.customer_phone)}`} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1 bg-green-600/10 text-green-600 hover:bg-green-600/20 px-2 py-0.5 rounded text-[10px] transition-colors"
+                                                                    title={language === 'he' ? 'שלח הודעת וואטסאפ' : 'Send WhatsApp Message'}
+                                                                >
+                                                                    WhatsApp 💬
+                                                                </a>
+                                                            )}
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-3">
