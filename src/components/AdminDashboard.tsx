@@ -58,15 +58,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [loadingOrders, setLoadingOrders] = useState(false);
     const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>({});
     const [orderStatusFilter, setOrderStatusFilter] = useState<string>('all');
-    const [hiddenOrderIds, setHiddenOrderIds] = useState<string[]>(() => {
-        try {
-            const stored = localStorage.getItem('ayala_hidden_orders');
-            return stored ? JSON.parse(stored) : [];
-        } catch (e) {
-            return [];
-        }
-    });
-
     const toggleOrderExpanded = (orderId: string) => {
         setExpandedOrders(prev => ({
             ...prev,
@@ -74,17 +65,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         }));
     };
 
-    const handleHideOrder = (orderId: string) => {
+    const handleDeleteOrder = (orderId: string) => {
         setConfirmation({
             isOpen: true,
-            title: language === 'he' ? 'הסתרת הזמנה' : 'Hide Order',
-            message: language === 'he' ? 'האם אתה בטוח שברצונך להסתיר הזמנה זו מהתצוגה? לא יהיה ניתן להחזיר אותה למסך זה.' : 'Are you sure you want to hide this order from the display? This action cannot be undone.',
+            title: language === 'he' ? 'מחיקת הזמנה' : 'Delete Order',
+            message: language === 'he' ? 'האם אתה בטוח שברצונך למחוק הזמנה זו לצמיתות? פעולה זו אינה הפיכה.' : 'Are you sure you want to delete this order permanently? This action cannot be undone.',
             isDestructive: true,
-            onConfirm: () => {
-                const updated = [...hiddenOrderIds, orderId];
-                setHiddenOrderIds(updated);
-                localStorage.setItem('ayala_hidden_orders', JSON.stringify(updated));
-                closeConfirmation();
+            onConfirm: async () => {
+                try {
+                    const { error } = await supabase
+                        .from('orders')
+                        .delete()
+                        .eq('id', orderId);
+                    
+                    if (error) {
+                        console.error("Error deleting order:", error);
+                        alert(language === 'he' 
+                            ? 'שגיאה במחיקת ההזמנה. אנא ודא שקיים RLS Policy למחיקה ב-Supabase.' 
+                            : 'Error deleting order. Please make sure a DELETE RLS policy exists in Supabase.');
+                        return;
+                    }
+                    
+                    setOrders(prev => prev.filter(o => o.id !== orderId));
+                } catch (e) {
+                    console.error("Error deleting order:", e);
+                } finally {
+                    closeConfirmation();
+                }
             }
         });
     };
@@ -832,8 +839,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 ].map(opt => {
                                     const isActive = orderStatusFilter === opt.key;
                                     const count = opt.key === 'all' 
-                                        ? orders.filter(o => !hiddenOrderIds.includes(o.id!)).length
-                                        : orders.filter(o => o.status === opt.key && !hiddenOrderIds.includes(o.id!)).length;
+                                        ? orders.length
+                                        : orders.filter(o => o.status === opt.key).length;
                                     return (
                                         <button
                                             key={opt.key}
@@ -859,7 +866,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                 </div>
                             ) : (() => {
                                 const filteredAndSorted = orders
-                                    .filter(order => !hiddenOrderIds.includes(order.id!))
                                     .filter(order => orderStatusFilter === 'all' || order.status === orderStatusFilter)
                                     .sort((a, b) => {
                                         if (a.status === 'completed' && b.status !== 'completed') return 1;
@@ -993,9 +999,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                         )}
                                                         {order.status === 'cancelled' && (
                                                             <button
-                                                                onClick={() => handleHideOrder(order.id!)}
+                                                                onClick={() => handleDeleteOrder(order.id!)}
                                                                 className="p-2 bg-themeText/5 text-themeText/60 border border-themeText/10 rounded-xl hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 transition-all duration-200"
-                                                                title={language === 'he' ? 'הסתר מהתצוגה' : 'Hide from view'}
+                                                                title={language === 'he' ? 'מחק לצמיתות' : 'Delete permanently'}
                                                             >
                                                                 <Trash2 size={18} />
                                                             </button>

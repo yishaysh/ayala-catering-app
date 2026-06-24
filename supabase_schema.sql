@@ -101,6 +101,8 @@ DROP POLICY IF EXISTS "Enable insert access for all users" ON orders;
 CREATE POLICY "Enable insert access for all users" ON orders FOR INSERT WITH CHECK (true);
 DROP POLICY IF EXISTS "Enable update access for all users" ON orders;
 CREATE POLICY "Enable update access for all users" ON orders FOR UPDATE USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Enable delete access for all users" ON orders;
+CREATE POLICY "Enable delete access for all users" ON orders FOR DELETE USING (true);
 
 -- Coupons
 DROP POLICY IF EXISTS "Enable read access for all users" ON coupons;
