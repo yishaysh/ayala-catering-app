@@ -546,8 +546,8 @@ interface AppState {
   updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
   addMenuItem: (item: Omit<MenuItem, 'id'>) => Promise<void>;
   deleteMenuItem: (id: string) => Promise<void>;
-  updateCalculationSettings: (settings: Partial<CalculationSettings>) => void;
-  updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => void;
+  updateCalculationSettings: (settings: Partial<CalculationSettings>) => Promise<void>;
+  updateAdvancedSettings: (settings: Partial<AdvancedCalculationSettings>) => Promise<void>;
   updateFeatureFlags: (flags: Partial<FeatureFlags>) => Promise<void>;
   updateAppConfig: (config: Partial<AppSettings>) => Promise<void>;
   updateTheme: (theme: Partial<ThemeConfig>) => Promise<void>;
@@ -621,9 +621,9 @@ export const useStore = create<AppState>()(
       },
       advancedSettings: {
         eventRatios: {
-            basic: { sandwiches: 0.0, pastries: 0.0, saladsCoverage: 1.0, mainsCoverage: 1.0, plattersCoverage: 0.8, dessertsCoverage: 0.0, dipsCoverage: 0.0 },
-            plus: { sandwiches: 1.0, pastries: 0.8, saladsCoverage: 1.2, mainsCoverage: 1.2, plattersCoverage: 1.0, dessertsCoverage: 0.6, dipsCoverage: 0.5 },
-            premium: { sandwiches: 1.5, pastries: 1.2, saladsCoverage: 1.5, mainsCoverage: 1.5, plattersCoverage: 1.4, dessertsCoverage: 1.0, dipsCoverage: 1.0 },
+            basic: { sandwiches: 0.0, pastries: 0.0, saladsCoverage: 0.1, mainsCoverage: 0.1, plattersCoverage: 0.067, dessertsCoverage: 0.0, dipsCoverage: 0.0 },
+            plus: { sandwiches: 1.0, pastries: 0.8, saladsCoverage: 0.12, mainsCoverage: 0.12, plattersCoverage: 0.083, dessertsCoverage: 0.04, dipsCoverage: 0.05 },
+            premium: { sandwiches: 1.5, pastries: 1.2, saladsCoverage: 0.15, mainsCoverage: 0.15, plattersCoverage: 0.117, dessertsCoverage: 0.067, dipsCoverage: 0.1 },
         }
       },
       activeCoupon: null,
@@ -644,6 +644,18 @@ export const useStore = create<AppState>()(
         const { data: featuresData } = await supabase.from('app_settings').select('*').eq('key', 'features');
         if (featuresData && featuresData.length > 0 && featuresData[0].value) {
             set({ featureFlags: featuresData[0].value as FeatureFlags });
+        }
+
+        // Fetch Calculation Settings
+        const { data: calcData } = await supabase.from('app_settings').select('*').eq('key', 'calculation_settings');
+        if (calcData && calcData.length > 0 && calcData[0].value) {
+            set({ calculationSettings: { ...get().calculationSettings, ...calcData[0].value } });
+        }
+
+        // Fetch Advanced Settings
+        const { data: advData } = await supabase.from('app_settings').select('*').eq('key', 'advanced_settings');
+        if (advData && advData.length > 0 && advData[0].value) {
+            set({ advancedSettings: { ...get().advancedSettings, ...advData[0].value } });
         }
 
         // Fetch Config
@@ -754,8 +766,16 @@ export const useStore = create<AppState>()(
           await supabase.from('menu_items').delete().eq('id', id);
       },
 
-      updateCalculationSettings: (settings) => set((state) => ({ calculationSettings: { ...state.calculationSettings, ...settings } })),
-      updateAdvancedSettings: (settings) => set((state) => ({ advancedSettings: { ...state.advancedSettings, ...settings } })),
+      updateCalculationSettings: async (settings) => {
+        const newSettings = { ...get().calculationSettings, ...settings };
+        set({ calculationSettings: newSettings });
+        await supabase.from('app_settings').upsert({ key: 'calculation_settings', value: newSettings });
+      },
+      updateAdvancedSettings: async (settings) => {
+        const newSettings = { ...get().advancedSettings, ...settings };
+        set({ advancedSettings: newSettings });
+        await supabase.from('app_settings').upsert({ key: 'advanced_settings', value: newSettings });
+      },
       updateFeatureFlags: async (flags) => {
         const newFlags = { ...get().featureFlags, ...flags };
         set({ featureFlags: newFlags });

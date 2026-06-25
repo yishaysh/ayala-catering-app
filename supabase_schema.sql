@@ -142,7 +142,9 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 INSERT INTO app_settings (key, value)
 VALUES 
   ('config', '{"min_order_price": 500, "lead_time_hours": 48, "delivery_fee": 50, "is_shop_open": true}'::jsonb),
-  ('features', '{"showCalculator": true, "showAI": false}'::jsonb)
+  ('features', '{"showCalculator": true, "showAI": false}'::jsonb),
+  ('calculation_settings', '{"sandwichesPerPerson": 1.5, "pastriesPerPerson": 1.0, "averageTrayCapacity": 10, "serviceRadiusKm": 50, "minOrderFreeDelivery": 2000, "aiCustomInstructions": ""}'::jsonb),
+  ('advanced_settings', '{"eventRatios": {"basic": {"sandwiches": 0.0, "pastries": 0.0, "saladsCoverage": 0.1, "mainsCoverage": 0.1, "plattersCoverage": 0.067, "dessertsCoverage": 0.0, "dipsCoverage": 0.0}, "plus": {"sandwiches": 1.0, "pastries": 0.8, "saladsCoverage": 0.12, "mainsCoverage": 0.12, "plattersCoverage": 0.083, "dessertsCoverage": 0.04, "dipsCoverage": 0.05}, "premium": {"sandwiches": 1.5, "pastries": 1.2, "saladsCoverage": 0.15, "mainsCoverage": 0.15, "plattersCoverage": 0.117, "dessertsCoverage": 0.067, "dipsCoverage": 0.1}}}'::jsonb)
 ON CONFLICT (key) DO NOTHING;
 
 -- Optional: Sample Coupon

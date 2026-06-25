@@ -25,21 +25,16 @@ export const HostHelper: React.FC = () => {
 
     const ratios = advancedSettings.eventRatios[eventType];
 
-    const TRAY_CAPACITY = 10;
-    const PLATTER_CAPACITY = 12;
-    const DESSERT_CAPACITY = 15;
-    const DIPS_CAPACITY = 10;
-
     const weightedCount = adultCount + (childCount * 0.66);
 
     return {
         sandwiches: Math.ceil(weightedCount * (ratios.sandwiches ?? 0)),
         pastries: Math.ceil(weightedCount * (ratios.pastries ?? 0)),
-        salads: Math.ceil((weightedCount * (ratios.saladsCoverage ?? 0)) / TRAY_CAPACITY),
-        mains: Math.ceil((weightedCount * (ratios.mainsCoverage ?? 0)) / TRAY_CAPACITY),
-        platters: Math.ceil((weightedCount * (ratios.plattersCoverage ?? 0)) / PLATTER_CAPACITY),
-        desserts: Math.ceil((weightedCount * (ratios.dessertsCoverage ?? 0)) / DESSERT_CAPACITY),
-        dips: Math.ceil((weightedCount * (ratios.dipsCoverage ?? 0)) / DIPS_CAPACITY),
+        salads: Math.ceil(weightedCount * (ratios.saladsCoverage ?? 0)),
+        mains: Math.ceil(weightedCount * (ratios.mainsCoverage ?? 0)),
+        platters: Math.ceil(weightedCount * (ratios.plattersCoverage ?? 0)),
+        desserts: Math.ceil(weightedCount * (ratios.dessertsCoverage ?? 0)),
+        dips: Math.ceil(weightedCount * (ratios.dipsCoverage ?? 0)),
     };
   }, [adultCount, childCount, eventType, advancedSettings]);
 
