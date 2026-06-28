@@ -617,7 +617,9 @@ export const useStore = create<AppState>()(
         averageTrayCapacity: 10,
         serviceRadiusKm: 50, 
         minOrderFreeDelivery: 2000,
-        aiCustomInstructions: ''
+        aiCustomInstructions: '',
+        setupServiceDetailsHe: '✨ שירות עריכה ופינוי מקצועי לאירוע ללא דאגות ✨\n\nהשירות כולל:\n• 👩‍🍳 שעה של איילה בתחילת האירוע לארגון וסידור הבופה והסלטים בצורה מרהיבה.\n• 👥 שתי עובדות מקצועיות שילוו את האירוע שלכם (5 שעות עבודה לכל אחת).\n• 🍽️ עריכת השולחנות והבופה, הגשה ונוכחות מלאה במהלך האירוע.\n• 🧹 פינוי וניקיון מלא בסיום האירוע.\n\n💵 עלות השירות: תוספת של ₪1,000 למחיר הכולל.\n*(בתיאום מראש בלבד)*',
+        setupServiceDetailsEn: '✨ Professional Setup & Cleanup Service ✨\n\nThe service includes:\n• 👩‍🍳 1 hour of Ayala\'s personal setup at the beginning to arrange the buffet and salads beautifully.\n• 👥 Two professional staff members hosting your event (5 hours of work each).\n• 🍽️ Setting tables and buffet, serving, and full presence during the event.\n• 🧹 Complete clearing and cleanup at the end.\n\n💵 Service Fee: An additional ₪1,000 to the total price.\n*(Coordinated in advance)*'
       },
       advancedSettings: {
         eventRatios: {

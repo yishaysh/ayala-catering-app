@@ -1152,6 +1152,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             />
                         </div>
 
+                        <div className="border-b border-themeText/10 pb-6">
+                            <h4 className="text-themeText font-bold mb-2 flex items-center gap-2 text-sm">
+                                <span className="w-2 h-6 bg-themePrimary rounded-sm"></span>
+                                {language === 'he' ? 'טקסט הודעת שירותי עריכה ופינוי (עברית)' : 'Setup & Cleanup Message (Hebrew)'}
+                            </h4>
+                            <textarea
+                                value={calculationSettings?.setupServiceDetailsHe || ''}
+                                onChange={(e) => updateCalculationSettings({ setupServiceDetailsHe: e.target.value })}
+                                placeholder={language === 'he' ? 'הזן את פרטי השירות שיוצגו ללקוח בעברית...' : 'Enter setup service details in Hebrew...'}
+                                className="w-full h-40 p-3 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg focus:outline-none focus:border-themePrimary text-sm resize-y"
+                            />
+                        </div>
+
+                        <div className="border-b border-themeText/10 pb-6">
+                            <h4 className="text-themeText font-bold mb-2 flex items-center gap-2 text-sm">
+                                <span className="w-2 h-6 bg-themePrimary rounded-sm"></span>
+                                {language === 'he' ? 'טקסט הודעת שירותי עריכה ופינוי (אנגלית)' : 'Setup & Cleanup Message (English)'}
+                            </h4>
+                            <textarea
+                                value={calculationSettings?.setupServiceDetailsEn || ''}
+                                onChange={(e) => updateCalculationSettings({ setupServiceDetailsEn: e.target.value })}
+                                placeholder={language === 'he' ? 'הזן את פרטי השירות שיוצגו ללקוח באנגלית...' : 'Enter setup service details in English...'}
+                                className="w-full h-40 p-3 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg focus:outline-none focus:border-themePrimary text-sm resize-y"
+                            />
+                        </div>
+
                         <div>
                             <h4 className="text-themeText font-bold mb-2 flex items-center gap-2 text-sm"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{t.eventLogic}</h4>
                             <p className="text-[11px] text-themeText/60 italic mb-4 px-2">{t.eventLogicExpl}</p>

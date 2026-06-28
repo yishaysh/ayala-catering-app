@@ -109,7 +109,9 @@ export interface CalculationSettings {
   averageTrayCapacity: number;
   serviceRadiusKm: number;
   minOrderFreeDelivery: number;
-  aiCustomInstructions: string; 
+  aiCustomInstructions: string;
+  setupServiceDetailsHe?: string;
+  setupServiceDetailsEn?: string;
 }
 
 export interface EventRatioConfig {
