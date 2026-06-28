@@ -58,7 +58,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const [wantsSetup, setWantsSetup] = useState(false);
     
     const deliveryFee = isDelivery ? getDeliveryFee(customerDetails.distanceKm, subtotal) : 0;
-    const finalTotal = Math.max(0, subtotal - discountAmount + deliveryFee);
+    const setupFee = wantsSetup ? 1000 : 0;
+    const finalTotal = Math.max(0, subtotal - discountAmount + deliveryFee + setupFee);
 
     useBackButton(isOpen, onClose);
 
@@ -242,6 +243,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             const displayItem = getLocalizedItem(item, language);
             message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${item.price * item.quantity})\n\n`;
         });
+
+        if (wantsSetup) {
+            message += `✨ ${language === 'he' ? 'שירותי עריכה ופינוי' : 'Setup & Cleanup Services'}: ₪1000\n\n`;
+        }
+
         message += `*${t.total as string}: ₪${finalTotal}*`;
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/?text=${encoded}`, '_blank');
@@ -316,6 +322,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'חינם (הזמנה גדולה)' : 'Free (Large Order)'}\n`;
         } else if (!isDelivery) {
             message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'איסוף עצמי (₪0)' : 'Self Pickup (NIS 0)'}\n`;
+        }
+
+        if (wantsSetup) {
+            message += `✨ ${language === 'he' ? 'שירותי עריכה ופינוי: ₪1000' : 'Setup & Cleanup: ₪1000'}\n`;
         }
 
         message += `*${t.finalTotal as string}: ₪${finalTotal}* 💰`;
@@ -576,14 +586,37 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                 <input
                                     type="checkbox"
                                     checked={wantsSetup}
-                                    onChange={(e) => setWantsSetup(e.target.checked)}
+                                    onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        if (checked) {
+                                            setFeedback({
+                                                isOpen: true,
+                                                type: 'info',
+                                                title: language === 'he' ? 'תוספת שירותי עריכה ופינוי' : 'Add Setup & Cleanup Services',
+                                                message: language === 'he'
+                                                    ? `✨ שירות עריכה ופינוי מקצועי לאירוע ללא דאגות ✨\n\nהשירות כולל:\n• 👩‍🍳 שעה של איילה בתחילת האירוע לארגון וסידור הבופה והסלטים בצורה מרהיבה.\n• 👥 שתי עובדות מקצועיות שילוו את האירוע שלכם (5 שעות עבודה לכל אחת).\n• 🍽️ עריכת השולחנות והבופה, הגשה ונוכחות מלאה במהלך האירוע.\n• 🧹 פינוי וניקיון מלא בסיום האירוע.\n\n💵 עלות השירות: תוספת של ₪1,000 למחיר הכולל.\n*(בתיאום מראש בלבד)*`
+                                                    : `✨ Professional Setup & Cleanup Service ✨\n\nThe service includes:\n• 👩‍🍳 1 hour of Ayala's personal setup at the beginning to arrange the buffet and salads beautifully.\n• 👥 Two professional staff members hosting your event (5 hours of work each).\n• 🍽️ Setting tables and buffet, serving, and full presence during the event.\n• 🧹 Complete clearing and cleanup at the end.\n\n💵 Service Fee: An additional ₪1,000 to the total price.\n*(Coordinated in advance)*`,
+                                                isConfirm: true,
+                                                confirmText: language === 'he' ? 'הוסף שירות' : 'Add Service',
+                                                onConfirm: () => {
+                                                    setWantsSetup(true);
+                                                    closeFeedback();
+                                                }
+                                            });
+                                        } else {
+                                            setWantsSetup(false);
+                                        }
+                                    }}
                                     className="w-4 h-4 text-themePrimary rounded accent-themePrimary focus:ring-themePrimary"
                                 />
-                                <div className="text-start">
-                                    <span className="font-bold text-xs text-themeText block">
-                                        {language === 'he' ? 'תוספת שירותי עריכה ופינוי' : 'Add Setup & Cleanup Services'}
-                                    </span>
-                                    <span className="text-[10px] text-themeText/60 block leading-tight">
+                                <div className="text-start flex-1">
+                                    <div className="flex justify-between items-center w-full">
+                                        <span className="font-bold text-xs text-themeText">
+                                            {language === 'he' ? 'תוספת שירותי עריכה ופינוי' : 'Add Setup & Cleanup Services'}
+                                        </span>
+                                        <span className="text-themePrimary font-bold text-xs">₪1,000</span>
+                                    </div>
+                                    <span className="text-[10px] text-themeText/60 block leading-tight mt-0.5">
                                         {language === 'he' ? 'שירות מקצועי לאירוע ללא דאגות (בתיאום מראש)' : 'Professional setup and cleanup (coordinated in advance)'}
                                     </span>
                                 </div>
@@ -697,6 +730,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                 <div className="flex justify-between items-center text-sm text-themeCardTxt/80 font-bold">
                                     <span className="flex items-center gap-1"><Truck size={12}/> {t.delivery as string}:</span>
                                     <span>₪{deliveryFee}</span>
+                                </div>
+                            )}
+
+                            {wantsSetup && (
+                                <div className="flex justify-between items-center text-sm text-themeCardTxt/80 font-bold">
+                                    <span>{language === 'he' ? 'שירותי עריכה ופינוי:' : 'Setup & Cleanup Services:'}</span>
+                                    <span>₪1,000</span>
                                 </div>
                             )}
 

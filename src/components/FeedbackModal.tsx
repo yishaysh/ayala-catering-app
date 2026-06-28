@@ -68,7 +68,7 @@ export const FeedbackModal: React.FC<FeedbackModalProps> = ({
                 </div>
 
                 <h3 className="text-xl font-serif font-bold text-themeText mb-2">{title}</h3>
-                <p className="text-themeText/65 text-sm mb-8 leading-relaxed px-4">
+                <p className="text-themeText/65 text-sm mb-8 leading-relaxed px-4 whitespace-pre-line">
                     {message}
                 </p>
 
