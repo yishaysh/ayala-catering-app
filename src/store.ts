@@ -166,6 +166,22 @@ export interface Translations {
     kosherCert: string;
     uploadKosher: string;
   };
+  accessibility: {
+    menuTitle: string;
+    description: string;
+    increaseText: string;
+    decreaseText: string;
+    resetText: string;
+    invertContrast: string;
+    grayscale: string;
+    readableFont: string;
+    highlightLinks: string;
+    largeCursor: string;
+    stopAnimations: string;
+    statementTitle: string;
+    statementBtn: string;
+    closeBtn: string;
+  };
 }
 
 export const translations: Record<Language, Translations> = {
@@ -337,6 +353,22 @@ export const translations: Record<Language, Translations> = {
         themeSettings: "עיצוב צבעי האתר",
         kosherCert: "תעודת כשרות",
         uploadKosher: "העלאת תעודת כשרות"
+    },
+    accessibility: {
+      menuTitle: "תפריט נגישות",
+      description: "התאמת האתר לצרכי הנגישות שלך",
+      increaseText: "הגדל טקסט",
+      decreaseText: "הקטן טקסט",
+      resetText: "איפוס הגדרות",
+      invertContrast: "ניגודיות הפוכה (כהה)",
+      grayscale: "גווני אפור",
+      readableFont: "גופן קריא",
+      highlightLinks: "הדגשת קישורים",
+      largeCursor: "סמן עכבר גדול",
+      stopAnimations: "עצירת אנימציות",
+      statementTitle: "הצהרת נגישות",
+      statementBtn: "הצהרת נגישות",
+      closeBtn: "סגור"
     }
   },
   en: {
@@ -507,6 +539,22 @@ export const translations: Record<Language, Translations> = {
         themeSettings: "Website Styling",
         kosherCert: "Kosher Certificate",
         uploadKosher: "Upload Kosher Certificate"
+    },
+    accessibility: {
+      menuTitle: "Accessibility Menu",
+      description: "Customize the site to fit your accessibility needs",
+      increaseText: "Increase Text",
+      decreaseText: "Decrease Text",
+      resetText: "Reset Settings",
+      invertContrast: "Invert Contrast (Dark)",
+      grayscale: "Grayscale",
+      readableFont: "Readable Font",
+      highlightLinks: "Highlight Links",
+      largeCursor: "Large Cursor",
+      stopAnimations: "Stop Animations",
+      statementTitle: "Accessibility Statement",
+      statementBtn: "Accessibility Statement",
+      closeBtn: "Close"
     }
   }
 };

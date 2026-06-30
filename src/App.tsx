@@ -11,6 +11,7 @@ import { useBackButton } from './hooks/useBackButton';
 import { ThemeStyles } from './components/ThemeStyles';
 import { EventGallery } from './components/EventGallery';
 import { ReviewsSection } from './components/ReviewsSection';
+import { AccessibilityMenu } from './components/AccessibilityMenu';
 import { Analytics } from '@vercel/analytics/react';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts', 'Picnic Baskets'];
@@ -553,6 +554,7 @@ export default function App() {
               </div>
           </div>
       )}
+      <AccessibilityMenu />
       <Analytics />
     </div>
   );
