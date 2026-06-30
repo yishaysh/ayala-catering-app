@@ -88,11 +88,20 @@ export default function App() {
   useBackButton(isMenuOpen, () => setIsMenuOpen(false));
 
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-    setIsMenuOpen(false);
+    const performScroll = () => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    };
+
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
+      // Wait for history.back() in useBackButton to complete and not cancel the scroll animation
+      setTimeout(performScroll, 150);
+    } else {
+      performScroll();
+    }
   };
 
   const scrollToSection = (id: string) => {
