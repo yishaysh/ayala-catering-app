@@ -3,7 +3,7 @@ import { MenuGrid } from './components/MenuGrid';
 import { HostHelper } from './components/HostHelper';
 import { CartDrawer } from './components/CartDrawer';
 import { Category } from './types';
-import { ShoppingBag, Phone, Globe, Lock, X, Loader2, Award, Menu, MapPin } from 'lucide-react';
+import { ShoppingBag, Phone, Globe, Lock, X, Loader2, Award, Menu, MapPin, ArrowUp } from 'lucide-react';
 import { useStore, translations } from './store';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AIConcierge } from './components/AIConcierge';
@@ -36,6 +36,15 @@ export default function App() {
 
   const [activeCategory, setActiveCategory] = useState<Category | null>(null);
   const t = translations[language];
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   useEffect(() => {
       fetchMenuItems();
@@ -77,6 +86,14 @@ export default function App() {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   useBackButton(isMenuOpen, () => setIsMenuOpen(false));
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+    setIsMenuOpen(false);
+  };
 
   const scrollToSection = (id: string) => {
     try {
@@ -398,6 +415,12 @@ export default function App() {
 
               <nav className="flex flex-col gap-4 text-start font-serif">
                   <button 
+                    onClick={scrollToTop}
+                    className="flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-themePrimary/15 hover:text-themePrimary font-bold text-base transition-all duration-200 text-start"
+                  >
+                      <span>{language === 'he' ? 'בית' : 'Home'}</span>
+                  </button>
+                  <button 
                     onClick={() => scrollToSection('gallery-section')}
                     className="flex items-center gap-3 py-2.5 px-3 rounded-xl hover:bg-themePrimary/15 hover:text-themePrimary font-bold text-base transition-all duration-200 text-start"
                   >
@@ -555,6 +578,16 @@ export default function App() {
           </div>
       )}
       <AccessibilityMenu />
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-[100px] right-4 md:bottom-6 md:right-6 z-[140] bg-themeHeaderBg text-themePrimary hover:bg-themeHeaderBg/90 hover:scale-105 active:scale-95 transition-all duration-300 w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-themePrimary/20"
+          title={language === 'he' ? 'חזרה למעלה' : 'Back to top'}
+          aria-label={language === 'he' ? 'חזרה למעלה' : 'Back to top'}
+        >
+          <ArrowUp size={24} />
+        </button>
+      )}
       <Analytics />
     </div>
   );
