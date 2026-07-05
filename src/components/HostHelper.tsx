@@ -135,7 +135,7 @@ Please put together a balanced and delicious menu matching these quantities and 
           <div className="bg-themeCardBg p-6 md:p-8">
               <label className="text-xs font-bold text-themeText/50 uppercase tracking-widest mb-4 block">{t.eventType}</label>
               <div className="grid grid-cols-3 gap-3">
-                  {(['basic', 'plus', 'premium'] as EventType[]).map((type) => (
+                  {(['basic', 'premium', 'plus'] as EventType[]).map((type) => (
                       <button
                         key={type}
                         onClick={() => setEventType(type)}

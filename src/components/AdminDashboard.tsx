@@ -24,7 +24,7 @@ const CATEGORY_OPTIONS: Category[] = [
 ];
 
 const UNIT_OPTIONS: UnitType[] = ['tray', 'unit', 'liter', 'weight'];
-const EVENT_TYPES: EventType[] = ['basic', 'plus', 'premium'];
+const EVENT_TYPES: EventType[] = ['basic', 'premium', 'plus'];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const {
