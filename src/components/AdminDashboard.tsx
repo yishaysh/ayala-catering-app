@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { MenuItem, Category, UnitType, EventType, Coupon, ThemeConfig, GalleryItem, Order, Review } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Video, Award, ShoppingBag, Calendar, Eye, MessageSquare, Check, CheckCheck } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Video, Award, ShoppingBag, Calendar, Eye, MessageSquare, Check, CheckCheck, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
@@ -63,6 +63,394 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             ...prev,
             [orderId]: !prev[orderId]
         }));
+    };
+
+    // States for Quote PDF Generation Dialog
+    const [quoteOrder, setQuoteOrder] = useState<Order | null>(null);
+    const [quoteItems, setQuoteItems] = useState<any[]>([]);
+    const [quoteDiscountPercent, setQuoteDiscountPercent] = useState<number>(0);
+    const [quoteWantsSetup, setQuoteWantsSetup] = useState<boolean>(false);
+    const [quoteDeliveryFee, setQuoteDeliveryFee] = useState<number>(0);
+
+    const openQuoteDialog = (order: Order) => {
+        setQuoteOrder(order);
+        const items = JSON.parse(JSON.stringify(order.items || []));
+        // Populate standard menu prices if item price is 0
+        items.forEach((item: any) => {
+            if (!item.price || item.price === 0) {
+                // Try to find the item in menuItems to get its original price as default
+                const menuI = menuItems.find(m => m.id === item.id || m.name === item.name);
+                if (menuI) {
+                    item.price = menuI.price;
+                }
+            }
+        });
+        setQuoteItems(items);
+        setQuoteDiscountPercent(0);
+        setQuoteWantsSetup(false);
+        setQuoteDeliveryFee(0);
+    };
+
+    const handleGenerateQuotePdf = async () => {
+        if (!quoteOrder) return;
+
+        const totalSubtotal = quoteItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const totalDiscount = totalSubtotal * (quoteDiscountPercent / 100);
+        const totalSetup = quoteWantsSetup ? 1000 : 0;
+        const totalFinal = Math.max(0, totalSubtotal - totalDiscount + quoteDeliveryFee + totalSetup);
+
+        // Update in Supabase
+        const { error } = await supabase
+            .from('orders')
+            .update({
+                items: quoteItems,
+                subtotal: totalSubtotal,
+                discount_amount: totalDiscount,
+                total_price: totalFinal,
+                status: 'approved' // Automatically mark approved upon quote creation
+            })
+            .eq('id', quoteOrder.id);
+
+        if (error) {
+            console.error("Failed to update order in database:", error);
+        }
+
+        // Generate and open print window
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            const isHe = language === 'he';
+            const dateStr = new Date(quoteOrder.created_at || quoteOrder.event_date).toLocaleDateString('he-IL');
+            const quoteNo = quoteOrder.id?.slice(0, 8).toUpperCase();
+            
+            const titleText = isHe ? 'הצעת מחיר לקייטרינג חלבי' : 'Dairy Catering Quote';
+            const businessName = isHe ? 'איילה – פשוט טעים' : 'Ayala – Simply Delicious';
+            
+            let html = `
+            <!DOCTYPE html>
+            <html lang="${isHe ? 'he' : 'en'}" dir="${isHe ? 'rtl' : 'ltr'}">
+            <head>
+                <meta charset="UTF-8">
+                <title>${titleText} #${quoteNo}</title>
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
+                    
+                    body {
+                        font-family: 'Assistant', sans-serif;
+                        color: #292524;
+                        margin: 0;
+                        padding: 40px;
+                        background-color: #ffffff;
+                        line-height: 1.5;
+                    }
+                    
+                    .header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-start;
+                        border-bottom: 2px solid #e7e5e4;
+                        padding-bottom: 20px;
+                        margin-bottom: 30px;
+                    }
+                    
+                    .logo-container {
+                        text-align: right;
+                    }
+                    
+                    body[dir="ltr"] .logo-container {
+                        text-align: left;
+                    }
+                    
+                    .business-title {
+                        font-family: 'Playfair Display', serif;
+                        font-size: 28px;
+                        font-weight: 700;
+                        color: #7c2d12;
+                        margin: 0 0 5px 0;
+                    }
+                    
+                    .business-subtitle {
+                        font-size: 14px;
+                        color: #78716c;
+                        margin: 0;
+                    }
+                    
+                    .quote-info {
+                        text-align: left;
+                    }
+                    
+                    body[dir="ltr"] .quote-info {
+                        text-align: right;
+                    }
+                    
+                    .quote-title {
+                        font-size: 24px;
+                        font-weight: 800;
+                        color: #1c1917;
+                        margin: 0 0 10px 0;
+                        letter-spacing: -0.5px;
+                    }
+                    
+                    .quote-meta-item {
+                        font-size: 13px;
+                        color: #44403c;
+                        margin: 3px 0;
+                    }
+                    
+                    .details-grid {
+                        display: grid;
+                        grid-template-cols: 1fr 1fr;
+                        gap: 20px;
+                        margin-bottom: 40px;
+                        background-color: #fafaf9;
+                        border: 1px solid #f5f5f4;
+                        border-radius: 12px;
+                        padding: 20px;
+                    }
+                    
+                    .details-col h3 {
+                        font-size: 12px;
+                        font-weight: 700;
+                        color: #a8a29e;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        margin: 0 0 8px 0;
+                    }
+                    
+                    .details-col p {
+                        font-size: 15px;
+                        font-weight: 600;
+                        color: #292524;
+                        margin: 4px 0;
+                    }
+                    
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-bottom: 40px;
+                    }
+                    
+                    th {
+                        background-color: #7c2d12;
+                        color: #ffffff;
+                        font-weight: 700;
+                        font-size: 13px;
+                        text-align: right;
+                        padding: 12px 16px;
+                        border-bottom: 2px solid #7c2d12;
+                    }
+                    
+                    body[dir="ltr"] th {
+                        text-align: left;
+                    }
+                    
+                    td {
+                        padding: 14px 16px;
+                        border-bottom: 1px solid #f5f5f4;
+                        font-size: 14px;
+                        color: #44403c;
+                    }
+                    
+                    tr:nth-child(even) td {
+                        background-color: #fafaf9;
+                    }
+                    
+                    .item-name {
+                        font-weight: 700;
+                        color: #1c1917;
+                    }
+                    
+                    .item-details {
+                        font-size: 11px;
+                        color: #78716c;
+                        margin-top: 3px;
+                    }
+                    
+                    .price-original {
+                        text-decoration: line-through;
+                        color: #a8a29e;
+                        font-size: 12px;
+                        margin-inline-end: 8px;
+                    }
+                    
+                    .price-discounted {
+                        color: #b45309;
+                        font-weight: 700;
+                    }
+                    
+                    .summary-wrapper {
+                        display: flex;
+                        justify-content: flex-end;
+                    }
+                    
+                    .summary-table {
+                        width: 320px;
+                        margin-bottom: 20px;
+                    }
+                    
+                    .summary-table td {
+                        padding: 8px 16px;
+                        border-bottom: 1px dashed #e7e5e4;
+                        font-size: 14px;
+                    }
+                    
+                    .summary-table tr:last-child td {
+                        border-bottom: none;
+                        font-size: 18px;
+                        font-weight: 800;
+                        color: #1c1917;
+                        padding-top: 15px;
+                    }
+                    
+                    .terms {
+                        margin-top: 60px;
+                        border-top: 1px solid #e7e5e4;
+                        padding-top: 20px;
+                        font-size: 12px;
+                        color: #78716c;
+                        text-align: center;
+                    }
+                    
+                    @media print {
+                        body {
+                            padding: 0;
+                        }
+                    }
+                </style>
+            </head>
+            <body dir="${isHe ? 'rtl' : 'ltr'}">
+                <div class="header">
+                    <div class="logo-container">
+                        <h1 class="business-title">${businessName}</h1>
+                        <p class="business-subtitle">${isHe ? 'קייטרינג חלבי בוטיק ומגשי אירוח מעוצבים' : 'Boutique Dairy Catering & Designed Platters'}</p>
+                    </div>
+                    <div class="quote-info">
+                        <h2 class="quote-title">${titleText}</h2>
+                        <div class="quote-meta-item"><strong>${isHe ? 'מספר הצעה:' : 'Quote No:'}</strong> #${quoteNo}</div>
+                        <div class="quote-meta-item"><strong>${isHe ? 'תאריך:' : 'Date:'}</strong> ${dateStr}</div>
+                    </div>
+                </div>
+                
+                <div class="details-grid">
+                    <div class="details-col">
+                        <h3>${isHe ? 'פרטי הלקוח' : 'Customer Details'}</h3>
+                        <p><strong>${isHe ? 'שם:' : 'Name:'}</strong> ${quoteOrder.customer_name || ''}</p>
+                        <p><strong>${isHe ? 'טלפון:' : 'Phone:'}</strong> ${quoteOrder.customer_phone || ''}</p>
+                    </div>
+                    <div class="details-col">
+                        <h3>${isHe ? 'פרטי האירוע' : 'Event Details'}</h3>
+                        <p><strong>${isHe ? 'סוג אירוע:' : 'Event Type:'}</strong> ${quoteOrder.event_type || (isHe ? 'לא נבחר' : 'None')}</p>
+                        <p><strong>${isHe ? 'תאריך אירוע:' : 'Event Date:'}</strong> ${dateStr}</p>
+                    </div>
+                </div>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50%; text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'פריט' : 'Item'}</th>
+                            <th style="width: 15%; text-align: center">${isHe ? 'כמות' : 'Qty'}</th>
+                            <th style="width: 15%; text-align: center">${isHe ? 'מחיר יחידה' : 'Unit Price'}</th>
+                            <th style="width: 20%; text-align: ${isHe ? 'left' : 'right'}">${isHe ? 'סה"כ' : 'Total'}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            quoteItems.forEach((item: any) => {
+                const itemName = isHe ? item.name : (item.name_en || item.name);
+                const origItemPrice = item.price;
+                const discItemPrice = item.price * (1 - quoteDiscountPercent / 100);
+                
+                let unitPriceHtml = '';
+                let itemTotalHtml = '';
+                
+                if (quoteDiscountPercent > 0) {
+                    unitPriceHtml = `<span class="price-original">₪${origItemPrice.toFixed(2)}</span><span class="price-discounted">₪${discItemPrice.toFixed(2)}</span>`;
+                    itemTotalHtml = `<span class="price-original">₪${(origItemPrice * item.quantity).toFixed(2)}</span><span class="price-discounted">₪${(discItemPrice * item.quantity).toFixed(2)}</span>`;
+                } else {
+                    unitPriceHtml = `₪${origItemPrice.toFixed(2)}`;
+                    itemTotalHtml = `₪${(origItemPrice * item.quantity).toFixed(2)}`;
+                }
+                
+                html += `
+                    <tr>
+                        <td style="text-align: ${isHe ? 'right' : 'left'}">
+                            <div class="item-name">${itemName}</div>
+                            ${item.selected_modifications && item.selected_modifications.length > 0 ? `<div class="item-details">↳ ${item.selected_modifications.join(', ')}</div>` : ''}
+                            ${item.notes ? `<div class="item-details">↳ "${item.notes}"</div>` : ''}
+                        </td>
+                        <td style="text-align: center">${item.quantity}</td>
+                        <td style="text-align: center">${unitPriceHtml}</td>
+                        <td style="text-align: ${isHe ? 'left' : 'right'}">${itemTotalHtml}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+                
+                <div class="summary-wrapper">
+                    <table class="summary-table">
+                        <tr>
+                            <td style="text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'סכום ביניים:' : 'Subtotal:'}</td>
+                            <td style="text-align: ${isHe ? 'left' : 'right'}">₪${totalSubtotal.toFixed(2)}</td>
+                        </tr>
+            `;
+            
+            if (quoteDiscountPercent > 0) {
+                html += `
+                        <tr style="color: #b45309; font-weight: 600;">
+                            <td style="text-align: ${isHe ? 'right' : 'left'}">${isHe ? `הטבה והנחה (${quoteDiscountPercent}%):` : `Discount (${quoteDiscountPercent}%):`}</td>
+                            <td style="text-align: ${isHe ? 'left' : 'right'}">-₪${totalDiscount.toFixed(2)}</td>
+                        </tr>
+                `;
+            }
+            
+            if (quoteDeliveryFee > 0) {
+                html += `
+                        <tr>
+                            <td style="text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'משלוח:' : 'Delivery:'}</td>
+                            <td style="text-align: ${isHe ? 'left' : 'right'}">₪${quoteDeliveryFee.toFixed(2)}</td>
+                        </tr>
+                `;
+            }
+            
+            if (quoteWantsSetup) {
+                html += `
+                        <tr>
+                            <td style="text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'שירות עריכה ופינוי:' : 'Setup & Cleanup:'}</td>
+                            <td style="text-align: ${isHe ? 'left' : 'right'}">₪1,000.00</td>
+                        </tr>
+                `;
+            }
+            
+            html += `
+                        <tr style="border-top: 2px solid #7c2d12;">
+                            <td style="text-align: ${isHe ? 'right' : 'left'}; font-weight: 800; font-size: 16px;">${isHe ? 'סה"כ לתשלום:' : 'Total:'}</td>
+                            <td style="text-align: ${isHe ? 'left' : 'right'}; font-weight: 800; font-size: 20px; color: #7c2d12;">₪${totalFinal.toFixed(2)}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div class="terms">
+                    <p>${isHe ? 'תודה שבחרתם באיילה פשוט טעים! • הצעת המחיר בתוקף ל-30 ימים • טלפון: 054-7474764 • אימייל: info@ayala-catering.co.il' : 'Thank you for choosing Ayala Simply Delicious! • Quote valid for 30 days • Phone: 054-7474764 • Email: info@ayala-catering.co.il'}</p>
+                </div>
+                
+                <script>
+                    window.onload = function() {
+                        window.print();
+                    }
+                </script>
+            </body>
+            </html>
+            `;
+            
+            printWindow.document.write(html);
+            printWindow.document.close();
+        }
+
+        setQuoteOrder(null);
+        await loadOrders();
     };
 
     const handleDeleteOrder = (orderId: string) => {
@@ -974,6 +1362,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                     )}
 
                                                     <div className={`flex flex-wrap gap-2 pt-2 justify-end ${isExpanded ? 'border-t border-themeText/10' : ''}`}>
+                                                        {/* Generate Quote PDF Button */}
+                                                        <button
+                                                            onClick={() => openQuoteDialog(order)}
+                                                            className="p-2 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-xl hover:bg-purple-500/20 transition-all duration-200 flex items-center justify-center gap-1.5 text-xs font-bold font-sans"
+                                                            title={language === 'he' ? 'הפקת הצעת מחיר PDF' : 'Generate Quote PDF'}
+                                                        >
+                                                            <FileText size={18} />
+                                                            <span>{language === 'he' ? 'הפקת הצעת מחיר' : 'Generate Quote'}</span>
+                                                        </button>
+
                                                         {order.status !== 'approved' && order.status !== 'completed' && (
                                                             <button
                                                                 onClick={() => handleUpdateOrderStatus(order.id!, 'approved')}
@@ -2093,6 +2491,173 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             >
                                 <Trash2 size={18} />
                                 {t.deleteItem}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Quote Edit & PDF Generation Modal */}
+            {quoteOrder && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 md:p-6 font-sans">
+                    <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" onClick={() => setQuoteOrder(null)}></div>
+                    
+                    <div className="relative bg-themeBg w-full max-w-xl max-h-[85vh] rounded-2xl md:rounded-3xl flex flex-col shadow-2xl animate-zoom-in overflow-hidden border border-themeText/10 text-themeText">
+                        {/* Header */}
+                        <div className="p-6 bg-themeHeaderBg text-themeHeaderTxt flex items-center justify-between shadow-md z-10 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <FileText className="text-themePrimary" />
+                                <h3 className="text-xl font-serif font-bold tracking-wide">
+                                    {language === 'he' ? 'עריכת הצעת מחיר' : 'Edit Quote'}
+                                </h3>
+                            </div>
+                            <button onClick={() => setQuoteOrder(null)} className="hover:text-themePrimary text-themeHeaderTxt transition hover:rotate-90 duration-200">
+                                <X />
+                            </button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-start">
+                            {/* Items Edit Table */}
+                            <div className="space-y-3">
+                                <h4 className="text-xs font-bold text-themeText/50 uppercase tracking-widest px-1">
+                                    {language === 'he' ? 'פריטים ומחירים' : 'Items & Prices'}
+                                </h4>
+                                <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1">
+                                    {quoteItems.map((item, index) => (
+                                        <div key={index} className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 bg-themeCardBg border border-themeText/10 rounded-xl">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-bold text-sm truncate text-themeText">
+                                                    {language === 'he' ? item.name : (item.name_en || item.name)}
+                                                </div>
+                                                <div className="text-xs text-themeText/60">
+                                                    {language === 'he' ? `כמות: ${item.quantity}` : `Qty: ${item.quantity}`} | {item.unit_type}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3 shrink-0">
+                                                <div className="flex flex-col text-end">
+                                                    <span className="text-[10px] text-themeText/50">{language === 'he' ? 'מחיר יחידה (₪)' : 'Unit Price (₪)'}</span>
+                                                    <input 
+                                                        type="number"
+                                                        value={item.price}
+                                                        onChange={(e) => {
+                                                            const newPrice = Number(e.target.value);
+                                                            setQuoteItems(prev => {
+                                                                const copy = [...prev];
+                                                                copy[index].price = newPrice;
+                                                                return copy;
+                                                            });
+                                                        }}
+                                                        className="w-24 p-1.5 border border-themeText/20 bg-themeBg text-themeText rounded-lg text-sm text-center outline-none focus:border-themePrimary"
+                                                    />
+                                                </div>
+                                                <div className="text-sm font-bold w-20 text-end">
+                                                    ₪{(item.price * item.quantity).toFixed(2)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Options and Discounts */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] text-themeText/50 font-bold px-1">
+                                        {language === 'he' ? 'אחוז הנחה (%)' : 'Discount Percentage (%)'}
+                                    </label>
+                                    <input 
+                                        type="number"
+                                        min="0"
+                                        max="100"
+                                        value={quoteDiscountPercent}
+                                        onChange={(e) => setQuoteDiscountPercent(Math.max(0, Math.min(100, Number(e.target.value))))}
+                                        className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg text-sm outline-none focus:border-themePrimary"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-1.5">
+                                    <label className="text-[10px] text-themeText/50 font-bold px-1">
+                                        {language === 'he' ? 'דמי משלוח (₪)' : 'Delivery Fee (₪)'}
+                                    </label>
+                                    <input 
+                                        type="number"
+                                        min="0"
+                                        value={quoteDeliveryFee}
+                                        onChange={(e) => setQuoteDeliveryFee(Math.max(0, Number(e.target.value)))}
+                                        className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg text-sm outline-none focus:border-themePrimary"
+                                    />
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 justify-end pb-1">
+                                    <label className="flex items-center gap-2 p-2 border border-themeText/15 rounded-lg cursor-pointer hover:bg-themeCardBg/50">
+                                        <input 
+                                            type="checkbox"
+                                            checked={quoteWantsSetup}
+                                            onChange={(e) => setQuoteWantsSetup(e.target.checked)}
+                                            className="w-4 h-4 text-themePrimary accent-themePrimary"
+                                        />
+                                        <span className="text-xs font-bold text-themeText/80 font-sans">
+                                            {language === 'he' ? 'סידור ופינוי (₪1,000)' : 'Setup & Cleanup (₪1,000)'}
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Summary Preview */}
+                            {(() => {
+                                const subtotal = quoteItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                                const discountAmount = subtotal * (quoteDiscountPercent / 100);
+                                const setupFee = quoteWantsSetup ? 1000 : 0;
+                                const finalTotal = Math.max(0, subtotal - discountAmount + quoteDeliveryFee + setupFee);
+
+                                return (
+                                    <div className="bg-themeCardBg p-4 rounded-xl border border-themeText/10 shadow-sm space-y-2 text-sm text-themeText/80 font-medium">
+                                        <div className="flex justify-between">
+                                            <span>{language === 'he' ? 'סכום ביניים:' : 'Subtotal:'}</span>
+                                            <span>₪{subtotal.toFixed(2)}</span>
+                                        </div>
+                                        {quoteDiscountPercent > 0 && (
+                                            <div className="flex justify-between text-amber-600 font-bold">
+                                                <span>{language === 'he' ? `הנחה (${quoteDiscountPercent}%):` : `Discount (${quoteDiscountPercent}%):`}</span>
+                                                <span>-₪{discountAmount.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {quoteDeliveryFee > 0 && (
+                                            <div className="flex justify-between">
+                                                <span>{language === 'he' ? 'משלוח:' : 'Delivery:'}</span>
+                                                <span>₪{quoteDeliveryFee.toFixed(2)}</span>
+                                            </div>
+                                        )}
+                                        {quoteWantsSetup && (
+                                            <div className="flex justify-between">
+                                                <span>{language === 'he' ? 'שירות עריכה ופינוי:' : 'Setup & Cleanup:'}</span>
+                                                <span>₪1,000.00</span>
+                                            </div>
+                                        )}
+                                        <div className="border-t border-themeText/10 pt-2 my-1 flex justify-between text-base font-bold text-themeText">
+                                            <span>{language === 'he' ? 'סה"כ לתשלום:' : 'Total Amount:'}</span>
+                                            <span>₪{finalTotal.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        {/* Footer Buttons */}
+                        <div className="bg-themeCardBg border-t border-themeText/10 p-4 flex gap-3 shrink-0 shadow-[0_-8px_24px_rgba(0,0,0,0.05)]">
+                            <button 
+                                onClick={() => setQuoteOrder(null)}
+                                className="flex-1 border border-themeText/20 text-themeText font-bold py-3 rounded-xl hover:bg-themeBg/20 transition-all text-sm"
+                            >
+                                {language === 'he' ? 'ביטול' : 'Cancel'}
+                            </button>
+                            <button 
+                                onClick={handleGenerateQuotePdf}
+                                className="flex-1 bg-themePrimary text-themeCardBg font-bold py-3 rounded-xl hover:bg-themeSecondary active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 text-sm"
+                            >
+                                <FileText size={16} />
+                                {language === 'he' ? 'הפקת הצעת מחיר' : 'Generate Quote'}
                             </button>
                         </div>
                     </div>
