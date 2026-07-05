@@ -101,6 +101,7 @@ export interface Order {
     items: CartItem[]; // Stored as JSONB
     status: 'pending' | 'approved' | 'completed' | 'cancelled';
     created_at?: string;
+    event_type?: string;
 }
 
 export interface CalculationSettings {
@@ -137,6 +138,7 @@ export interface AppSettings {
   delivery_base_fee: number; 
   delivery_price_per_km: number;
   delivery_min_radius_included: number;
+  ecommerce_mode?: boolean;
 }
 
 export interface GuestCalculationResult {

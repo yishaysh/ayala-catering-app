@@ -929,6 +929,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                                                                         WhatsApp 💬
                                                                     </a>
                                                                 )}
+                                                                <span>|</span>
+                                                                <span className="bg-themePrimary/15 text-themePrimary px-2 py-0.5 rounded font-bold text-[10px]">
+                                                                    🎉 {language === 'he' ? 'סוג אירוע' : 'Event Type'}: {order.event_type || (order.customer_name?.match(/\((אירוע [^)]+)\)$/)?.[1]) || (language === 'he' ? 'לא נבחר' : 'None')}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-2 md:gap-3">
@@ -1426,6 +1430,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
 
                 {/* Tab 5: Settings & Themes */}
                 <div className="w-full shrink-0 snap-start snap-always px-1 space-y-8 text-start">
+                    {/* E-Commerce vs Catalog Mode Toggle Card */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-themePrimary/20 rounded-xl text-themePrimary">
+                                    <ShoppingBag size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-sm font-bold text-themeText uppercase">
+                                        {language === 'he' ? 'מצב תצוגה ומכירה' : 'Display & Sales Mode'}
+                                    </h3>
+                                    <p className="text-xs text-themeText/60 mt-0.5">
+                                        {language === 'he' 
+                                            ? 'בחירה בין הפעלת תצוגת מחירים ורכישה מלאה לבין מצב קטלוג הצעות מחיר בלבד' 
+                                            : 'Choose between full pricing/checkout (E-Commerce) or quote requests only (Catalog)'}
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-3 self-end sm:self-auto">
+                                <span className="text-xs font-bold text-themeText/70">
+                                    הפעלת תצוגת מחירים ומכירה (E-Commerce Mode)
+                                </span>
+                                <button
+                                    onClick={() => updateAppConfig({ ecommerce_mode: !appConfig.ecommerce_mode })}
+                                    className={`w-14 h-8 flex items-center rounded-full p-1 transition-all duration-300 ${
+                                        appConfig.ecommerce_mode ? 'bg-themePrimary justify-end' : 'bg-themeBg border border-themeText/20 justify-start'
+                                    }`}
+                                    role="switch"
+                                    aria-checked={appConfig.ecommerce_mode}
+                                    id="ecommerce-mode-toggle"
+                                >
+                                    <span className={`w-6 h-6 rounded-full shadow-md transition-all duration-300 ${
+                                        appConfig.ecommerce_mode ? 'bg-themeHeaderBg' : 'bg-themeText/45'
+                                    }`} />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Order and Delivery Settings Card */}
                     <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10">
                         <div className="flex items-center gap-2 mb-6">

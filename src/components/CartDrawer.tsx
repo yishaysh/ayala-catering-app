@@ -39,7 +39,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         cart, updateQuantity, cartTotal, language, clearCart, 
         customerDetails, setCustomerDetails, calculationSettings,
         activeCoupon, validateCoupon, removeCoupon, incrementCouponUsage,
-        appConfig, getDeliveryFee
+        appConfig, getDeliveryFee, eventType
     } = useStore();
     const t = translations[language] || translations['he'];
     
@@ -68,6 +68,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const [detectedLocationName, setDetectedLocationName] = useState<string | null>(null);
     const [couponInput, setCouponInput] = useState('');
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+    
+    const resolvedEventType = eventType === 'basic' ? t.basicEvent : eventType === 'plus' ? t.plusEvent : t.premiumEvent;
     
     // Unified Feedback Modal State
     const [feedback, setFeedback] = useState<{
@@ -237,18 +239,31 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
     const handleShareDraft = () => {
         const line = "━━━━━━━━━━━━━━━━";
-        let message = language === 'he' ? `*טיוטת הזמנה מאיילה פשוט טעים (לאישורכם):* 📝\n${line}\n\n` : `*Draft order from Ayala Simply Delicious (for review):* 📝\n${line}\n\n`;
+        let message = "";
         
-        cart.forEach(item => {
-            const displayItem = getLocalizedItem(item, language);
-            message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${item.price * item.quantity})\n\n`;
-        });
+        if (appConfig.ecommerce_mode) {
+            message = language === 'he' ? `*טיוטת הזמנה מאיילה פשוט טעים (לאישורכם):* 📝\n${line}\n\n` : `*Draft order from Ayala Simply Delicious (for review):* 📝\n${line}\n\n`;
+            cart.forEach(item => {
+                const displayItem = getLocalizedItem(item, language);
+                message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${item.price * item.quantity})\n\n`;
+            });
 
-        if (wantsSetup) {
-            message += `✨ ${language === 'he' ? 'שירותי עריכה ופינוי' : 'Setup & Cleanup Services'}: ₪1000\n\n`;
+            if (wantsSetup) {
+                message += `✨ ${language === 'he' ? 'שירותי עריכה ופינוי' : 'Setup & Cleanup Services'}: ₪1000\n\n`;
+            }
+
+            message += `*${t.total as string}: ₪${finalTotal}*`;
+        } else {
+            message = language === 'he' ? `*טיוטת בקשת הצעת מחיר מאיילה פשוט טעים:* 📝\n${line}\n\n` : `*Draft quote request from Ayala Simply Delicious:* 📝\n${line}\n\n`;
+            cart.forEach(item => {
+                const displayItem = getLocalizedItem(item, language);
+                message += `🔹 *${item.quantity}x ${displayItem.name}*\n\n`;
+            });
+            if (wantsSetup) {
+                message += `✨ ${language === 'he' ? 'מעוניין בשירותי עריכה ופינוי' : 'Interested in Setup & Cleanup Services'} ✅\n\n`;
+            }
         }
 
-        message += `*${t.total as string}: ₪${finalTotal}*`;
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/?text=${encoded}`, '_blank');
     };
@@ -264,9 +279,14 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         let message = "";
 
         if (language === 'he') {
-            message += `*פרטי לקוח להזמנה #${orderId || 'NEW'}:* 👤\n`;
+            if (appConfig.ecommerce_mode) {
+                message += `*פרטי לקוח להזמנה #${orderId || 'NEW'}:* 👤\n`;
+            } else {
+                message += `*פרטי לקוח לבקשת הצעת מחיר #${orderId || 'NEW'}:* 👤\n`;
+            }
             message += `👤 שם: ${customerDetails.name}\n`;
             message += `📞 טלפון: ${customerDetails.phone}\n`;
+            message += `🎉 סוג אירוע: ${resolvedEventType}\n`;
             if (isDelivery) {
                 message += `📍 מיקום: ${customerDetails.location} ${detectedLocationName ? `(זוהה: ${detectedLocationName})` : ''}\n`;
                 message += `🚗 מרחק משוער: ${customerDetails.distanceKm} ק"מ (מקדומים)\n`;
@@ -274,11 +294,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 message += `📍 אופן קבלה: איסוף עצמי ממקדומים 🚗\n`;
             }
             message += `✨ שירותי עריכה ופינוי: ${wantsSetup ? 'כן (בתיאום מראש) ✅' : 'לא ❌'}\n\n`;
-            message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
+            
+            if (appConfig.ecommerce_mode) {
+                message += `*היי איילה, אשמח לבצע הזמנה:* 🍽️\n${line}\n\n`;
+            } else {
+                message += `*היי איילה, אשמח לקבל הצעת מחיר לפריטים הבאים:* 🍽️\n${line}\n\n`;
+            }
         } else {
             message += `*Customer Details #${orderId || 'NEW'}:* 👤\n`;
             message += `👤 Name: ${customerDetails.name}\n`;
             message += `📞 Phone: ${customerDetails.phone}\n`;
+            message += `🎉 Event Type: ${resolvedEventType}\n`;
             if (isDelivery) {
                 message += `📍 Location: ${customerDetails.location} ${detectedLocationName ? `(Verified: ${detectedLocationName})` : ''}\n`;
                 message += `🚗 Est. Distance: ${customerDetails.distanceKm} km (from Kedumim)\n`;
@@ -286,13 +312,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 message += `📍 Option: Self Pickup from Kedumim 🚗\n`;
             }
             message += `✨ Setup & Cleanup Service: ${wantsSetup ? 'Yes, interested ✅' : 'No ❌'}\n\n`;
-            message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
+            
+            if (appConfig.ecommerce_mode) {
+                message += `*Hi Ayala, I'd like to place an order:* 🍽️\n${line}\n\n`;
+            } else {
+                message += `*Hi Ayala, I'd like to request a quote for the following:* 🍽️\n${line}\n\n`;
+            }
         }
         
         cart.forEach(item => {
             const displayItem = getLocalizedItem(item, language);
-            const itemTotal = item.price * item.quantity;
-            message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${itemTotal})\n`;
+            if (appConfig.ecommerce_mode) {
+                const itemTotal = item.price * item.quantity;
+                message += `🔹 *${item.quantity}x ${displayItem.name}* (₪${itemTotal})\n`;
+            } else {
+                message += `🔹 *${item.quantity}x ${displayItem.name}*\n`;
+            }
             
             if (item.is_tray && item.units_per_tray) {
                 message += `   📦 ${language === 'he' ? `${item.units_per_tray} יחידות במגש` : `${item.units_per_tray} units per tray`}\n`;
@@ -309,26 +344,30 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
         message += `${line}\n`;
         
-        // Financial Summary
-        message += `${t.subtotal as string}: ₪${subtotal}\n`;
-        
-        if (discountAmount > 0) {
-            message += `🏷️ ${t.discount as string} (${activeCoupon?.code}): -₪${discountAmount}\n`;
-        }
-        
-        if (isDelivery && deliveryFee > 0) {
-            message += `🚚 ${t.delivery as string} (${customerDetails.distanceKm}km): ₪${deliveryFee}\n`;
-        } else if (isDelivery && customerDetails.distanceKm > 0 && subtotal >= FREE_DELIVERY_THRESHOLD) {
-            message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'חינם (הזמנה גדולה)' : 'Free (Large Order)'}\n`;
-        } else if (!isDelivery) {
-            message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'איסוף עצמי (₪0)' : 'Self Pickup (NIS 0)'}\n`;
-        }
+        if (appConfig.ecommerce_mode) {
+            // Financial Summary
+            message += `${t.subtotal as string}: ₪${subtotal}\n`;
+            
+            if (discountAmount > 0) {
+                message += `🏷️ ${t.discount as string} (${activeCoupon?.code}): -₪${discountAmount}\n`;
+            }
+            
+            if (isDelivery && deliveryFee > 0) {
+                message += `🚚 ${t.delivery as string} (${customerDetails.distanceKm}km): ₪${deliveryFee}\n`;
+            } else if (isDelivery && customerDetails.distanceKm > 0 && subtotal >= FREE_DELIVERY_THRESHOLD) {
+                message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'חינם (הזמנה גדולה)' : 'Free (Large Order)'}\n`;
+            } else if (!isDelivery) {
+                message += `🚚 ${t.delivery as string}: ${language === 'he' ? 'איסוף עצמי (₪0)' : 'Self Pickup (NIS 0)'}\n`;
+            }
 
-        if (wantsSetup) {
-            message += `✨ ${language === 'he' ? 'שירותי עריכה ופינוי: ₪1000' : 'Setup & Cleanup: ₪1000'}\n`;
-        }
+            if (wantsSetup) {
+                message += `✨ ${language === 'he' ? 'שירותי עריכה ופינוי: ₪1000' : 'Setup & Cleanup: ₪1000'}\n`;
+            }
 
-        message += `*${t.finalTotal as string}: ₪${finalTotal}* 💰`;
+            message += `*${t.finalTotal as string}: ₪${finalTotal}* 💰`;
+        } else {
+            message += `📝 ${language === 'he' ? 'הבקשה נשלחה בהצלחה וממתינה לתמחור מותאם אישית מאיילה.' : 'Request sent successfully and is pending a custom quote from Ayala.'}`;
+        }
         
         const encoded = encodeURIComponent(message);
         window.open(`https://wa.me/972547474764?text=${encoded}`, '_blank');
@@ -340,8 +379,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         setIsSubmitting(true);
 
         try {
-            // 1. If coupon exists, re-validate and increment
-            if (activeCoupon) {
+            // 1. If coupon exists, re-validate and increment (only in E-Commerce mode)
+            if (appConfig.ecommerce_mode && activeCoupon) {
                 const isValid = await validateCoupon(activeCoupon.code);
                 if (!isValid) {
                      setFeedback({
@@ -359,19 +398,31 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             }
 
             // 2. Save Order to Database
-            const orderData = {
+            const orderData: any = {
                 customer_name: customerDetails.name,
                 customer_phone: customerDetails.phone,
                 event_date: new Date().toISOString(),
-                total_price: finalTotal,
-                subtotal: subtotal,
-                discount_amount: discountAmount,
-                coupon_code: activeCoupon ? activeCoupon.code : null,
+                total_price: appConfig.ecommerce_mode ? finalTotal : 0,
+                subtotal: appConfig.ecommerce_mode ? subtotal : 0,
+                discount_amount: appConfig.ecommerce_mode ? discountAmount : 0,
+                coupon_code: (appConfig.ecommerce_mode && activeCoupon) ? activeCoupon.code : null,
                 items: cart,
-                status: 'pending' // It remains pending until manual approval
+                status: 'pending', // It remains pending until manual approval
+                event_type: resolvedEventType
             };
 
-            const { error, data } = await supabase.from('orders').insert([orderData]).select('id');
+            let { error, data } = await supabase.from('orders').insert([orderData]).select('id');
+
+            // Fallback if event_type column does not exist in backend database
+            if (error && error.code === '42703') {
+                console.warn("event_type column missing in Supabase schema, retrying fallback insert...");
+                const { event_type, ...fallbackOrderData } = orderData;
+                fallbackOrderData.customer_name = `${customerDetails.name} (${resolvedEventType})`;
+                
+                const retry = await supabase.from('orders').insert([fallbackOrderData]).select('id');
+                error = retry.error;
+                data = retry.data;
+            }
 
             if (error) {
                 console.error("Failed to save order:", error);
@@ -455,28 +506,30 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         </div>
                     </div>
 
-                    <div className="bg-themeHeaderBg/90 px-6 py-4 shadow-inner transition-all duration-300">
-                        {isWithinRadius ? (
-                            <>
-                                <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-themeHeaderTxt/60 mb-2">
-                                    <span>{t.freeDeliveryAt as string} ₪{FREE_DELIVERY_THRESHOLD}</span>
-                                    {subtotal < FREE_DELIVERY_THRESHOLD ? (
-                                        <span>{t.justMore as string} ₪{FREE_DELIVERY_THRESHOLD - subtotal} {t.forVip as string}</span>
-                                    ) : (
-                                        <span className="text-themePrimary flex items-center gap-1"><Sparkles size={10} /> {t.vipDelivery as string}</span>
-                                    )}
+                    {appConfig.ecommerce_mode && (
+                        <div className="bg-themeHeaderBg/90 px-6 py-4 shadow-inner transition-all duration-300">
+                            {isWithinRadius ? (
+                                <>
+                                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-widest text-themeHeaderTxt/60 mb-2">
+                                        <span>{t.freeDeliveryAt as string} ₪{FREE_DELIVERY_THRESHOLD}</span>
+                                        {subtotal < FREE_DELIVERY_THRESHOLD ? (
+                                            <span>{t.justMore as string} ₪{FREE_DELIVERY_THRESHOLD - subtotal} {t.forVip as string}</span>
+                                        ) : (
+                                            <span className="text-themePrimary flex items-center gap-1"><Sparkles size={10} /> {t.vipDelivery as string}</span>
+                                        )}
+                                    </div>
+                                    <div className="h-2 bg-themeHeaderBg/50 rounded-full overflow-hidden">
+                                        <div className="h-full bg-themePrimary transition-all duration-700 ease-out" style={{ width: `${progress}%` }}></div>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-sm font-bold text-themeHeaderTxt flex items-center gap-2 justify-center py-2 bg-themeHeaderBg/50 rounded-lg border border-themeHeaderTxt/10">
+                                    <MapPin size={16} className="text-themePrimary" />
+                                    {t.deliveryByDistance as string}
                                 </div>
-                                <div className="h-2 bg-themeHeaderBg/50 rounded-full overflow-hidden">
-                                    <div className="h-full bg-themePrimary transition-all duration-700 ease-out" style={{ width: `${progress}%` }}></div>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="text-sm font-bold text-themeHeaderTxt flex items-center gap-2 justify-center py-2 bg-themeHeaderBg/50 rounded-lg border border-themeHeaderTxt/10">
-                                <MapPin size={16} className="text-themePrimary" />
-                                {t.deliveryByDistance as string}
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
+                    )}
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-themeBg text-themeText">
                         <div className="bg-themeCardBg p-4 rounded-xl border border-themeText/10 shadow-sm space-y-3">
@@ -614,7 +667,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                         <span className="font-bold text-xs text-themeText">
                                             {language === 'he' ? 'תוספת שירותי עריכה ופינוי' : 'Add Setup & Cleanup Services'}
                                         </span>
-                                        <span className="text-themePrimary font-bold text-xs">₪1,000</span>
+                                        {appConfig.ecommerce_mode && <span className="text-themePrimary font-bold text-xs">₪1,000</span>}
                                     </div>
                                     <span className="text-[10px] text-themeText/60 block leading-tight mt-0.5">
                                         {language === 'he' ? 'שירות מקצועי לאירוע ללא דאגות (בתיאום מראש)' : 'Professional setup and cleanup (coordinated in advance)'}
@@ -637,7 +690,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                     <div key={item.id + (item.notes || '') + (item.selected_modifications?.join('') || '')} className="flex gap-4 border-b border-themeText/10 pb-4 last:border-0 animate-fade-in">
                                         <div className="flex-1">
                                             <h4 className="font-bold text-themeText text-lg">{localItem.name}</h4>
-                                            <p className="text-sm text-themeText/70 font-medium">₪{item.price} / {getUnitName(item.unit_type)}</p>
+                                            {appConfig.ecommerce_mode && (
+                                                <p className="text-sm text-themeText/70 font-medium">₪{item.price} / {getUnitName(item.unit_type)}</p>
+                                            )}
                                             {item.is_tray && item.units_per_tray && (
                                                 <p className="text-xs text-themePrimary font-bold mt-0.5">
                                                     {language === 'he' ? `${item.units_per_tray} יחידות במגש` : `${item.units_per_tray} units per tray`}
@@ -657,7 +712,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                         </div>
                                         
                                         <div className="flex flex-col items-end gap-3">
-                                            <div className="font-bold text-themeText text-lg">₪{item.price * item.quantity}</div>
+                                            {appConfig.ecommerce_mode && (
+                                                <div className="font-bold text-themeText text-lg">₪{item.price * item.quantity}</div>
+                                            )}
                                             <div className="flex items-center gap-1 bg-themeCardBg border border-themeText/15 rounded-lg p-1 shadow-sm">
                                                 <button 
                                                     onClick={() => updateQuantity(item.id, item.quantity - 1)}
@@ -682,7 +739,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
                     <div className="p-4 bg-themeCardBg border-t border-themeText/15 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)] z-10 shrink-0 pb-safe text-themeCardTxt">
                         {/* Coupon Section */}
-                        {cart.length > 0 && (
+                        {cart.length > 0 && appConfig.ecommerce_mode && (
                              <div className="mb-4 bg-themeBg/50 p-3 rounded-xl border border-themeText/15">
                                 {activeCoupon ? (
                                     <div className="flex items-center justify-between">
@@ -713,42 +770,44 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                              </div>
                         )}
 
-                        <div className="space-y-1 mb-4">
-                            <div className="flex justify-between items-center text-sm text-themeCardTxt/70">
-                                <span>{t.subtotal as string}:</span>
-                                <span>₪{subtotal}</span>
+                        {appConfig.ecommerce_mode && (
+                            <div className="space-y-1 mb-4">
+                                <div className="flex justify-between items-center text-sm text-themeCardTxt/70">
+                                    <span>{t.subtotal as string}:</span>
+                                    <span>₪{subtotal}</span>
+                                </div>
+
+                                {activeCoupon && (
+                                    <div className="flex justify-between items-center text-sm text-green-600 font-bold">
+                                        <span>{t.discount as string}:</span>
+                                        <span>-₪{discountAmount.toFixed(0)}</span>
+                                    </div>
+                                )}
+
+                                {deliveryFee > 0 && (
+                                    <div className="flex justify-between items-center text-sm text-themeCardTxt/80 font-bold">
+                                        <span className="flex items-center gap-1"><Truck size={12}/> {t.delivery as string}:</span>
+                                        <span>₪{deliveryFee}</span>
+                                    </div>
+                                )}
+
+                                {wantsSetup && (
+                                    <div className="flex justify-between items-center text-sm text-themeCardTxt/80 font-bold">
+                                        <span>{language === 'he' ? 'שירותי עריכה ופינוי:' : 'Setup & Cleanup Services:'}</span>
+                                        <span>₪1,000</span>
+                                    </div>
+                                )}
+
+                                <div className="border-t border-themeText/10 my-1"></div>
+                                
+                                <div className="flex justify-between items-center">
+                                    <span className="text-lg text-themeCardTxt/80">{t.finalTotal as string}:</span>
+                                    <span className="text-3xl font-bold font-serif text-themeCardTxt">₪{finalTotal}</span>
+                                </div>
                             </div>
-
-                            {activeCoupon && (
-                                <div className="flex justify-between items-center text-sm text-green-600 font-bold">
-                                    <span>{t.discount as string}:</span>
-                                    <span>-₪{discountAmount.toFixed(0)}</span>
-                                </div>
-                            )}
-
-                            {deliveryFee > 0 && (
-                                <div className="flex justify-between items-center text-sm text-themeCardTxt/80 font-bold">
-                                    <span className="flex items-center gap-1"><Truck size={12}/> {t.delivery as string}:</span>
-                                    <span>₪{deliveryFee}</span>
-                                </div>
-                            )}
-
-                            {wantsSetup && (
-                                <div className="flex justify-between items-center text-sm text-themeCardTxt/80 font-bold">
-                                    <span>{language === 'he' ? 'שירותי עריכה ופינוי:' : 'Setup & Cleanup Services:'}</span>
-                                    <span>₪1,000</span>
-                                </div>
-                            )}
-
-                            <div className="border-t border-themeText/10 my-1"></div>
-                            
-                            <div className="flex justify-between items-center">
-                                <span className="text-lg text-themeCardTxt/80">{t.finalTotal as string}:</span>
-                                <span className="text-3xl font-bold font-serif text-themeCardTxt">₪{finalTotal}</span>
-                            </div>
-                        </div>
+                        )}
                         
-                        {subtotal < MIN_ORDER && subtotal > 0 && (
+                        {appConfig.ecommerce_mode && subtotal < MIN_ORDER && subtotal > 0 && (
                             <div className="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs mb-3 border border-red-100 flex items-center justify-center gap-2">
                                 <span>⚠️</span>
                                 {t.minOrder as string}: ₪{MIN_ORDER}
@@ -769,14 +828,18 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             
                             <button 
                                 onClick={handleWhatsAppCheckout}
-                                disabled={subtotal < MIN_ORDER || cart.length === 0 || !customerDetails.name || !customerDetails.phone || isSubmitting}
+                                disabled={(appConfig.ecommerce_mode && subtotal < MIN_ORDER) || cart.length === 0 || !customerDetails.name || !customerDetails.phone || isSubmitting}
                                 className="flex-[2] bg-green-600 text-white font-bold py-3.5 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 group text-sm sm:text-base"
                             >
                                 {isSubmitting ? (
                                     <Loader2 className="animate-spin" size={18} />
                                 ) : (
                                     <>
-                                        <span>{t.checkout as string}</span>
+                                        <span>
+                                            {appConfig.ecommerce_mode 
+                                                ? (t.checkout as string) 
+                                                : (language === 'he' ? "שליחת בקשה להצעת מחיר מאיילה" : "Send quote request to Ayala")}
+                                        </span>
                                         <Send size={18} className={`transition-transform ${language === 'he' ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
                                     </>
                                 )}

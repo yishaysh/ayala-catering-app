@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS orders (
     coupon_code VARCHAR(50),
     items JSONB,
     status VARCHAR(20) DEFAULT 'pending', 
+    event_type VARCHAR(50),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

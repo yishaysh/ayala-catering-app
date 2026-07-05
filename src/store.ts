@@ -246,9 +246,9 @@ export const translations: Record<Language, Translations> = {
     aiApplying: "מנתח...",
     aiApply: "החל המלצה על העגלה",
     aiExplanation: "למה בחרתי את זה?",
-    basicEvent: "אירוע בסיס",
-    plusEvent: "אירוע פלוס",
-    premiumEvent: "אירוע פרימיום",
+    basicEvent: "אירוע משפחתי בסיס",
+    plusEvent: "אירוע עסקי",
+    premiumEvent: "אירוע משפחתי פרימיום",
     requiredDishes: "מנות חובה לאירוע",
     enrichDishes: "להעשרת האירוע (אופציונלי)",
     customerName: "שם מלא",
@@ -432,9 +432,9 @@ export const translations: Record<Language, Translations> = {
     aiApplying: "Analyzing...",
     aiApply: "Apply Recommendation",
     aiExplanation: "Why this choice?",
-    basicEvent: "Base Event",
-    plusEvent: "Plus Event",
-    premiumEvent: "Premium Event",
+    basicEvent: "Basic Family Event",
+    plusEvent: "Business Event",
+    premiumEvent: "Premium Family Event",
     requiredDishes: "Required Dishes",
     enrichDishes: "To Enrich (Optional)",
     customerName: "Full Name",
@@ -657,7 +657,8 @@ export const useStore = create<AppState>()(
         is_shop_open: true,
         delivery_base_fee: 60,
         delivery_price_per_km: 4,
-        delivery_min_radius_included: 15
+        delivery_min_radius_included: 15,
+        ecommerce_mode: false
       },
       calculationSettings: { 
         sandwichesPerPerson: 1.5, 
@@ -719,7 +720,8 @@ export const useStore = create<AppState>()(
                 is_shop_open: true,
                 delivery_base_fee: 60,
                 delivery_price_per_km: 4,
-                delivery_min_radius_included: 15
+                delivery_min_radius_included: 15,
+                ecommerce_mode: false
             };
             set({ appConfig: { ...defaults, ...configData[0].value } });
         }

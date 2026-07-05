@@ -7,7 +7,7 @@ import { MenuItem } from '../types';
 import { useBackButton } from '../hooks/useBackButton';
 
 export const AIConcierge: React.FC = () => {
-    const { language, menuItems, bulkAddToCart, calculationSettings, aiPrompt, setAiPrompt } = useStore();
+    const { language, menuItems, bulkAddToCart, calculationSettings, aiPrompt, setAiPrompt, appConfig } = useStore();
     const t: Translations = (translations[language] || translations['he']) as Translations;
     const [isGenerating, setIsGenerating] = useState(false);
     const [recommendation, setRecommendation] = useState<{ items: { id: string, quantity: number }[], explanation: string } | null>(null);
@@ -161,7 +161,7 @@ export const AIConcierge: React.FC = () => {
                             {recommendation.items.length > 0 ? (
                                 <div className="bg-themeBg/80 rounded-2xl border border-themeText/10 overflow-hidden backdrop-blur-md">
                                     <div className="bg-themePrimary/10 p-4 border-b border-themePrimary/20"><div className="flex gap-2"><div className="w-1 h-full bg-themePrimary rounded-full shrink-0 min-h-[2rem]"></div><p className="text-themeText/80 text-sm italic leading-relaxed">"{recommendation.explanation}"</p></div></div>
-                                    <div className="bg-themeBg/30 p-4 border-b border-themeText/10 flex justify-between items-center"><h4 className="text-themePrimary font-bold flex items-center gap-2"><Utensils size={16} />{language === 'he' ? 'התפריט שהרכבתי לך' : 'My Recommendation'}</h4><span className="text-themeText/80 font-serif font-bold text-lg">₪{recTotal}</span></div>
+                                    <div className="bg-themeBg/30 p-4 border-b border-themeText/10 flex justify-between items-center"><h4 className="text-themePrimary font-bold flex items-center gap-2"><Utensils size={16} />{language === 'he' ? 'התפריט שהרכבתי לך' : 'My Recommendation'}</h4>{appConfig.ecommerce_mode && <span className="text-themeText/80 font-serif font-bold text-lg">₪{recTotal}</span>}</div>
                                     <div className="p-2">
                                         {recommendation.items.map((rec) => {
                                             const item = menuItems.find(m => m.id === rec.id);
@@ -170,7 +170,7 @@ export const AIConcierge: React.FC = () => {
                                             return (
                                                 <div key={rec.id} className="flex justify-between items-center p-3 hover:bg-themeText/5 rounded-xl transition-colors border-b border-themeText/10 last:border-0">
                                                     <button onClick={() => scrollToItem(rec.id)} className="flex items-center gap-3 overflow-hidden text-start flex-1 group"><div className="w-8 h-8 bg-themePrimary/20 rounded-lg flex items-center justify-center text-themePrimary font-bold text-sm shrink-0">{rec.quantity}</div><div className="flex flex-col min-w-0"><span className="text-themeText/90 font-bold text-sm truncate group-hover:text-themePrimary transition-colors">{localItem.name}</span><span className="text-[10px] text-themeText/50 truncate">{t.categories[item.category] || item.category}</span></div></button>
-                                                    <div className="flex items-center gap-3 shrink-0">{item.image_url && (<button onClick={() => setPreviewItem(item)} className="p-1.5 text-themeText/50 hover:text-themePrimary hover:bg-themeBg rounded-full transition-colors"><Eye size={16} /></button>)}<div className="text-themeText/70 text-sm font-medium w-16 text-end">₪{item.price * rec.quantity}</div></div>
+                                                    <div className="flex items-center gap-3 shrink-0">{item.image_url && (<button onClick={() => setPreviewItem(item)} className="p-1.5 text-themeText/50 hover:text-themePrimary hover:bg-themeBg rounded-full transition-colors"><Eye size={16} /></button>)}{appConfig.ecommerce_mode && <div className="text-themeText/70 text-sm font-medium w-16 text-end">₪{item.price * rec.quantity}</div>}</div>
                                                 </div>
                                             );
                                         })}
@@ -185,7 +185,7 @@ export const AIConcierge: React.FC = () => {
             {previewItem && (
                 <div className="fixed inset-0 z-[200] flex items-center justify-center bg-themeBg/95 backdrop-blur-md animate-fade-in p-4" onClick={() => setPreviewItem(null)}>
                     <button onClick={() => setPreviewItem(null)} className="absolute top-6 right-6 text-themeText p-2 hover:bg-themeText/10 rounded-full z-[210]"><X size={32} /></button>
-                    <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}><img src={previewItem.image_url} alt={getLocalizedItem(previewItem, language).name} className="w-full h-auto max-h-[80vh] object-contain rounded-xl shadow-2xl animate-zoom-in"/><div className="absolute bottom-0 left-0 right-0 bg-themeCardBg/90 backdrop-blur-sm p-4 rounded-b-xl text-center"><h3 className="text-themeText font-bold text-lg">{getLocalizedItem(previewItem, language).name}</h3><p className="text-themePrimary font-serif">₪{previewItem.price}</p></div></div>
+                    <div className="relative max-w-2xl w-full" onClick={(e) => e.stopPropagation()}><img src={previewItem.image_url} alt={getLocalizedItem(previewItem, language).name} className="w-full h-auto max-h-[80vh] object-contain rounded-xl shadow-2xl animate-zoom-in"/><div className="absolute bottom-0 left-0 right-0 bg-themeCardBg/90 backdrop-blur-sm p-4 rounded-b-xl text-center"><h3 className="text-themeText font-bold text-lg">{getLocalizedItem(previewItem, language).name}</h3>{appConfig.ecommerce_mode && <p className="text-themePrimary font-serif">₪{previewItem.price}</p>}</div></div>
                 </div>
             )}
         </div>

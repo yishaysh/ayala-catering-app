@@ -22,7 +22,7 @@ const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || '2024';
 export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isKosherOpen, setIsKosherOpen] = useState(false);
-  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, featureFlags, fetchSettings, kosherCertUrl, fetchReviews, theme, aboutUs } = useStore();
+  const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, featureFlags, fetchSettings, kosherCertUrl, fetchReviews, theme, aboutUs, appConfig } = useStore();
   
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -382,10 +382,17 @@ export default function App() {
 
       <div className="fixed bottom-0 left-0 right-0 bg-themeCardBg border-t border-themeText/10 p-4 shadow-[0_-5px_20px_rgba(0,0,0,0.1)] md:hidden z-30 pb-safe">
           <div className="flex justify-between items-center gap-4">
-              <div className="flex flex-col">
-                  <span className="text-xs text-themeText/60 font-medium">{t.total}</span>
-                  <span className="text-2xl font-bold font-serif text-themeText">₪{cartTotal()}</span>
-              </div>
+              {appConfig.ecommerce_mode ? (
+                  <div className="flex flex-col">
+                      <span className="text-xs text-themeText/60 font-medium">{t.total}</span>
+                      <span className="text-2xl font-bold font-serif text-themeText">₪{cartTotal()}</span>
+                  </div>
+              ) : (
+                  <div className="flex flex-col text-start">
+                      <span className="text-xs text-themeText/60 font-medium">{language === 'he' ? 'פריטים' : 'Items'}</span>
+                      <span className="text-xl font-bold font-serif text-themeText">{cart.reduce((sum, item) => sum + item.quantity, 0)}</span>
+                  </div>
+              )}
               <button 
                 onClick={() => setIsCartOpen(true)}
                 className="flex-1 bg-themeHeaderBg text-themePrimary px-6 py-3.5 rounded-xl font-bold shadow-lg shadow-themeHeaderBg/20 active:scale-95 transition-transform flex items-center justify-center gap-2"

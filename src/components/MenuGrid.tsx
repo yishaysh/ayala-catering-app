@@ -23,7 +23,7 @@ const CATEGORY_ORDER: Category[] = [
 const DEFAULT_PLACEHOLDER = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80";
 
 export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
-  const { addToCart, adultCount, childCount, language, calculationSettings, cart } = useStore();
+  const { addToCart, adultCount, childCount, language, calculationSettings, cart, appConfig } = useStore();
   const t = translations[language];
   const totalGuests = adultCount + childCount;
   
@@ -134,13 +134,21 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                           <h4 className="text-sm md:text-lg font-bold text-themeText leading-tight line-clamp-2 min-h-[2.5em]">{localItem.name}</h4>
                       </div>
                       
-                      <div className="flex items-baseline gap-1 mb-1">
-                           <span className="text-base md:text-xl font-bold text-themeText">₪{item.price}</span>
-                           <span className="text-[10px] md:text-xs text-themeText/50 font-normal">/ {getUnitName(item.unit_type)}</span>
-                           {item.is_tray && item.units_per_tray && (
-                               <span className="text-[10px] md:text-xs text-themePrimary font-bold">({item.units_per_tray} {language === 'he' ? 'יח\'' : 'pcs'})</span>
-                           )}
-                      </div>
+                      {appConfig.ecommerce_mode ? (
+                        <div className="flex items-baseline gap-1 mb-1">
+                             <span className="text-base md:text-xl font-bold text-themeText">₪{item.price}</span>
+                             <span className="text-[10px] md:text-xs text-themeText/50 font-normal">/ {getUnitName(item.unit_type)}</span>
+                             {item.is_tray && item.units_per_tray && (
+                                 <span className="text-[10px] md:text-xs text-themePrimary font-bold">({item.units_per_tray} {language === 'he' ? 'יח\'' : 'pcs'})</span>
+                             )}
+                        </div>
+                      ) : (
+                        item.is_tray && item.units_per_tray && (
+                          <div className="mb-1">
+                              <span className="text-[10px] md:text-xs text-themePrimary font-bold font-sans">({item.units_per_tray} {language === 'he' ? 'יחידות במגש' : 'units per tray'})</span>
+                          </div>
+                        )
+                      )}
                       
                       <div className="text-[10px] md:text-xs text-themeText/60 mb-2 flex items-center gap-1">
                            <Info size={12} className="text-themePrimary shrink-0" />
@@ -241,10 +249,12 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                         <h3 className="text-lg md:text-2xl font-serif font-bold text-white mb-0.5 leading-tight drop-shadow-md">
                             {getLocalizedItem(itemToAdd, language).name}
                         </h3>
-                        <div className="flex items-center gap-2">
-                             <span className="text-sm font-bold text-themePrimary">₪{itemToAdd.price}</span>
-                             <span className="text-stone-300 text-[10px]">/ {getUnitName(itemToAdd.unit_type)}</span>
-                        </div>
+                        {appConfig.ecommerce_mode && (
+                            <div className="flex items-center gap-2">
+                                 <span className="text-sm font-bold text-themePrimary">₪{itemToAdd.price}</span>
+                                 <span className="text-stone-300 text-[10px]">/ {getUnitName(itemToAdd.unit_type)}</span>
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -323,10 +333,12 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                 </div>
 
                 <div className="bg-themeCardBg border-t border-themeText/10 p-4 flex gap-3 shrink-0 shadow-[0_-8px_24px_rgba(0,0,0,0.05)]">
-                    <div className="flex flex-col justify-center">
-                        <div className="text-[10px] text-themeText/50 font-bold uppercase tracking-tighter">{t.total}</div>
-                        <div className="text-xl font-bold font-serif text-themeText leading-none">₪{itemToAdd.price * addQuantity}</div>
-                    </div>
+                    {appConfig.ecommerce_mode && (
+                        <div className="flex flex-col justify-center">
+                            <div className="text-[10px] text-themeText/50 font-bold uppercase tracking-tighter">{t.total}</div>
+                            <div className="text-xl font-bold font-serif text-themeText leading-none">₪{itemToAdd.price * addQuantity}</div>
+                        </div>
+                    )}
                     <button 
                         onClick={handleConfirmAdd}
                         className="flex-1 bg-themePrimary text-themeHeaderBg font-bold py-3 rounded-xl hover:bg-themeSecondary active:scale-95 transition-all shadow-md flex items-center justify-center text-base"
