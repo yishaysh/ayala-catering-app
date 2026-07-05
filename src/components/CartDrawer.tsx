@@ -474,7 +474,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
     return (
         <>
-            <div className="fixed inset-0 z-50 flex justify-end font-sans">
+            <div className="fixed inset-0 z-[180] flex justify-end font-sans">
                 <div 
                     className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm transition-opacity" 
                     onClick={onClose}
