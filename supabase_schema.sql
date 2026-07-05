@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS orders (
     items JSONB,
     status VARCHAR(20) DEFAULT 'pending', 
     event_type VARCHAR(50),
+    wants_setup BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

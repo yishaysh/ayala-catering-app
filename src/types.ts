@@ -102,6 +102,7 @@ export interface Order {
     status: 'pending' | 'approved' | 'completed' | 'cancelled';
     created_at?: string;
     event_type?: string;
+    wants_setup?: boolean;
 }
 
 export interface CalculationSettings {

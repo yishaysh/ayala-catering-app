@@ -87,7 +87,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
         });
         setQuoteItems(items);
         setQuoteDiscountPercent(0);
-        setQuoteWantsSetup(false);
+        setQuoteWantsSetup(!!order.wants_setup);
         setQuoteDeliveryFee(0);
     };
 
@@ -107,7 +107,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 subtotal: totalSubtotal,
                 discount_amount: totalDiscount,
                 total_price: totalFinal,
-                status: 'approved' // Automatically mark approved upon quote creation
+                status: 'approved', // Automatically mark approved upon quote creation
+                wants_setup: quoteWantsSetup
             })
             .eq('id', quoteOrder.id);
 

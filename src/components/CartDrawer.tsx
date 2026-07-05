@@ -408,16 +408,21 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 coupon_code: (appConfig.ecommerce_mode && activeCoupon) ? activeCoupon.code : null,
                 items: cart,
                 status: 'pending', // It remains pending until manual approval
-                event_type: resolvedEventType
+                event_type: resolvedEventType,
+                wants_setup: wantsSetup
             };
 
             let { error, data } = await supabase.from('orders').insert([orderData]).select('id');
 
-            // Fallback if event_type column does not exist in backend database
+            // Fallback if event_type or wants_setup columns do not exist in backend database
             if (error && error.code === '42703') {
-                console.warn("event_type column missing in Supabase schema, retrying fallback insert...");
-                const { event_type, ...fallbackOrderData } = orderData;
-                fallbackOrderData.customer_name = `${customerDetails.name} (${resolvedEventType})`;
+                console.warn("event_type/wants_setup columns missing in Supabase schema, retrying fallback insert...");
+                const { event_type, wants_setup, ...fallbackOrderData } = orderData;
+                let extraInfo = `(${resolvedEventType})`;
+                if (wantsSetup) {
+                    extraInfo += ` (עם סידור)`;
+                }
+                fallbackOrderData.customer_name = `${customerDetails.name} ${extraInfo}`;
                 
                 const retry = await supabase.from('orders').insert([fallbackOrderData]).select('id');
                 error = retry.error;
