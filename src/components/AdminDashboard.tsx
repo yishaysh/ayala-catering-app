@@ -71,6 +71,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     const [quoteDiscountPercent, setQuoteDiscountPercent] = useState<number>(0);
     const [quoteWantsSetup, setQuoteWantsSetup] = useState<boolean>(false);
     const [quoteDeliveryFee, setQuoteDeliveryFee] = useState<number>(0);
+    const [quoteSuccessData, setQuoteSuccessData] = useState<{
+        isOpen: boolean;
+        orderId: string;
+        customerName: string;
+        customerPhone: string;
+    } | null>(null);
 
     const openQuoteDialog = (order: Order) => {
         setQuoteOrder(order);
@@ -481,8 +487,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             printWindow.document.close();
         }
 
+        const orderId = quoteOrder.id || '';
+        const customerName = quoteOrder.customer_name || '';
+        const customerPhone = quoteOrder.customer_phone || '';
+
         setQuoteOrder(null);
         await loadOrders();
+
+        setQuoteSuccessData({
+            isOpen: true,
+            orderId,
+            customerName,
+            customerPhone
+        });
     };
 
     const handleDeleteOrder = (orderId: string) => {
@@ -2690,6 +2707,64 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             >
                                 <FileText size={16} />
                                 {language === 'he' ? 'הפקת הצעת מחיר' : 'Generate Quote'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {quoteSuccessData?.isOpen && (
+                <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" onClick={() => setQuoteSuccessData(null)}></div>
+                    <div className="bg-themeCardBg border border-themeText/10 rounded-2xl max-w-md w-full p-6 shadow-2xl relative z-10 text-center">
+                        <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <CheckCheck className="text-green-500" size={24} />
+                        </div>
+                        <h3 className="text-lg font-bold text-themeText mb-2">
+                            {language === 'he' ? 'הצעת המחיר הופקה בהצלחה!' : 'Quote Generated Successfully!'}
+                        </h3>
+                        <p className="text-xs text-themeText/60 mb-6">
+                            {language === 'he' 
+                                ? `הצעת המחיר נשמרה בבסיס הנתונים עבור ${quoteSuccessData.customerName}.` 
+                                : `The quote was saved in the database for ${quoteSuccessData.customerName}.`}
+                        </p>
+
+                        <div className="flex flex-col gap-3">
+                            <button
+                                onClick={() => {
+                                    const cleanPhone = quoteSuccessData.customerPhone.replace(/[-+\s]/g, '');
+                                    const formattedPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.slice(1) : cleanPhone;
+                                    const quoteUrl = `${window.location.origin}/?quote=${quoteSuccessData.orderId}`;
+                                    const message = language === 'he'
+                                        ? `היי ${quoteSuccessData.customerName}, הנה הצעת המחיר שהכנתי עבורך לאירוע:\n${quoteUrl}`
+                                        : `Hi ${quoteSuccessData.customerName}, here is the quote proposal for your event:\n${quoteUrl}`;
+                                    window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+                                }}
+                                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm"
+                            >
+                                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.326.002 9.66-4.322 9.663-9.654.002-2.585-1.005-5.01-2.835-6.84C16.25 2.28 13.824 1.272 11.24 1.27c-5.328 0-9.664 4.321-9.667 9.656-.001 1.544.412 3.052 1.196 4.385l-.974 3.556 3.649-.957z"/>
+                                </svg>
+                                <span>{language === 'he' ? 'שליחה בוואטסאפ ללקוח' : 'Send via WhatsApp to Customer'}</span>
+                            </button>
+
+                            <button
+                                onClick={() => {
+                                    const quoteUrl = `${window.location.origin}/?quote=${quoteSuccessData.orderId}`;
+                                    navigator.clipboard.writeText(quoteUrl);
+                                    alert(language === 'he' ? 'הקישור הועתק ללוח!' : 'Link copied to clipboard!');
+                                }}
+                                className="w-full border border-themeText/25 text-themeText font-bold py-3 rounded-xl hover:bg-themeBg/20 transition-all text-sm flex items-center justify-center gap-2"
+                            >
+                                <span>🔗</span>
+                                <span>{language === 'he' ? 'העתקת קישור להצעה' : 'Copy Quote Link'}</span>
+                            </button>
+
+                            <button
+                                onClick={() => setQuoteSuccessData(null)}
+                                className="w-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold py-2.5 rounded-xl transition-all text-xs"
+                            >
+                                {language === 'he' ? 'סגור' : 'Close'}
                             </button>
                         </div>
                     </div>

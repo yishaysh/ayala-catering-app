@@ -13,6 +13,7 @@ import { EventGallery } from './components/EventGallery';
 import { ReviewsSection } from './components/ReviewsSection';
 import { AccessibilityMenu } from './components/AccessibilityMenu';
 import { Analytics } from '@vercel/analytics/react';
+import { CustomerQuoteView } from './components/CustomerQuoteView';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts', 'Picnic Baskets'];
 const NAV_LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png";
@@ -155,6 +156,18 @@ export default function App() {
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
     return brightness < 128;
   })();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const quoteId = urlParams.get('quote');
+
+  if (quoteId) {
+      return (
+          <>
+              <ThemeStyles />
+              <CustomerQuoteView quoteId={quoteId} />
+          </>
+      );
+  }
 
   if (isAdmin) {
       return (
