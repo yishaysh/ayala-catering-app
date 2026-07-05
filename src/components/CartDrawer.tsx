@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock, LocateFixed, Tag, Truck } from 'lucide-react';
+import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock, LocateFixed, Tag, Truck, Calendar } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
 import { supabase } from '../lib/supabase';
@@ -56,6 +56,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     
     const [isDelivery, setIsDelivery] = useState(true);
     const [wantsSetup, setWantsSetup] = useState(false);
+    const [eventDate, setEventDate] = useState('');
     
     const deliveryFee = isDelivery ? getDeliveryFee(customerDetails.distanceKm, subtotal) : 0;
     const setupFee = wantsSetup ? 1000 : 0;
@@ -70,6 +71,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
     
     const resolvedEventType = eventType === 'basic' ? t.basicEvent : eventType === 'plus' ? t.plusEvent : t.premiumEvent;
+    
+    const getMinDateString = () => {
+        const minDate = new Date();
+        const leadTimeHours = appConfig.lead_time_hours || 48;
+        minDate.setHours(minDate.getHours() + leadTimeHours);
+        return minDate.toISOString().split('T')[0];
+    };
     
     // Unified Feedback Modal State
     const [feedback, setFeedback] = useState<{
@@ -286,6 +294,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             }
             message += `👤 שם: ${customerDetails.name}\n`;
             message += `📞 טלפון: ${customerDetails.phone}\n`;
+            message += `📅 תאריך אירוע: ${eventDate ? new Date(eventDate).toLocaleDateString('he-IL') : ''}\n`;
             message += `🎉 סוג אירוע: ${resolvedEventType}\n`;
             if (isDelivery) {
                 message += `📍 מיקום: ${customerDetails.location} ${detectedLocationName ? `(זוהה: ${detectedLocationName})` : ''}\n`;
@@ -304,6 +313,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             message += `*Customer Details #${orderId || 'NEW'}:* 👤\n`;
             message += `👤 Name: ${customerDetails.name}\n`;
             message += `📞 Phone: ${customerDetails.phone}\n`;
+            message += `📅 Event Date: ${eventDate ? new Date(eventDate).toLocaleDateString('en-US') : ''}\n`;
             message += `🎉 Event Type: ${resolvedEventType}\n`;
             if (isDelivery) {
                 message += `📍 Location: ${customerDetails.location} ${detectedLocationName ? `(Verified: ${detectedLocationName})` : ''}\n`;
@@ -401,7 +411,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             const orderData: any = {
                 customer_name: customerDetails.name,
                 customer_phone: customerDetails.phone,
-                event_date: new Date().toISOString(),
+                event_date: eventDate ? new Date(eventDate).toISOString() : new Date().toISOString(),
                 total_price: appConfig.ecommerce_mode ? finalTotal : 0,
                 subtotal: appConfig.ecommerce_mode ? subtotal : 0,
                 discount_amount: appConfig.ecommerce_mode ? discountAmount : 0,
@@ -577,6 +587,22 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                     onChange={(e) => setCustomerDetails({ phone: e.target.value })}
                                     placeholder={t.customerPhone}
                                     className="w-full bg-themeBg border border-themeText/10 rounded-lg p-2 pr-9 text-sm focus:border-themePrimary outline-none text-themeText"
+                                />
+                            </div>
+
+                            {/* Event Date Picker */}
+                            <div className="relative flex flex-col gap-1.5">
+                                <label className="text-[10px] text-themeText/60 font-bold px-1 select-none flex items-center gap-1">
+                                    <Calendar size={12} className="text-themePrimary" />
+                                    {language === 'he' ? 'תאריך האירוע *' : 'Event Date *'}
+                                </label>
+                                <input 
+                                    type="date"
+                                    value={eventDate}
+                                    min={getMinDateString()}
+                                    onChange={(e) => setEventDate(e.target.value)}
+                                    required
+                                    className="w-full bg-themeBg border border-themeText/10 rounded-lg p-2 text-sm focus:border-themePrimary outline-none text-themeText font-sans"
                                 />
                             </div>
 
@@ -833,7 +859,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             
                             <button 
                                 onClick={handleWhatsAppCheckout}
-                                disabled={(appConfig.ecommerce_mode && subtotal < MIN_ORDER) || cart.length === 0 || !customerDetails.name || !customerDetails.phone || isSubmitting}
+                                disabled={(appConfig.ecommerce_mode && subtotal < MIN_ORDER) || cart.length === 0 || !customerDetails.name || !customerDetails.phone || !eventDate || isSubmitting}
                                 className="flex-[2] bg-green-600 text-white font-bold py-3.5 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 group text-sm sm:text-base"
                             >
                                 {isSubmitting ? (
