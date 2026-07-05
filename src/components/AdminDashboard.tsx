@@ -137,41 +137,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     
                     body {
                         font-family: 'Assistant', sans-serif;
-                        color: #292524;
+                        color: ${theme?.text_color || '#292524'};
                         margin: 0;
                         padding: 40px;
-                        background-color: #ffffff;
+                        background-color: ${theme?.bg_color || '#ffffff'};
                         line-height: 1.5;
+                        position: relative;
+                    }
+
+                    /* Watermark in background */
+                    .watermark {
+                        position: absolute;
+                        left: 50%;
+                        top: 40%;
+                        transform: translate(-50%, -50%);
+                        width: 450px;
+                        height: 450px;
+                        background-image: url("/seal_stamp.png");
+                        background-position: center;
+                        background-repeat: no-repeat;
+                        background-size: contain;
+                        opacity: 0.06;
+                        pointer-events: none;
+                        z-index: -1;
                     }
                     
                     .header {
                         display: flex;
                         justify-content: space-between;
-                        align-items: flex-start;
-                        border-bottom: 2px solid #e7e5e4;
+                        align-items: center;
+                        border-bottom: 2px solid ${theme?.primary_color || '#7c2d12'}20;
                         padding-bottom: 20px;
                         margin-bottom: 30px;
                     }
                     
                     .logo-container {
+                        display: flex;
+                        align-items: center;
+                        gap: 15px;
                         text-align: right;
                     }
                     
                     body[dir="ltr"] .logo-container {
                         text-align: left;
                     }
+
+                    .brand-logo-img {
+                        width: 60px;
+                        height: 60px;
+                        object-fit: contain;
+                    }
                     
                     .business-title {
                         font-family: 'Playfair Display', serif;
                         font-size: 28px;
                         font-weight: 700;
-                        color: #7c2d12;
+                        color: ${theme?.primary_color || '#7c2d12'};
                         margin: 0 0 5px 0;
                     }
                     
                     .business-subtitle {
-                        font-size: 14px;
-                        color: #78716c;
+                        font-size: 13px;
+                        color: ${theme?.text_color || '#78716c'}a0;
                         margin: 0;
                     }
                     
@@ -186,14 +213,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     .quote-title {
                         font-size: 24px;
                         font-weight: 800;
-                        color: #1c1917;
+                        color: ${theme?.text_color || '#1c1917'};
                         margin: 0 0 10px 0;
                         letter-spacing: -0.5px;
                     }
                     
                     .quote-meta-item {
                         font-size: 13px;
-                        color: #44403c;
+                        color: ${theme?.text_color || '#44403c'}c0;
                         margin: 3px 0;
                     }
                     
@@ -202,8 +229,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         grid-template-cols: 1fr 1fr;
                         gap: 20px;
                         margin-bottom: 40px;
-                        background-color: #fafaf9;
-                        border: 1px solid #f5f5f4;
+                        background-color: ${theme?.card_bg_color || '#fafaf9'};
+                        border: 1px solid ${theme?.text_color || '#f5f5f4'}10;
                         border-radius: 12px;
                         padding: 20px;
                     }
@@ -211,7 +238,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     .details-col h3 {
                         font-size: 12px;
                         font-weight: 700;
-                        color: #a8a29e;
+                        color: ${theme?.text_color || '#a8a29e'}70;
                         text-transform: uppercase;
                         letter-spacing: 1px;
                         margin: 0 0 8px 0;
@@ -220,7 +247,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     .details-col p {
                         font-size: 15px;
                         font-weight: 600;
-                        color: #292524;
+                        color: ${theme?.text_color || '#292524'};
                         margin: 4px 0;
                     }
                     
@@ -231,13 +258,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     }
                     
                     th {
-                        background-color: #7c2d12;
-                        color: #ffffff;
+                        background-color: ${theme?.primary_color || '#7c2d12'};
+                        color: ${theme?.card_bg_color || '#ffffff'};
                         font-weight: 700;
                         font-size: 13px;
                         text-align: right;
                         padding: 12px 16px;
-                        border-bottom: 2px solid #7c2d12;
+                        border-bottom: 2px solid ${theme?.primary_color || '#7c2d12'};
                     }
                     
                     body[dir="ltr"] th {
@@ -246,35 +273,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     
                     td {
                         padding: 14px 16px;
-                        border-bottom: 1px solid #f5f5f4;
+                        border-bottom: 1px solid ${theme?.text_color || '#f5f5f4'}10;
                         font-size: 14px;
-                        color: #44403c;
+                        color: ${theme?.text_color || '#44403c'}d0;
                     }
                     
                     tr:nth-child(even) td {
-                        background-color: #fafaf9;
+                        background-color: ${theme?.card_bg_color || '#fafaf9'}50;
                     }
                     
                     .item-name {
                         font-weight: 700;
-                        color: #1c1917;
+                        color: ${theme?.text_color || '#1c1917'};
                     }
                     
                     .item-details {
                         font-size: 11px;
-                        color: #78716c;
+                        color: ${theme?.text_color || '#78716c'}80;
                         margin-top: 3px;
                     }
                     
                     .price-original {
                         text-decoration: line-through;
-                        color: #a8a29e;
+                        color: ${theme?.text_color || '#a8a29e'}60;
                         font-size: 12px;
                         margin-inline-end: 8px;
                     }
                     
                     .price-discounted {
-                        color: #b45309;
+                        color: ${theme?.primary_color || '#b45309'};
                         font-weight: 700;
                     }
                     
@@ -290,7 +317,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                     
                     .summary-table td {
                         padding: 8px 16px;
-                        border-bottom: 1px dashed #e7e5e4;
+                        border-bottom: 1px dashed ${theme?.text_color || '#e7e5e4'}20;
                         font-size: 14px;
                     }
                     
@@ -298,16 +325,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                         border-bottom: none;
                         font-size: 18px;
                         font-weight: 800;
-                        color: #1c1917;
+                        color: ${theme?.text_color || '#1c1917'};
                         padding-top: 15px;
                     }
                     
                     .terms {
                         margin-top: 60px;
-                        border-top: 1px solid #e7e5e4;
+                        border-top: 1px solid ${theme?.text_color || '#e7e5e4'}20;
                         padding-top: 20px;
                         font-size: 12px;
-                        color: #78716c;
+                        color: ${theme?.text_color || '#78716c'}80;
                         text-align: center;
                     }
                     
@@ -319,10 +346,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </style>
             </head>
             <body dir="${isHe ? 'rtl' : 'ltr'}">
+                <div class="watermark"></div>
                 <div class="header">
                     <div class="logo-container">
-                        <h1 class="business-title">${businessName}</h1>
-                        <p class="business-subtitle">${isHe ? 'קייטרינג חלבי בוטיק ומגשי אירוח מעוצבים' : 'Boutique Dairy Catering & Designed Platters'}</p>
+                        <img src="https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png" alt="Ayala Logo" class="brand-logo-img" />
+                        <div>
+                            <h1 class="business-title">${businessName}</h1>
+                            <p class="business-subtitle">${isHe ? 'קייטרינג חלבי בוטיק ומגשי אירוח מעוצבים' : 'Boutique Dairy Catering & Designed Platters'}</p>
+                        </div>
                     </div>
                     <div class="quote-info">
                         <h2 class="quote-title">${titleText}</h2>
