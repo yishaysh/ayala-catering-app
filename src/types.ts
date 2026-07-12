@@ -8,7 +8,8 @@ export type Category =
   | 'Main Courses' 
   | 'Pastries' 
   | 'Desserts'
-  | 'Picnic Baskets';
+  | 'Picnic Baskets'
+  | 'Extras';
 
 export interface Review {
   id?: string;

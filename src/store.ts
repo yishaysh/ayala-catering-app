@@ -263,7 +263,8 @@ export const translations: Record<Language, Translations> = {
       'Main Courses': 'עיקריות',
       'Pastries': 'מאפים',
       'Desserts': 'קינוחים',
-      'Picnic Baskets': 'סלסלאות פיקניק'
+      'Picnic Baskets': 'סלסלאות פיקניק',
+      'Extras': 'נלווים וכלים'
     },
     admin: {
         title: "ניהול תפריט ומלאי",
@@ -449,7 +450,8 @@ export const translations: Record<Language, Translations> = {
       'Main Courses': 'Main Courses',
       'Pastries': 'Pastries',
       'Desserts': 'Desserts',
-      'Picnic Baskets': 'Picnic Baskets'
+      'Picnic Baskets': 'Picnic Baskets',
+      'Extras': 'Extras'
     },
     admin: {
         title: "Menu & Inventory Management",

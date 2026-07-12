@@ -20,7 +20,8 @@ const CATEGORY_OPTIONS: Category[] = [
     'Main Courses',
     'Pastries',
     'Desserts',
-    'Picnic Baskets'
+    'Picnic Baskets',
+    'Extras'
 ];
 
 const UNIT_OPTIONS: UnitType[] = ['tray', 'unit', 'liter', 'weight'];

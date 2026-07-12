@@ -15,7 +15,7 @@ import { AccessibilityMenu } from './components/AccessibilityMenu';
 import { Analytics } from '@vercel/analytics/react';
 import { CustomerQuoteView } from './components/CustomerQuoteView';
 
-const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts', 'Picnic Baskets'];
+const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts', 'Picnic Baskets', 'Extras'];
 const NAV_LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png";
 const BRAND_LOGO_SRC = "/logo_text.png";
 const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || '2024';
