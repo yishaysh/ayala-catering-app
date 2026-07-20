@@ -14,21 +14,55 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const knownOrderIdsRef = useRef<Set<string>>(new Set());
 
-  // Play pleasant chime using Web Audio API (no external file needed)
+  // Web Audio Context reference unlocked on mobile touch
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Unlock AudioContext on first user interaction (mobile Safari / Chrome requirement)
+  useEffect(() => {
+    const unlockAudio = () => {
+      try {
+        if (!audioCtxRef.current) {
+          const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+          if (AudioCtx) {
+            audioCtxRef.current = new AudioCtx();
+          }
+        }
+        if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume();
+        }
+      } catch (e) {
+        console.warn("Could not unlock audio context:", e);
+      }
+    };
+
+    window.addEventListener('touchstart', unlockAudio, { once: true });
+    window.addEventListener('click', unlockAudio, { once: true });
+    return () => {
+      window.removeEventListener('touchstart', unlockAudio);
+      window.removeEventListener('click', unlockAudio);
+    };
+  }, []);
+
+  // Play pleasant chime sound
   const playChimeSound = () => {
     if (!soundEnabled) return;
     try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      if (!audioCtxRef.current) {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) audioCtxRef.current = new AudioCtx();
+      }
+      const ctx = audioCtxRef.current;
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume();
 
       // Note 1 (E5 - 659.25 Hz)
       const osc1 = ctx.createOscillator();
       const gain1 = ctx.createGain();
       osc1.type = 'sine';
       osc1.frequency.setValueAtTime(659.25, ctx.currentTime);
-      gain1.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.2, ctx.currentTime);
       gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
       osc1.connect(gain1);
       gain1.connect(ctx.destination);
@@ -41,7 +75,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
         const gain2 = ctx.createGain();
         osc2.type = 'sine';
         osc2.frequency.setValueAtTime(880, ctx.currentTime);
-        gain2.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain2.gain.setValueAtTime(0.25, ctx.currentTime);
         gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
         osc2.connect(gain2);
         gain2.connect(ctx.destination);
@@ -53,29 +87,54 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
     }
   };
 
-  // Fetch initial pending orders
-  useEffect(() => {
-    const fetchPendingOrders = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(10);
+  // Fetch pending orders function
+  const fetchPendingOrders = async (isPolling = false) => {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-        if (!error && data) {
-          setUnreadOrders(data);
+      if (!error && data) {
+        // Detect newly arrived orders during polling
+        if (isPolling) {
+          const brandNewOrders = data.filter(order => !knownOrderIdsRef.current.has(order.id));
+          if (brandNewOrders.length > 0) {
+            playChimeSound();
+            const latest = brandNewOrders[0];
+            const name = latest.customer_name || (language === 'he' ? 'לקוח חדש' : 'New Customer');
+            setToastMessage(
+              language === 'he'
+                ? `🔔 הזמנה חדשה נכנסה למערכת מ-${name}!`
+                : `🔔 New order received from ${name}!`
+            );
+            setTimeout(() => setToastMessage(null), 6000);
+          }
         }
-      } catch (err) {
-        console.error("Error fetching pending orders for notification bell:", err);
+
+        // Update known IDs
+        data.forEach(order => knownOrderIdsRef.current.add(order.id));
+        setUnreadOrders(data);
       }
-    };
+    } catch (err) {
+      console.error("Error fetching pending orders:", err);
+    }
+  };
 
-    fetchPendingOrders();
-  }, []);
+  // Initial fetch and Polling interval (every 10 seconds for robust mobile updates)
+  useEffect(() => {
+    fetchPendingOrders(false);
 
-  // Listen for real-time new orders in Supabase
+    const interval = setInterval(() => {
+      fetchPendingOrders(true);
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [language, soundEnabled]);
+
+  // Listen for real-time WebSocket inserts in Supabase
   useEffect(() => {
     const channel = supabase
       .channel('orders-realtime-bell')
@@ -88,21 +147,19 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
         },
         (payload) => {
           const newOrder = payload.new;
-          playChimeSound();
-          
-          setUnreadOrders((prev) => [newOrder, ...prev]);
-          
-          const customerName = newOrder.customer_name || (language === 'he' ? 'לקוח חדש' : 'New Customer');
-          const message = language === 'he'
-            ? `🔔 הזמנה חדשה נכנסה למערכת מ-${customerName}!`
-            : `🔔 New order received from ${customerName}!`;
-          
-          setToastMessage(message);
+          if (newOrder && !knownOrderIdsRef.current.has(newOrder.id)) {
+            knownOrderIdsRef.current.add(newOrder.id);
+            playChimeSound();
+            setUnreadOrders((prev) => [newOrder, ...prev]);
 
-          // Hide toast after 6 seconds
-          setTimeout(() => {
-            setToastMessage((current) => (current === message ? null : current));
-          }, 6000);
+            const customerName = newOrder.customer_name || (language === 'he' ? 'לקוח חדש' : 'New Customer');
+            const message = language === 'he'
+              ? `🔔 הזמנה חדשה נכנסה למערכת מ-${customerName}!`
+              : `🔔 New order received from ${customerName}!`;
+
+            setToastMessage(message);
+            setTimeout(() => setToastMessage(null), 6000);
+          }
         }
       )
       .subscribe();
@@ -129,9 +186,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
     <div className="relative inline-block" ref={dropdownRef}>
       {/* Toast Alert Banner */}
       {toastMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[250] bg-stone-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-amber-500/40 flex items-center gap-3 animate-bounce">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[300] bg-stone-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-amber-500/40 flex items-center gap-3 animate-bounce max-w-[90vw]">
           <span className="text-xl">🛎️</span>
-          <span className="text-sm font-bold">{toastMessage}</span>
+          <span className="text-xs sm:text-sm font-bold truncate">{toastMessage}</span>
           <button
             onClick={() => setToastMessage(null)}
             className="text-white/60 hover:text-white mr-2 p-1"
@@ -144,7 +201,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
       {/* Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2.5 rounded-full text-themeHeaderTxt hover:bg-white/10 transition-colors focus:outline-none"
+        className="relative p-2 rounded-full text-themeHeaderTxt hover:bg-white/10 transition-colors focus:outline-none"
         title={language === 'he' ? 'התראות הזמנות חדשות' : 'New Order Notifications'}
       >
         <Bell size={22} className={unreadCount > 0 ? 'animate-wiggle text-amber-400' : ''} />
@@ -156,14 +213,14 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
         )}
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown Menu - Positioned Centered on Mobile Viewports */}
       {isOpen && (
-        <div className="absolute left-0 sm:left-auto right-0 mt-3 w-80 sm:w-96 bg-themeCardBg border border-themeText/10 rounded-2xl shadow-2xl z-[200] overflow-hidden text-themeText font-sans animate-fade-in">
+        <div className="fixed inset-x-3 top-[76px] sm:absolute sm:top-auto sm:inset-auto sm:right-0 sm:left-auto sm:mt-3 w-auto sm:w-96 bg-themeCardBg border border-themeText/10 rounded-2xl shadow-2xl z-[250] overflow-hidden text-themeText font-sans animate-fade-in">
           {/* Header */}
-          <div className="p-4 bg-themeHeaderBg text-themeHeaderTxt flex items-center justify-between border-b border-white/10">
+          <div className="p-3.5 sm:p-4 bg-themeHeaderBg text-themeHeaderTxt flex items-center justify-between border-b border-white/10">
             <div className="flex items-center gap-2">
               <Bell size={18} className="text-amber-400" />
-              <h3 className="font-bold text-sm">
+              <h3 className="font-bold text-xs sm:text-sm">
                 {language === 'he' ? 'הזמנות ובקשות חדשות' : 'New Orders & Requests'}
               </h3>
               {unreadCount > 0 && (
@@ -213,7 +270,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
                 return (
                   <div
                     key={order.id}
-                    className="p-3.5 hover:bg-themeBg/40 transition flex items-start justify-between gap-3 group"
+                    className="p-3.5 hover:bg-themeBg/40 transition flex items-center justify-between gap-3 group"
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
@@ -238,13 +295,14 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
                     <button
                       onClick={() => {
                         setIsOpen(false);
-                        if (onOpenOrder) onOpenOrder(order.id);
-                        else window.location.href = `/?quote=${order.id}`;
+                        if (onOpenOrder) {
+                          onOpenOrder(order.id);
+                        }
                       }}
-                      className="text-xs font-bold px-2.5 py-1.5 bg-themePrimary/10 text-themePrimary hover:bg-themePrimary hover:text-white rounded-lg transition flex items-center gap-1 shrink-0"
+                      className="text-xs font-bold px-3 py-1.5 bg-themePrimary text-themeHeaderBg hover:opacity-90 rounded-xl transition flex items-center gap-1 shrink-0 shadow-sm"
                     >
                       <span>{language === 'he' ? 'צפייה' : 'View'}</span>
-                      <ExternalLink size={12} />
+                      <ExternalLink size={13} />
                     </button>
                   </div>
                 );

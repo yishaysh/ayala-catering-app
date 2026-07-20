@@ -10,6 +10,8 @@ import { ConfirmationModal } from './ConfirmationModal';
 
 interface AdminDashboardProps {
     onExit: () => void;
+    initialTab?: number;
+    targetOrderId?: string;
 }
 
 const CATEGORY_OPTIONS: Category[] = [
@@ -27,7 +29,7 @@ const CATEGORY_OPTIONS: Category[] = [
 const UNIT_OPTIONS: UnitType[] = ['tray', 'unit', 'liter', 'weight'];
 const EVENT_TYPES: EventType[] = ['basic', 'premium', 'plus'];
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialTab = 0, targetOrderId }) => {
     const {
         menuItems, updateMenuItem, addMenuItem, deleteMenuItem,
         calculationSettings, updateCalculationSettings,
@@ -486,10 +488,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
     };
 
     // Tab state and controls
-    const [activeTab, setActiveTab] = useState(0);
+    const [activeTab, setActiveTab] = useState(initialTab);
     const tabsContainerRef = React.useRef<HTMLDivElement>(null);
     const tabHeadersContainerRef = React.useRef<HTMLDivElement>(null);
     const isScrolling = React.useRef(false);
+
+    useEffect(() => {
+        if (targetOrderId) {
+            setActiveTab(0);
+            setExpandedOrders(prev => ({ ...prev, [targetOrderId]: true }));
+            setOrderStatusFilter('all');
+        }
+    }, [targetOrderId]);
 
     // Reset page scroll position to 0 on activeTab change
     useEffect(() => {

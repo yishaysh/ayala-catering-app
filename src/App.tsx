@@ -30,6 +30,7 @@ export default function App() {
     return localStorage.getItem('ayala_is_admin') === 'true';
   });
   const [showFullDashboard, setShowFullDashboard] = useState<boolean>(false);
+  const [adminTargetOrderId, setAdminTargetOrderId] = useState<string | undefined>(undefined);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [loginError, setLoginError] = useState(false);
@@ -184,7 +185,11 @@ export default function App() {
       return (
           <>
               <ThemeStyles />
-              <AdminDashboard onExit={() => setShowFullDashboard(false)} />
+              <AdminDashboard 
+                  onExit={() => setShowFullDashboard(false)} 
+                  initialTab={0}
+                  targetOrderId={adminTargetOrderId}
+              />
           </>
       );
   }
@@ -224,7 +229,8 @@ export default function App() {
                      <div className="flex items-center gap-1.5 sm:gap-2 bg-white/5 p-1 rounded-full border border-white/10">
                          {/* Notification Bell ONLY for Admin! */}
                          <NotificationBell onOpenOrder={(orderId) => {
-                             window.location.href = `/?quote=${orderId}`;
+                             setAdminTargetOrderId(orderId);
+                             setShowFullDashboard(true);
                          }} />
 
                          {/* Button to open full Admin Dashboard */}
