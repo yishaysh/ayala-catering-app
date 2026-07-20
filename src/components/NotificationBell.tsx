@@ -186,12 +186,17 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
     <div className="relative inline-block" ref={dropdownRef}>
       {/* Toast Alert Banner */}
       {toastMessage && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[300] bg-stone-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-amber-500/40 flex items-center gap-3 animate-bounce max-w-[90vw]">
-          <span className="text-xl">🛎️</span>
-          <span className="text-xs sm:text-sm font-bold truncate">{toastMessage}</span>
+        <div className="fixed top-4 inset-x-4 sm:inset-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-auto sm:max-w-md z-[350] bg-stone-900/95 text-white px-4 py-3 rounded-2xl shadow-2xl border-2 border-amber-500/50 flex items-center justify-between gap-3 animate-fade-in text-right font-sans">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <span className="text-xl shrink-0">🛎️</span>
+            <span className="text-xs sm:text-sm font-bold text-amber-300 leading-snug whitespace-normal break-words">
+              {toastMessage}
+            </span>
+          </div>
           <button
             onClick={() => setToastMessage(null)}
-            className="text-white/60 hover:text-white mr-2 p-1"
+            className="text-white/70 hover:text-white p-1.5 rounded-full hover:bg-white/10 shrink-0 mr-1 transition-colors"
+            title={language === 'he' ? 'סגור' : 'Close'}
           >
             <X size={16} />
           </button>
