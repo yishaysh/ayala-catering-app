@@ -26,7 +26,10 @@ export default function App() {
   const [isKosherOpen, setIsKosherOpen] = useState(false);
   const { cartTotal, cart, language, setLanguage, menuItems, fetchMenuItems, isLoading, featureFlags, fetchSettings, kosherCertUrl, fetchReviews, theme, aboutUs, appConfig } = useStore();
   
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    return localStorage.getItem('ayala_is_admin') === 'true';
+  });
+  const [showFullDashboard, setShowFullDashboard] = useState<boolean>(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [loginError, setLoginError] = useState(false);
@@ -58,12 +61,19 @@ export default function App() {
       e.preventDefault();
       if (pin === ADMIN_PIN) {
           setIsAdmin(true);
+          localStorage.setItem('ayala_is_admin', 'true');
           setIsLoginOpen(false);
           setPin('');
           setLoginError(false);
       } else {
           setLoginError(true);
       }
+  };
+
+  const handleAdminLogout = () => {
+      setIsAdmin(false);
+      setShowFullDashboard(false);
+      localStorage.removeItem('ayala_is_admin');
   };
 
   useEffect(() => {
@@ -170,11 +180,11 @@ export default function App() {
       );
   }
 
-  if (isAdmin) {
+  if (showFullDashboard) {
       return (
           <>
               <ThemeStyles />
-              <AdminDashboard onExit={() => setIsAdmin(false)} />
+              <AdminDashboard onExit={() => setShowFullDashboard(false)} />
           </>
       );
   }
@@ -210,17 +220,40 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2 md:gap-4">
-                 <NotificationBell onOpenOrder={(orderId) => {
-                     window.location.href = `/?quote=${orderId}`;
-                 }} />
+                 {isAdmin ? (
+                     <div className="flex items-center gap-1.5 sm:gap-2 bg-white/5 p-1 rounded-full border border-white/10">
+                         {/* Notification Bell ONLY for Admin! */}
+                         <NotificationBell onOpenOrder={(orderId) => {
+                             window.location.href = `/?quote=${orderId}`;
+                         }} />
 
-                 <button 
-                    onClick={() => setIsLoginOpen(true)}
-                    className="p-2 text-themeHeaderTxt/70 hover:text-themePrimary transition-colors"
-                    title="Admin Access"
-                >
-                    <Lock size={18} />
-                </button>
+                         {/* Button to open full Admin Dashboard */}
+                         <button 
+                             onClick={() => setShowFullDashboard(true)}
+                             className="text-[11px] sm:text-xs font-bold bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 px-2.5 py-1 rounded-full border border-amber-500/30 transition-colors flex items-center gap-1"
+                             title={language === 'he' ? 'לוח ניהול מלא' : 'Full Dashboard'}
+                         >
+                             <span>🛠️ {language === 'he' ? 'ניהול' : 'Admin'}</span>
+                         </button>
+
+                         {/* Logout button */}
+                         <button 
+                             onClick={handleAdminLogout}
+                             className="p-1 text-themeHeaderTxt/60 hover:text-red-400 transition-colors"
+                             title={language === 'he' ? 'יציאה מהרשאת מנהל' : 'Logout Admin'}
+                         >
+                             <X size={15} />
+                         </button>
+                     </div>
+                 ) : (
+                     <button 
+                         onClick={() => setIsLoginOpen(true)}
+                         className="p-2 text-themeHeaderTxt/70 hover:text-themePrimary transition-colors"
+                         title={language === 'he' ? 'כניסת מנהל' : 'Admin Access'}
+                     >
+                         <Lock size={18} />
+                     </button>
+                 )}
 
                  <button 
                     onClick={() => setIsKosherOpen(true)}
