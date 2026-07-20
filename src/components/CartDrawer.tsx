@@ -543,6 +543,29 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         }
     };
 
+    const getMissingRequirements = (): string[] => {
+        const missing: string[] = [];
+        if (cart.length === 0) {
+            missing.push(language === 'he' ? 'חובה להוסיף פריטים לעגלה' : 'Cart is empty');
+        }
+        if (!customerDetails.name || !customerDetails.name.trim()) {
+            missing.push(language === 'he' ? 'חובה להזין שם מלא' : 'Full name is required');
+        }
+        if (!customerDetails.phone || !customerDetails.phone.trim()) {
+            missing.push(language === 'he' ? 'חובה להזין מספר טלפון' : 'Phone number is required');
+        }
+        if (!eventDate) {
+            missing.push(language === 'he' ? 'חובה להזין תאריך לאירוע' : 'Event date is required');
+        }
+        if (isDelivery && (!customerDetails.location || !customerDetails.location.trim())) {
+            missing.push(language === 'he' ? 'חובה להזין מיקום / כתובת לאירוע' : 'Event location is required');
+        }
+        if (appConfig.ecommerce_mode && subtotal < MIN_ORDER && subtotal > 0) {
+            missing.push(language === 'he' ? `מינימום הזמנה הוא ₪${MIN_ORDER}` : `Minimum order is ₪${MIN_ORDER}`);
+        }
+        return missing;
+    };
+
     const getUnitName = (type: string) => {
       const units: Record<string, string> = {
         tray: t.tray as string,
@@ -906,44 +929,74 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             </div>
                         )}
                         
-                        {appConfig.ecommerce_mode && subtotal < MIN_ORDER && subtotal > 0 && (
-                            <div className="bg-red-50 text-red-600 px-3 py-2 rounded-lg text-xs mb-3 border border-red-100 flex items-center justify-center gap-2">
-                                <span>⚠️</span>
-                                {t.minOrder as string}: ₪{MIN_ORDER}
-                            </div>
-                        )}
+                        {(() => {
+                            const missingReqs = getMissingRequirements();
+                            const isCheckoutDisabled = missingReqs.length > 0 || isSubmitting;
+                            return (
+                                <>
+                                    {missingReqs.length > 0 && cart.length > 0 && (
+                                        <div className="mb-3 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-800 dark:text-amber-300 text-xs animate-fade-in font-medium text-right">
+                                            <div className="font-bold mb-1 flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                                                <span>⚠️</span>
+                                                <span>{language === 'he' ? 'להמשך לשליחה, נא להשלים את הפרטים הבאים:' : 'To proceed, please complete:'}</span>
+                                            </div>
+                                            <ul className="list-disc list-inside space-y-0.5 text-[11px] opacity-90">
+                                                {missingReqs.map((req, idx) => (
+                                                    <li key={idx}>{req}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
 
-                        <div className="flex gap-3">
-                            {cart.length > 0 && (
-                                <button 
-                                    onClick={handleShareDraft} 
-                                    className="flex-1 border border-themeText/20 text-themeCardTxt font-bold py-3.5 rounded-xl hover:bg-themeBg/20 transition flex items-center justify-center gap-2 text-sm"
-                                >
-                                    <Share2 size={16} /> 
-                                    <span className="hidden sm:inline">{t.shareDraft as string}</span>
-                                    <span className="sm:hidden">{language === 'he' ? 'טיוטה' : 'Draft'}</span>
-                                </button>
-                            )}
-                            
-                            <button 
-                                onClick={handleWhatsAppCheckout}
-                                disabled={(appConfig.ecommerce_mode && subtotal < MIN_ORDER) || cart.length === 0 || !customerDetails.name || !customerDetails.phone || !eventDate || isSubmitting}
-                                className="flex-[2] bg-green-600 text-white font-bold py-3.5 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 group text-sm sm:text-base"
-                            >
-                                {isSubmitting ? (
-                                    <Loader2 className="animate-spin" size={18} />
-                                ) : (
-                                    <>
-                                        <span>
-                                            {appConfig.ecommerce_mode 
-                                                ? (t.checkout as string) 
-                                                : (language === 'he' ? "שליחת בקשה להצעת מחיר מאיילה" : "Send quote request to Ayala")}
-                                        </span>
-                                        <Send size={18} className={`transition-transform ${language === 'he' ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                                    <div className="flex gap-3">
+                                        {cart.length > 0 && (
+                                            <button 
+                                                onClick={handleShareDraft} 
+                                                className="flex-1 border border-themeText/20 text-themeCardTxt font-bold py-3.5 rounded-xl hover:bg-themeBg/20 transition flex items-center justify-center gap-2 text-sm"
+                                            >
+                                                <Share2 size={16} /> 
+                                                <span className="hidden sm:inline">{t.shareDraft as string}</span>
+                                                <span className="sm:hidden">{language === 'he' ? 'טיוטה' : 'Draft'}</span>
+                                            </button>
+                                        )}
+                                        
+                                        <div className="relative group/btn flex-[2]">
+                                            {missingReqs.length > 0 && (
+                                                <div className="absolute bottom-full mb-2.5 left-1/2 -translate-x-1/2 hidden group-hover/btn:block z-50 w-64 p-3 bg-stone-900 text-white text-xs rounded-xl shadow-2xl border border-amber-500/40 pointer-events-none text-right font-sans animate-fade-in">
+                                                    <p className="font-bold text-amber-400 mb-1">
+                                                        {language === 'he' ? 'חובה להשלים לפני השליחה:' : 'Required before sending:'}
+                                                    </p>
+                                                    {missingReqs.map((req, idx) => (
+                                                        <p key={idx} className="text-[11px] text-stone-200 font-medium">• {req}</p>
+                                                    ))}
+                                                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-stone-900 rotate-45 border-r border-b border-amber-500/40"></div>
+                                                </div>
+                                            )}
+
+                                            <button 
+                                                onClick={handleWhatsAppCheckout}
+                                                disabled={isCheckoutDisabled}
+                                                title={missingReqs.length > 0 ? (language === 'he' ? `חובה להשלים:\n• ${missingReqs.join('\n• ')}` : missingReqs.join('\n')) : undefined}
+                                                className="w-full bg-green-600 text-white font-bold py-3.5 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-700 transition shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 group text-sm sm:text-base"
+                                            >
+                                                {isSubmitting ? (
+                                                    <Loader2 className="animate-spin" size={18} />
+                                                ) : (
+                                                    <>
+                                                        <span>
+                                                            {appConfig.ecommerce_mode 
+                                                                ? (t.checkout as string) 
+                                                                : (language === 'he' ? "שליחת בקשה להצעת מחיר מאיילה" : "Send quote request to Ayala")}
+                                                        </span>
+                                                        <Send size={18} className={`transition-transform ${language === 'he' ? 'group-hover:-translate-x-1' : 'group-hover:translate-x-1'}`} />
+                                                    </>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </>
+                            );
+                        })()}
                         
                         <p className="text-center text-[10px] text-themeCardTxt/50 mt-3 font-medium">
                             {t.checkoutSub as string}
