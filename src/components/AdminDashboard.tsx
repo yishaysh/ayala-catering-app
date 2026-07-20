@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { MenuItem, Category, UnitType, EventType, Coupon, ThemeConfig, GalleryItem, Order, Review } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Video, Award, ShoppingBag, Calendar, Eye, MessageSquare, Check, CheckCheck, FileText } from 'lucide-react';
+import { Pencil, Save, X, LogOut, Plus, Minus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Video, Award, ShoppingBag, Calendar, Eye, MessageSquare, Check, CheckCheck, FileText } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
@@ -74,6 +74,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     const [quoteDiscountPercent, setQuoteDiscountPercent] = useState<number>(0);
     const [quoteWantsSetup, setQuoteWantsSetup] = useState<boolean>(false);
     const [quoteDeliveryFee, setQuoteDeliveryFee] = useState<number>(0);
+    const [isAddDishOpen, setIsAddDishOpen] = useState<boolean>(false);
+    const [addDishSearch, setAddDishSearch] = useState<string>('');
     const [quoteSuccessData, setQuoteSuccessData] = useState<{
         isOpen: boolean;
         orderId: string;
@@ -83,6 +85,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
     const openQuoteDialog = (order: Order) => {
         setQuoteOrder(order);
+        setIsAddDishOpen(false);
+        setAddDishSearch('');
         const items = JSON.parse(JSON.stringify(order.items || []));
         // Populate standard menu prices if item price is 0
         items.forEach((item: any) => {
@@ -98,6 +102,50 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         setQuoteDiscountPercent(0);
         setQuoteWantsSetup(!!order.wants_setup);
         setQuoteDeliveryFee(0);
+    };
+
+    const handleRemoveDishFromQuote = (index: number) => {
+        setQuoteItems(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleUpdateDishQuantity = (index: number, delta: number) => {
+        setQuoteItems(prev => {
+            const copy = [...prev];
+            const newQty = Math.max(1, (copy[index].quantity || 1) + delta);
+            copy[index] = { ...copy[index], quantity: newQty };
+            return copy;
+        });
+    };
+
+    const handleSetDishQuantity = (index: number, newQty: number) => {
+        setQuoteItems(prev => {
+            const copy = [...prev];
+            copy[index] = { ...copy[index], quantity: Math.max(1, newQty) };
+            return copy;
+        });
+    };
+
+    const handleAddDishToQuote = (dish: MenuItem) => {
+        const existingIdx = quoteItems.findIndex(item => item.id === dish.id || item.name === dish.name);
+        if (existingIdx >= 0) {
+            handleUpdateDishQuantity(existingIdx, 1);
+        } else {
+            const newItem = {
+                id: dish.id,
+                name: dish.name,
+                name_en: dish.name_en,
+                price: dish.price,
+                quantity: 1,
+                unit_type: dish.unit_type,
+                is_tray: dish.is_tray,
+                units_per_tray: dish.units_per_tray,
+                selected_modifications: [],
+                notes: ''
+            };
+            setQuoteItems(prev => [...prev, newItem]);
+        }
+        setIsAddDishOpen(false);
+        setAddDishSearch('');
     };
 
     const handleGenerateQuotePdf = async () => {
@@ -2531,43 +2579,153 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         <div className="flex-1 overflow-y-auto p-6 space-y-6 text-start">
                             {/* Items Edit Table */}
                             <div className="space-y-3">
-                                <h4 className="text-xs font-bold text-themeText/50 uppercase tracking-widest px-1">
-                                    {language === 'he' ? 'פריטים ומחירים' : 'Items & Prices'}
-                                </h4>
-                                <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1">
-                                    {quoteItems.map((item, index) => (
-                                        <div key={index} className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 bg-themeCardBg border border-themeText/10 rounded-xl">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="font-bold text-sm truncate text-themeText">
-                                                    {language === 'he' ? item.name : (item.name_en || item.name)}
-                                                </div>
-                                                <div className="text-xs text-themeText/60">
-                                                    {language === 'he' ? `כמות: ${item.quantity}` : `Qty: ${item.quantity}`} | {item.unit_type}
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-3 shrink-0">
-                                                <div className="flex flex-col text-end">
-                                                    <span className="text-[10px] text-themeText/50">{language === 'he' ? 'מחיר יחידה (₪)' : 'Unit Price (₪)'}</span>
-                                                    <input 
-                                                        type="number"
-                                                        value={item.price}
-                                                        onChange={(e) => {
-                                                            const newPrice = Number(e.target.value);
-                                                            setQuoteItems(prev => {
-                                                                const copy = [...prev];
-                                                                copy[index].price = newPrice;
-                                                                return copy;
-                                                            });
-                                                        }}
-                                                        className="w-24 p-1.5 border border-themeText/20 bg-themeBg text-themeText rounded-lg text-sm text-center outline-none focus:border-themePrimary"
-                                                    />
-                                                </div>
-                                                <div className="text-sm font-bold w-20 text-end">
-                                                    ₪{(item.price * item.quantity).toFixed(2)}
-                                                </div>
-                                            </div>
+                                <div className="flex items-center justify-between px-1">
+                                    <h4 className="text-xs font-bold text-themeText/50 uppercase tracking-widest">
+                                        {language === 'he' ? 'פריטים, כמויות ומחירים' : 'Items, Quantities & Prices'}
+                                    </h4>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAddDishOpen(!isAddDishOpen)}
+                                        className="text-xs font-bold text-themePrimary hover:underline flex items-center gap-1 bg-themePrimary/10 hover:bg-themePrimary/20 px-2.5 py-1 rounded-lg transition-colors"
+                                    >
+                                        <Plus size={14} />
+                                        <span>{language === 'he' ? 'הוספת מנה מהתפריט' : 'Add Dish from Menu'}</span>
+                                    </button>
+                                </div>
+
+                                {/* Add Dish Selection Box */}
+                                {isAddDishOpen && (
+                                    <div className="p-3 bg-themePrimary/5 border border-themePrimary/20 rounded-xl space-y-2 animate-fade-in shadow-inner">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-xs font-bold text-themePrimary">
+                                                {language === 'he' ? 'בחירת מנה להוספה להצעת המחיר:' : 'Select a dish to add to quote:'}
+                                            </span>
+                                            <button onClick={() => setIsAddDishOpen(false)} className="text-themeText/50 hover:text-themeText">
+                                                <X size={14} />
+                                            </button>
                                         </div>
-                                    ))}
+                                        <input
+                                            type="text"
+                                            value={addDishSearch}
+                                            onChange={(e) => setAddDishSearch(e.target.value)}
+                                            placeholder={language === 'he' ? 'חפש מנה לפי שם...' : 'Search dish by name...'}
+                                            className="w-full p-2 text-xs border border-themeText/20 bg-themeBg text-themeText rounded-lg outline-none focus:border-themePrimary"
+                                            autoFocus
+                                        />
+                                        <div className="max-h-48 overflow-y-auto divide-y divide-themeText/10 bg-themeCardBg rounded-lg border border-themeText/10">
+                                            {menuItems
+                                                .filter(dish => !addDishSearch || dish.name.includes(addDishSearch) || (dish.name_en && dish.name_en.toLowerCase().includes(addDishSearch.toLowerCase())))
+                                                .slice(0, 20)
+                                                .map(dish => (
+                                                    <div
+                                                        key={dish.id}
+                                                        onClick={() => handleAddDishToQuote(dish)}
+                                                        className="p-2 text-xs flex items-center justify-between hover:bg-themePrimary/15 cursor-pointer transition-colors"
+                                                    >
+                                                        <span className="font-bold text-themeText">{language === 'he' ? dish.name : (dish.name_en || dish.name)}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-themeText/60 font-medium">₪{dish.price}</span>
+                                                            <span className="px-2 py-0.5 bg-themePrimary text-themeHeaderBg font-bold text-[10px] rounded shadow-sm">
+                                                                {language === 'he' ? '+ הוסף' : '+ Add'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Items List */}
+                                <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1">
+                                    {quoteItems.length === 0 ? (
+                                        <div className="p-6 text-center text-xs text-themeText/40 border border-dashed border-themeText/20 rounded-xl">
+                                            {language === 'he' ? 'אין מנות בהצעה זו. לחצי על "+ הוספת מנה מהתפריט" כדי להוסיף מנה.' : 'No dishes in this quote. Click "+ Add Dish from Menu" to add.'}
+                                        </div>
+                                    ) : (
+                                        quoteItems.map((item, index) => (
+                                            <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-themeCardBg border border-themeText/10 rounded-xl shadow-sm hover:border-themeText/20 transition-all">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="font-bold text-sm text-themeText">
+                                                        {language === 'he' ? item.name : (item.name_en || item.name)}
+                                                    </div>
+                                                    {item.selected_modifications && item.selected_modifications.length > 0 && (
+                                                        <div className="text-[11px] text-themeText/50 truncate">
+                                                            ↳ {item.selected_modifications.join(', ')}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex items-center gap-2.5 shrink-0 justify-between sm:justify-end">
+                                                    {/* Quantity Controls */}
+                                                    <div className="flex flex-col items-center">
+                                                        <span className="text-[9px] text-themeText/50">{language === 'he' ? 'כמות' : 'Qty'}</span>
+                                                        <div className="flex items-center gap-1 bg-themeBg border border-themeText/15 rounded-lg p-0.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleUpdateDishQuantity(index, -1)}
+                                                                className="w-6 h-6 flex items-center justify-center text-themeText/70 hover:bg-themeText/10 rounded font-bold"
+                                                                title="הפחת כמות"
+                                                            >
+                                                                <Minus size={12} />
+                                                            </button>
+                                                            <input
+                                                                type="number"
+                                                                min="1"
+                                                                value={item.quantity}
+                                                                onChange={(e) => handleSetDishQuantity(index, Number(e.target.value))}
+                                                                className="w-9 text-center text-xs font-bold bg-transparent border-none outline-none text-themeText"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleUpdateDishQuantity(index, 1)}
+                                                                className="w-6 h-6 flex items-center justify-center text-themeText/70 hover:bg-themeText/10 rounded font-bold"
+                                                                title="הוסף כמות"
+                                                            >
+                                                                <Plus size={12} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Unit Price Input */}
+                                                    <div className="flex flex-col text-end">
+                                                        <span className="text-[9px] text-themeText/50">{language === 'he' ? 'מחיר יחידה (₪)' : 'Unit Price (₪)'}</span>
+                                                        <input 
+                                                            type="number"
+                                                            min="0"
+                                                            value={item.price}
+                                                            onChange={(e) => {
+                                                                const newPrice = Number(e.target.value);
+                                                                setQuoteItems(prev => {
+                                                                    const copy = [...prev];
+                                                                    copy[index].price = newPrice;
+                                                                    return copy;
+                                                                });
+                                                            }}
+                                                            className="w-20 p-1 border border-themeText/20 bg-themeBg text-themeText rounded-lg text-xs text-center outline-none focus:border-themePrimary font-bold"
+                                                        />
+                                                    </div>
+
+                                                    {/* Total Item Price */}
+                                                    <div className="flex flex-col text-end min-w-[55px]">
+                                                        <span className="text-[9px] text-themeText/50">{language === 'he' ? 'סה"כ' : 'Total'}</span>
+                                                        <span className="text-xs font-bold text-themeText">
+                                                            ₪{(item.price * item.quantity).toFixed(0)}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Delete Dish Button */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveDishFromQuote(index)}
+                                                        className="p-1.5 text-themeText/40 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors mt-2 sm:mt-0"
+                                                        title={language === 'he' ? 'הסר מנה מההצעה' : 'Remove dish'}
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             </div>
 
