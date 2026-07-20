@@ -2704,6 +2704,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                                                 type="number"
                                                                 min="1"
                                                                 value={item.quantity}
+                                                                onFocus={(e) => e.target.select()}
                                                                 onChange={(e) => handleSetDishQuantity(index, Number(e.target.value))}
                                                                 className="w-9 text-center text-xs font-bold bg-transparent border-none outline-none text-themeText"
                                                             />
@@ -2725,6 +2726,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                                             type="number"
                                                             min="0"
                                                             value={item.price}
+                                                            onFocus={(e) => e.target.select()}
                                                             onChange={(e) => {
                                                                 const newPrice = Number(e.target.value);
                                                                 setQuoteItems(prev => {
@@ -2772,8 +2774,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                         min="0"
                                         max="100"
                                         value={quoteDiscountPercent}
+                                        onFocus={(e) => e.target.select()}
                                         onChange={(e) => setQuoteDiscountPercent(Math.max(0, Math.min(100, Number(e.target.value))))}
-                                        className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg text-sm outline-none focus:border-themePrimary"
+                                        className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg text-sm outline-none focus:border-themePrimary font-bold"
                                     />
                                 </div>
 
@@ -2785,8 +2788,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                         type="number"
                                         min="0"
                                         value={quoteDeliveryFee}
+                                        onFocus={(e) => e.target.select()}
                                         onChange={(e) => setQuoteDeliveryFee(Math.max(0, Number(e.target.value)))}
-                                        className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg text-sm outline-none focus:border-themePrimary"
+                                        className="w-full p-2 border border-themeText/20 bg-themeCardBg text-themeText rounded-lg text-sm outline-none focus:border-themePrimary font-bold"
                                     />
                                 </div>
 
