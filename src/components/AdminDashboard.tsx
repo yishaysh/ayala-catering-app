@@ -163,6 +163,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 items: quoteItems,
                 subtotal: totalSubtotal,
                 discount_amount: totalDiscount,
+                delivery_fee: quoteDeliveryFee,
                 total_price: totalFinal,
                 status: 'approved', // Automatically mark approved upon quote creation
                 wants_setup: quoteWantsSetup
@@ -462,12 +463,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 </table>
                 
                 <div class="summary-wrapper">
-                    <div style="background-color: ${theme?.primary_color || '#7c2d12'}08; border: 1.5px solid ${theme?.primary_color || '#7c2d12'}30; border-radius: 12px; padding: 18px 24px; min-width: 280px; text-align: ${isHe ? 'right' : 'left'};">
-                        <div style="font-size: 12px; font-weight: 700; color: ${theme?.text_color || '#78716c'}a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
-                            ${isHe ? 'שורה תחתונה / סה"כ לתשלום:' : 'Bottom Line / Total Price:'}
-                        </div>
-                        <div style="font-size: 26px; font-weight: 800; color: ${theme?.primary_color || '#7c2d12'}; font-family: 'Playfair Display', serif;">
-                            ₪${totalFinal.toFixed(2)}
+                    <div style="background-color: ${theme?.primary_color || '#7c2d12'}08; border: 1.5px solid ${theme?.primary_color || '#7c2d12'}30; border-radius: 14px; padding: 20px 24px; min-width: 300px; text-align: ${isHe ? 'right' : 'left'}; font-family: 'Assistant', sans-serif;">
+                        ${totalDiscount > 0 ? `
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #78716c;">
+                                <span>${isHe ? 'סכום לפני הנחה:' : 'Original Amount:'}</span>
+                                <span style="text-decoration: line-through; color: #9ca3af; font-weight: 700; font-size: 14px;">₪${totalSubtotal.toFixed(2)}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #d97706; font-weight: 700;">
+                                <span>${isHe ? `אחוזי הנחה (${quoteDiscountPercent}%):` : `Discount (${quoteDiscountPercent}%):`}</span>
+                                <span>-₪${totalDiscount.toFixed(2)}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13px; color: #16a34a; font-weight: 700; border-bottom: 1px dashed #d1d5db; padding-bottom: 6px;">
+                                <span>${isHe ? 'סכום לאחר הנחה:' : 'Amount After Discount:'}</span>
+                                <span>₪${(totalSubtotal - totalDiscount).toFixed(2)}</span>
+                            </div>
+                        ` : ''}
+
+                        ${quoteDeliveryFee > 0 ? `
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #4b5563;">
+                                <span>🚚 ${isHe ? 'דמי משלוח (חלק מהמחיר):' : 'Delivery Fee (Included):'}</span>
+                                <span style="font-weight: 700;">₪${quoteDeliveryFee.toFixed(2)}</span>
+                            </div>
+                        ` : ''}
+
+                        ${quoteWantsSetup ? `
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #4b5563;">
+                                <span>✨ ${isHe ? 'שירותי עריכה ופינוי (חלק מהמחיר):' : 'Setup & Cleanup (Included):'}</span>
+                                <span style="font-weight: 700;">₪1,000.00</span>
+                            </div>
+                        ` : ''}
+
+                        <div style="border-top: 1.5px solid ${theme?.primary_color || '#7c2d12'}30; margin-top: 10px; padding-top: 10px;">
+                            <div style="font-size: 12px; font-weight: 700; color: ${theme?.text_color || '#78716c'}a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                                ${isHe ? 'שורה תחתונה / סה"כ לתשלום:' : 'Bottom Line / Total Price:'}
+                            </div>
+                            <div style="font-size: 28px; font-weight: 800; color: ${theme?.primary_color || '#7c2d12'}; font-family: 'Playfair Display', serif;">
+                                ₪${totalFinal.toFixed(2)}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2782,31 +2814,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
                                 return (
                                     <div className="bg-themeCardBg p-4 rounded-xl border border-themeText/10 shadow-sm space-y-2 text-sm text-themeText/80 font-medium">
-                                        <div className="flex justify-between">
-                                            <span>{language === 'he' ? 'סכום ביניים:' : 'Subtotal:'}</span>
-                                            <span>₪{subtotal.toFixed(2)}</span>
-                                        </div>
-                                        {quoteDiscountPercent > 0 && (
-                                            <div className="flex justify-between text-amber-600 font-bold">
-                                                <span>{language === 'he' ? `הנחה (${quoteDiscountPercent}%):` : `Discount (${quoteDiscountPercent}%):`}</span>
-                                                <span>-₪{discountAmount.toFixed(2)}</span>
+                                        {quoteDiscountPercent > 0 ? (
+                                            <>
+                                                <div className="flex justify-between items-center text-xs">
+                                                    <span>{language === 'he' ? 'סכום לפני הנחה:' : 'Original Amount:'}</span>
+                                                    <span className="line-through text-stone-400 font-bold text-sm">₪{subtotal.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs text-amber-600 font-bold">
+                                                    <span>{language === 'he' ? `אחוזי הנחה (${quoteDiscountPercent}%):` : `Discount (${quoteDiscountPercent}%):`}</span>
+                                                    <span>-₪{discountAmount.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between items-center text-xs text-green-600 font-bold pb-1.5 border-b border-themeText/10">
+                                                    <span>{language === 'he' ? 'סכום לאחר הנחה:' : 'Amount After Discount:'}</span>
+                                                    <span>₪{(subtotal - discountAmount).toFixed(2)}</span>
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <div className="flex justify-between text-xs">
+                                                <span>{language === 'he' ? 'סכום פריטים:' : 'Subtotal:'}</span>
+                                                <span>₪{subtotal.toFixed(2)}</span>
                                             </div>
                                         )}
+
                                         {quoteDeliveryFee > 0 && (
-                                            <div className="flex justify-between">
-                                                <span>{language === 'he' ? 'משלוח:' : 'Delivery:'}</span>
-                                                <span>₪{quoteDeliveryFee.toFixed(2)}</span>
+                                            <div className="flex justify-between text-xs">
+                                                <span>🚚 {language === 'he' ? 'דמי משלוח (חלק מהמחיר):' : 'Delivery Fee (Included):'}</span>
+                                                <span className="font-bold">₪{quoteDeliveryFee.toFixed(2)}</span>
                                             </div>
                                         )}
                                         {quoteWantsSetup && (
-                                            <div className="flex justify-between">
-                                                <span>{language === 'he' ? 'שירות עריכה ופינוי:' : 'Setup & Cleanup:'}</span>
-                                                <span>₪1,000.00</span>
+                                            <div className="flex justify-between text-xs">
+                                                <span>✨ {language === 'he' ? 'שירותי עריכה ופינוי (חלק מהמחיר):' : 'Setup & Cleanup (Included):'}</span>
+                                                <span className="font-bold">₪1,000.00</span>
                                             </div>
                                         )}
                                         <div className="border-t border-themeText/10 pt-2 my-1 flex justify-between text-base font-bold text-themeText">
                                             <span>{language === 'he' ? 'סה"כ לתשלום:' : 'Total Amount:'}</span>
-                                            <span>₪{finalTotal.toFixed(2)}</span>
+                                            <span className="text-xl text-themePrimary font-serif">₪{finalTotal.toFixed(2)}</span>
                                         </div>
                                     </div>
                                 );

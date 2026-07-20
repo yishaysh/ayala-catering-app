@@ -188,13 +188,49 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
 
           {/* Bottom Line Total Summary */}
           <div className="flex justify-end border-t border-themeText/10 pt-6">
-            <div className="bg-themePrimary/5 border border-themePrimary/20 rounded-2xl p-5 text-left md:text-right min-w-[260px] shadow-sm">
-              <span className="text-xs uppercase font-bold tracking-wider text-themeText/60 block mb-1">
-                {isHe ? 'שורה תחתונה / סה״כ לתשלום:' : 'Bottom Line / Total Amount:'}
-              </span>
-              <span className="text-3xl font-serif font-bold text-themePrimary">
-                ₪{finalTotal}
-              </span>
+            <div className="bg-themePrimary/5 border border-themePrimary/20 rounded-2xl p-6 text-right min-w-[280px] sm:min-w-[340px] shadow-sm font-sans space-y-2.5">
+              {/* If discount was given */}
+              {discountAmount > 0 && (
+                <div className="space-y-1.5 pb-2.5 border-b border-themePrimary/15">
+                  <div className="flex justify-between items-center text-xs text-themeText/70">
+                    <span>{isHe ? 'סכום לפני הנחה:' : 'Original Amount:'}</span>
+                    <span className="line-through text-stone-400 font-bold text-sm">₪{subtotal.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-amber-600 font-bold">
+                    <span>{isHe ? `אחוזי הנחה (${Math.round((discountAmount / (subtotal || 1)) * 100)}%):` : `Discount (${Math.round((discountAmount / (subtotal || 1)) * 100)}%):`}</span>
+                    <span>-₪{discountAmount.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs font-bold text-green-600">
+                    <span>{isHe ? 'סכום לאחר הנחה:' : 'Amount After Discount:'}</span>
+                    <span>₪{(subtotal - discountAmount).toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Delivery Fee if present */}
+              {deliveryFee > 0 && (
+                <div className="flex justify-between items-center text-xs text-themeText/80 font-medium">
+                  <span>🚚 {isHe ? 'דמי משלוח (חלק מהמחיר):' : 'Delivery Fee (Included):'}</span>
+                  <span className="font-bold">₪{deliveryFee.toLocaleString()}</span>
+                </div>
+              )}
+
+              {/* Setup & Cleanup if present */}
+              {wantsSetup && (
+                <div className="flex justify-between items-center text-xs text-themeText/80 font-medium">
+                  <span>✨ {isHe ? 'שירותי עריכה ופינוי (חלק מהמחיר):' : 'Setup & Cleanup (Included):'}</span>
+                  <span className="font-bold">₪1,000</span>
+                </div>
+              )}
+
+              <div className="pt-2 border-t border-themePrimary/20 flex flex-col items-end">
+                <span className="text-xs uppercase font-bold tracking-wider text-themeText/60 block mb-1">
+                  {isHe ? 'שורה תחתונה / סה״כ לתשלום:' : 'Bottom Line / Total Amount:'}
+                </span>
+                <span className="text-3xl font-serif font-bold text-themePrimary">
+                  ₪{finalTotal.toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
 
