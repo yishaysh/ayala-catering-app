@@ -98,12 +98,15 @@ export interface Order {
     subtotal: number;
     total_price: number;
     discount_amount: number;
+    delivery_fee?: number;
     coupon_code?: string;
     items: CartItem[]; // Stored as JSONB
     status: 'pending' | 'approved' | 'completed' | 'cancelled';
     created_at?: string;
     event_type?: string;
     wants_setup?: boolean;
+    notes?: string;
+    admin_notes?: string;
 }
 
 export interface CalculationSettings {

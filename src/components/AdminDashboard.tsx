@@ -74,6 +74,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     const [quoteDiscountPercent, setQuoteDiscountPercent] = useState<number>(0);
     const [quoteWantsSetup, setQuoteWantsSetup] = useState<boolean>(false);
     const [quoteDeliveryFee, setQuoteDeliveryFee] = useState<number>(0);
+    const [quoteNotes, setQuoteNotes] = useState<string>('');
     const [isAddDishOpen, setIsAddDishOpen] = useState<boolean>(false);
     const [addDishSearch, setAddDishSearch] = useState<string>('');
     const [quoteSuccessData, setQuoteSuccessData] = useState<{
@@ -87,6 +88,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         setQuoteOrder(order);
         setIsAddDishOpen(false);
         setAddDishSearch('');
+        setQuoteNotes(order.notes || order.admin_notes || '');
         const items = JSON.parse(JSON.stringify(order.items || []));
         // Populate standard menu prices if item price is 0
         items.forEach((item: any) => {
@@ -157,20 +159,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         const totalFinal = Math.max(0, totalSubtotal - totalDiscount + quoteDeliveryFee + totalSetup);
 
         // Update in Supabase
-        const { error } = await supabase
+        const updateData: any = {
+            items: quoteItems,
+            subtotal: totalSubtotal,
+            discount_amount: totalDiscount,
+            delivery_fee: quoteDeliveryFee,
+            total_price: totalFinal,
+            status: 'approved', // Automatically mark approved upon quote creation
+            wants_setup: quoteWantsSetup,
+            notes: quoteNotes
+        };
+
+        let { error } = await supabase
             .from('orders')
-            .update({
-                items: quoteItems,
-                subtotal: totalSubtotal,
-                discount_amount: totalDiscount,
-                delivery_fee: quoteDeliveryFee,
-                total_price: totalFinal,
-                status: 'approved', // Automatically mark approved upon quote creation
-                wants_setup: quoteWantsSetup
-            })
+            .update(updateData)
             .eq('id', quoteOrder.id);
 
-        if (error) {
+        if (error && error.code === '42703') {
+            // Fallback if notes column is missing in schema
+            const { notes, ...fallbackPayload } = updateData;
+            await supabase.from('orders').update(fallbackPayload).eq('id', quoteOrder.id);
+        } else if (error) {
             console.error("Failed to update order in database:", error);
         }
 
@@ -388,7 +397,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     }
                     
                     .terms {
-                        margin-top: 60px;
+                        margin-top: 50px;
                         border-top: 1px solid ${theme?.text_color || '#e7e5e4'}20;
                         padding-top: 20px;
                         font-size: 12px;
@@ -503,6 +512,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         </div>
                     </div>
                 </div>
+
+                ${quoteNotes ? `
+                    <div style="margin-top: 25px; padding: 14px 18px; background-color: ${theme?.primary_color || '#7c2d12'}08; border-right: 4px solid ${theme?.primary_color || '#7c2d12'}; border-radius: 10px; font-size: 13px; color: ${theme?.text_color || '#292524'}; text-align: ${isHe ? 'right' : 'left'};">
+                        <strong style="color: ${theme?.primary_color || '#7c2d12'}; font-size: 13px; display: block; margin-bottom: 5px;">
+                            📌 ${isHe ? 'הערות ודגשים להצעה:' : 'Notes & Special Instructions:'}
+                        </strong>
+                        <div style="white-space: pre-wrap; line-height: 1.5; font-size: 13px;">${quoteNotes}</div>
+                    </div>
+                ` : ''}
                 
                 <div class="terms">
                     <p>${isHe ? 'תודה שבחרתם באיילה פשוט טעים! • הצעת המחיר בתוקף ל-30 ימים • טלפון: 054-7474764 • אימייל: info@ayala-catering.co.il' : 'Thank you for choosing Ayala Simply Delicious! • Quote valid for 30 days • Phone: 054-7474764 • Email: info@ayala-catering.co.il'}</p>
@@ -2809,6 +2827,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                 </div>
                             </div>
 
+                            {/* Quote Notes Input */}
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-xs font-bold text-themeText/70 px-1 flex items-center gap-1.5">
+                                    <MessageSquare size={14} className="text-themePrimary" />
+                                    <span>{language === 'he' ? 'הערות ודגשים להצעת המחיר (גלוי ללקוח):' : 'Quote Notes & Remarks (Visible to customer):'}</span>
+                                </label>
+                                <textarea
+                                    rows={2}
+                                    value={quoteNotes}
+                                    onChange={(e) => setQuoteNotes(e.target.value)}
+                                    placeholder={language === 'he' ? 'הקליד/י הערות ודגשים להצעה (כגון: תנאי תשלום, ציוד מתכלה, שעות הגשה וכדומה)...' : 'Type special notes or terms for this quote...'}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeCardBg text-themeText rounded-xl text-xs outline-none focus:border-themePrimary font-sans leading-relaxed resize-y min-h-[60px]"
+                                />
+                            </div>
+
                             {/* Summary Preview */}
                             {(() => {
                                 const subtotal = quoteItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -2856,6 +2889,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                             <span>{language === 'he' ? 'סה"כ לתשלום:' : 'Total Amount:'}</span>
                                             <span className="text-xl text-themePrimary font-serif">₪{finalTotal.toFixed(2)}</span>
                                         </div>
+
+                                        {quoteNotes && (
+                                            <div className="text-xs text-themeText/70 pt-2 border-t border-themeText/10">
+                                                <span className="font-bold text-themePrimary block mb-0.5">📌 {language === 'he' ? 'הערות להצעה:' : 'Quote Notes:'}</span>
+                                                <p className="whitespace-pre-wrap leading-relaxed opacity-90">{quoteNotes}</p>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })()}

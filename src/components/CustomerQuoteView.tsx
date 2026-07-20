@@ -234,6 +234,18 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
             </div>
           </div>
 
+          {/* Quote Notes Box */}
+          {(order.notes || order.admin_notes) && (
+            <div className="mt-8 bg-amber-500/10 border-r-4 border-amber-500 rounded-2xl p-5 text-right font-sans shadow-sm">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 mb-1.5 flex items-center gap-1.5">
+                📌 {isHe ? 'הערות ודגשים להצעה:' : 'Notes & Remarks:'}
+              </h3>
+              <p className="text-xs text-themeText/90 whitespace-pre-wrap leading-relaxed font-medium">
+                {order.notes || order.admin_notes}
+              </p>
+            </div>
+          )}
+
           {/* Terms / Bottom */}
           <div className="mt-12 border-t border-themeText/5 pt-6 text-center text-xs text-themeText/50 leading-relaxed max-w-md mx-auto">
             {isHe ? (
