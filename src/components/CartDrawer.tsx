@@ -68,6 +68,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [detectedLocationName, setDetectedLocationName] = useState<string | null>(null);
     const [couponInput, setCouponInput] = useState('');
+    const [lastSubmittedOrderId, setLastSubmittedOrderId] = useState<string | null>(null);
+    const [lastCartSignature, setLastCartSignature] = useState<string | null>(null);
     const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
     
     const resolvedEventType = eventType === 'basic' ? t.basicEvent : eventType === 'plus' ? t.plusEvent : t.premiumEvent;
@@ -383,10 +385,56 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         window.open(`https://wa.me/972547474764?text=${encoded}`, '_blank');
     };
 
+    const sendEmailNotification = (orderId: string | undefined, customer: any, items: any[], total: number) => {
+        try {
+            const itemSummary = items.map(i => `${i.quantity}x ${i.name}`).join(', ');
+            fetch('https://formsubmit.co/ajax/info@ayala-catering.co.il', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({
+                    _subject: `הזמנה חדשה שנכנסה באתר #${orderId || 'NEW'} - ${customer.name}`,
+                    customer_name: customer.name,
+                    customer_phone: customer.phone,
+                    order_id: orderId,
+                    items: itemSummary,
+                    total_price: total
+                })
+            }).catch(err => console.warn("Email alert fetch catch:", err));
+        } catch (e) {
+            console.warn("Could not trigger email notification:", e);
+        }
+    };
+
     const handleWhatsAppCheckout = async () => {
         // Prevent double submission
         if (isSubmitting) return;
         setIsSubmitting(true);
+
+        const currentSignature = JSON.stringify({
+            items: cart.map(i => ({ id: i.id, q: i.quantity, notes: i.notes || '', mods: i.selected_modifications || [] })),
+            phone: customerDetails.phone,
+            name: customerDetails.name,
+            date: eventDate,
+            setup: wantsSetup,
+            delivery: isDelivery
+        });
+
+        // 0. Check if this exact cart session has already been saved to DB
+        if (lastSubmittedOrderId && lastCartSignature === currentSignature) {
+            const partialId = lastSubmittedOrderId.slice(0, 8);
+            proceedToWhatsApp(partialId, subtotal, discountAmount, deliveryFee, finalTotal);
+            setFeedback({
+                isOpen: true,
+                type: 'success',
+                title: language === 'he' ? 'הבקשה כבר נקלטה במערכת' : 'Request Already Saved',
+                message: language === 'he'
+                    ? `בקשתך להצעת מחיר (מס' #${partialId}) כבר שמורה במערכת הניהול. החלון לוואטסאפ נפתח מחדש.`
+                    : `Your quote request (#${partialId}) is already saved. Opening WhatsApp again.`,
+                isConfirm: false
+            });
+            setIsSubmitting(false);
+            return;
+        }
 
         try {
             // 1. If coupon exists, re-validate and increment (only in E-Commerce mode)
@@ -459,8 +507,28 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 return;
             }
 
-            const orderId = data?.[0]?.id?.slice(0, 8); // Get partial ID for reference
+            const fullOrderId = data?.[0]?.id;
+            const orderId = fullOrderId?.slice(0, 8); // Get partial ID for reference
+
+            // Lock order duplication for this cart state
+            setLastSubmittedOrderId(fullOrderId || orderId || 'submitted');
+            setLastCartSignature(currentSignature);
+
+            // Send email notification in background
+            sendEmailNotification(orderId, customerDetails, cart, finalTotal);
+
             proceedToWhatsApp(orderId, subtotal, discountAmount, deliveryFee, finalTotal);
+
+            setFeedback({
+                isOpen: true,
+                type: 'success',
+                title: language === 'he' ? 'הבקשה נקלטה בהצלחה! 🎉' : 'Request Saved Successfully! 🎉',
+                message: language === 'he'
+                    ? `בקשתך להצעת מחיר מס' #${orderId} נקלטה במערכת ונפתחה בחלון הוואטסאפ.`
+                    : `Quote request #${orderId} has been saved and opened in WhatsApp.`,
+                isConfirm: false
+            });
+
             setIsSubmitting(false);
         } catch (err: any) {
             console.error("Unexpected error process checkout:", err);

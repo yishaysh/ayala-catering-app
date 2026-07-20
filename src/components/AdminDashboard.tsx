@@ -385,10 +385,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 50%; text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'פריט' : 'Item'}</th>
-                            <th style="width: 15%; text-align: center">${isHe ? 'כמות' : 'Qty'}</th>
-                            <th style="width: 15%; text-align: center">${isHe ? 'מחיר יחידה' : 'Unit Price'}</th>
-                            <th style="width: 20%; text-align: ${isHe ? 'left' : 'right'}">${isHe ? 'סה"כ' : 'Total'}</th>
+                            <th style="width: 70%; text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'פריט' : 'Item'}</th>
+                            <th style="width: 30%; text-align: ${isHe ? 'left' : 'right'}">${isHe ? 'כמות' : 'Qty'}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -396,19 +394,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
             
             quoteItems.forEach((item: any) => {
                 const itemName = isHe ? item.name : (item.name_en || item.name);
-                const origItemPrice = item.price;
-                const discItemPrice = item.price * (1 - quoteDiscountPercent / 100);
-                
-                let unitPriceHtml = '';
-                let itemTotalHtml = '';
-                
-                if (quoteDiscountPercent > 0) {
-                    unitPriceHtml = `<span class="price-original">₪${origItemPrice.toFixed(2)}</span><span class="price-discounted">₪${discItemPrice.toFixed(2)}</span>`;
-                    itemTotalHtml = `<span class="price-original">₪${(origItemPrice * item.quantity).toFixed(2)}</span><span class="price-discounted">₪${(discItemPrice * item.quantity).toFixed(2)}</span>`;
-                } else {
-                    unitPriceHtml = `₪${origItemPrice.toFixed(2)}`;
-                    itemTotalHtml = `₪${(origItemPrice * item.quantity).toFixed(2)}`;
-                }
                 
                 html += `
                     <tr>
@@ -417,9 +402,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                             ${item.selected_modifications && item.selected_modifications.length > 0 ? `<div class="item-details">↳ ${item.selected_modifications.join(', ')}</div>` : ''}
                             ${item.notes ? `<div class="item-details">↳ "${item.notes}"</div>` : ''}
                         </td>
-                        <td style="text-align: center">${item.quantity}</td>
-                        <td style="text-align: center">${unitPriceHtml}</td>
-                        <td style="text-align: ${isHe ? 'left' : 'right'}">${itemTotalHtml}</td>
+                        <td style="text-align: ${isHe ? 'left' : 'right'}; font-weight: 600;">${item.quantity}</td>
                     </tr>
                 `;
             });
@@ -429,46 +412,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit }) => {
                 </table>
                 
                 <div class="summary-wrapper">
-                    <table class="summary-table">
-                        <tr>
-                            <td style="text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'סכום ביניים:' : 'Subtotal:'}</td>
-                            <td style="text-align: ${isHe ? 'left' : 'right'}">₪${totalSubtotal.toFixed(2)}</td>
-                        </tr>
-            `;
-            
-            if (quoteDiscountPercent > 0) {
-                html += `
-                        <tr style="color: #b45309; font-weight: 600;">
-                            <td style="text-align: ${isHe ? 'right' : 'left'}">${isHe ? `הטבה והנחה (${quoteDiscountPercent}%):` : `Discount (${quoteDiscountPercent}%):`}</td>
-                            <td style="text-align: ${isHe ? 'left' : 'right'}">-₪${totalDiscount.toFixed(2)}</td>
-                        </tr>
-                `;
-            }
-            
-            if (quoteDeliveryFee > 0) {
-                html += `
-                        <tr>
-                            <td style="text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'משלוח:' : 'Delivery:'}</td>
-                            <td style="text-align: ${isHe ? 'left' : 'right'}">₪${quoteDeliveryFee.toFixed(2)}</td>
-                        </tr>
-                `;
-            }
-            
-            if (quoteWantsSetup) {
-                html += `
-                        <tr>
-                            <td style="text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'שירות עריכה ופינוי:' : 'Setup & Cleanup:'}</td>
-                            <td style="text-align: ${isHe ? 'left' : 'right'}">₪1,000.00</td>
-                        </tr>
-                `;
-            }
-            
-            html += `
-                        <tr style="border-top: 2px solid #7c2d12;">
-                            <td style="text-align: ${isHe ? 'right' : 'left'}; font-weight: 800; font-size: 16px;">${isHe ? 'סה"כ לתשלום:' : 'Total:'}</td>
-                            <td style="text-align: ${isHe ? 'left' : 'right'}; font-weight: 800; font-size: 20px; color: #7c2d12;">₪${totalFinal.toFixed(2)}</td>
-                        </tr>
-                    </table>
+                    <div style="background-color: ${theme?.primary_color || '#7c2d12'}08; border: 1.5px solid ${theme?.primary_color || '#7c2d12'}30; border-radius: 12px; padding: 18px 24px; min-width: 280px; text-align: ${isHe ? 'right' : 'left'};">
+                        <div style="font-size: 12px; font-weight: 700; color: ${theme?.text_color || '#78716c'}a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                            ${isHe ? 'שורה תחתונה / סה"כ לתשלום:' : 'Bottom Line / Total Price:'}
+                        </div>
+                        <div style="font-size: 26px; font-weight: 800; color: ${theme?.primary_color || '#7c2d12'}; font-family: 'Playfair Display', serif;">
+                            ₪${totalFinal.toFixed(2)}
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="terms">

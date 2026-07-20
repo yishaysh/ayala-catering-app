@@ -1,0 +1,270 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Bell, CheckCheck, ExternalLink, Volume2, VolumeX, X } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { useStore } from '../store';
+
+interface NotificationBellProps {
+  onOpenOrder?: (orderId: string) => void;
+}
+
+export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder }) => {
+  const { language } = useStore();
+  const [unreadOrders, setUnreadOrders] = useState<any[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Play pleasant chime using Web Audio API (no external file needed)
+  const playChimeSound = () => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+
+      // Note 1 (E5 - 659.25 Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(659.25, ctx.currentTime);
+      gain1.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start();
+      osc1.stop(ctx.currentTime + 0.5);
+
+      // Note 2 (A5 - 880 Hz) slightly delayed
+      setTimeout(() => {
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(880, ctx.currentTime);
+        gain2.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.7);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start();
+        osc2.stop(ctx.currentTime + 0.7);
+      }, 150);
+    } catch (e) {
+      console.warn("Could not play chime sound:", e);
+    }
+  };
+
+  // Fetch initial pending orders
+  useEffect(() => {
+    const fetchPendingOrders = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('*')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(10);
+
+        if (!error && data) {
+          setUnreadOrders(data);
+        }
+      } catch (err) {
+        console.error("Error fetching pending orders for notification bell:", err);
+      }
+    };
+
+    fetchPendingOrders();
+  }, []);
+
+  // Listen for real-time new orders in Supabase
+  useEffect(() => {
+    const channel = supabase
+      .channel('orders-realtime-bell')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders'
+        },
+        (payload) => {
+          const newOrder = payload.new;
+          playChimeSound();
+          
+          setUnreadOrders((prev) => [newOrder, ...prev]);
+          
+          const customerName = newOrder.customer_name || (language === 'he' ? 'לקוח חדש' : 'New Customer');
+          const message = language === 'he'
+            ? `🔔 הזמנה חדשה נכנסה למערכת מ-${customerName}!`
+            : `🔔 New order received from ${customerName}!`;
+          
+          setToastMessage(message);
+
+          // Hide toast after 6 seconds
+          setTimeout(() => {
+            setToastMessage((current) => (current === message ? null : current));
+          }, 6000);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [soundEnabled, language]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const unreadCount = unreadOrders.length;
+
+  return (
+    <div className="relative inline-block" ref={dropdownRef}>
+      {/* Toast Alert Banner */}
+      {toastMessage && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[250] bg-stone-900 text-white px-5 py-3 rounded-2xl shadow-2xl border border-amber-500/40 flex items-center gap-3 animate-bounce">
+          <span className="text-xl">🛎️</span>
+          <span className="text-sm font-bold">{toastMessage}</span>
+          <button
+            onClick={() => setToastMessage(null)}
+            className="text-white/60 hover:text-white mr-2 p-1"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Bell Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative p-2.5 rounded-full text-themeHeaderTxt hover:bg-white/10 transition-colors focus:outline-none"
+        title={language === 'he' ? 'התראות הזמנות חדשות' : 'New Order Notifications'}
+      >
+        <Bell size={22} className={unreadCount > 0 ? 'animate-wiggle text-amber-400' : ''} />
+
+        {unreadCount > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[20px] h-[20px] bg-red-500 text-white text-[11px] font-extrabold rounded-full flex items-center justify-center px-1 shadow-md border-2 border-themeHeaderBg animate-pulse">
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </button>
+
+      {/* Dropdown Menu */}
+      {isOpen && (
+        <div className="absolute left-0 sm:left-auto right-0 mt-3 w-80 sm:w-96 bg-themeCardBg border border-themeText/10 rounded-2xl shadow-2xl z-[200] overflow-hidden text-themeText font-sans animate-fade-in">
+          {/* Header */}
+          <div className="p-4 bg-themeHeaderBg text-themeHeaderTxt flex items-center justify-between border-b border-white/10">
+            <div className="flex items-center gap-2">
+              <Bell size={18} className="text-amber-400" />
+              <h3 className="font-bold text-sm">
+                {language === 'he' ? 'הזמנות ובקשות חדשות' : 'New Orders & Requests'}
+              </h3>
+              {unreadCount > 0 && (
+                <span className="bg-amber-500/20 text-amber-300 text-xs px-2 py-0.5 rounded-full font-bold">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className="text-themeHeaderTxt/70 hover:text-white p-1 rounded transition"
+                title={soundEnabled ? (language === 'he' ? 'השתק צלילי התרעה' : 'Mute sounds') : (language === 'he' ? 'הפעל צלילי התרעה' : 'Enable sounds')}
+              >
+                {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} className="text-red-400" />}
+              </button>
+
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-themeHeaderTxt/70 hover:text-white p-1 rounded"
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Orders List */}
+          <div className="max-h-80 overflow-y-auto divide-y divide-themeText/5">
+            {unreadOrders.length === 0 ? (
+              <div className="p-8 text-center text-themeText/50">
+                <CheckCheck className="mx-auto mb-2 text-green-500" size={32} />
+                <p className="text-xs font-medium">
+                  {language === 'he' ? 'אין הזמנות חדשות הממתינות לטיפול' : 'No pending orders right now'}
+                </p>
+              </div>
+            ) : (
+              unreadOrders.map((order) => {
+                const dateStr = order.created_at
+                  ? new Date(order.created_at).toLocaleTimeString(language === 'he' ? 'he-IL' : 'en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })
+                  : '';
+                const orderNo = order.id ? order.id.slice(0, 8) : '';
+
+                return (
+                  <div
+                    key={order.id}
+                    className="p-3.5 hover:bg-themeBg/40 transition flex items-start justify-between gap-3 group"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-sm text-themeText truncate">
+                          {order.customer_name || (language === 'he' ? 'לקוח לא ידוע' : 'Unknown Customer')}
+                        </span>
+                        <span className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold px-1.5 py-0.5 rounded">
+                          #{orderNo}
+                        </span>
+                      </div>
+                      <p className="text-xs text-themeText/70 truncate mb-1">
+                        📞 {order.customer_phone}
+                      </p>
+                      <div className="flex items-center gap-3 text-[11px] text-themeText/50">
+                        <span>🕒 {dateStr}</span>
+                        {order.total_price > 0 && (
+                          <span className="font-bold text-themePrimary">₪{order.total_price}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setIsOpen(false);
+                        if (onOpenOrder) onOpenOrder(order.id);
+                        else window.location.href = `/?quote=${order.id}`;
+                      }}
+                      className="text-xs font-bold px-2.5 py-1.5 bg-themePrimary/10 text-themePrimary hover:bg-themePrimary hover:text-white rounded-lg transition flex items-center gap-1 shrink-0"
+                    >
+                      <span>{language === 'he' ? 'צפייה' : 'View'}</span>
+                      <ExternalLink size={12} />
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Footer */}
+          {unreadOrders.length > 0 && (
+            <div className="p-3 bg-themeBg/50 border-t border-themeText/10 text-center">
+              <button
+                onClick={() => setUnreadOrders([])}
+                className="text-xs font-semibold text-themeText/60 hover:text-themePrimary transition"
+              >
+                {language === 'he' ? 'סימון הכל כנקרא' : 'Mark all as read'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};

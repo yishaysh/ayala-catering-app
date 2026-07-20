@@ -158,13 +158,11 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
               <thead>
                 <tr className="border-b-2 border-themePrimary">
                   <th className="py-3 px-4 text-right text-sm font-bold text-themePrimary">{isHe ? 'פריט' : 'Item'}</th>
-                  <th className="py-3 px-4 text-center text-sm font-bold text-themePrimary">{isHe ? 'כמות' : 'Qty'}</th>
-                  <th className="py-3 px-4 text-left text-sm font-bold text-themePrimary">{isHe ? 'מחיר' : 'Price'}</th>
+                  <th className="py-3 px-4 text-left md:text-center text-sm font-bold text-themePrimary">{isHe ? 'כמות' : 'Qty'}</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((item: any, idx: number) => {
-                  const hasDiscount = item.originalPrice && item.originalPrice > item.price;
                   return (
                     <tr key={idx} className="border-b border-themeText/5 hover:bg-themeBg/30 transition-colors">
                       <td className="py-4 px-4 text-right">
@@ -178,18 +176,8 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
                           <p className="text-xs italic text-themeText/40 mt-0.5">"{item.notes}"</p>
                         )}
                       </td>
-                      <td className="py-4 px-4 text-center text-sm font-medium text-themeText/80">
+                      <td className="py-4 px-4 text-left md:text-center text-sm font-medium text-themeText/80">
                         {item.quantity}
-                      </td>
-                      <td className="py-4 px-4 text-left text-sm font-bold text-themeText">
-                        {hasDiscount ? (
-                          <div className="flex items-center gap-1.5 justify-end">
-                            <span className="line-through text-xs text-themeText/40">₪{item.originalPrice}</span>
-                            <span className="text-themePrimary">₪{item.price}</span>
-                          </div>
-                        ) : (
-                          <span>₪{item.price}</span>
-                        )}
                       </td>
                     </tr>
                   );
@@ -198,38 +186,16 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
             </table>
           </div>
 
-          {/* Summary Wrapper */}
+          {/* Bottom Line Total Summary */}
           <div className="flex justify-end border-t border-themeText/10 pt-6">
-            <table className="w-80 text-sm">
-              <tbody>
-                <tr className="border-b border-themeText/5">
-                  <td className="py-2 text-right text-themeText/60">{isHe ? 'סיכום ביניים:' : 'Subtotal:'}</td>
-                  <td className="py-2 text-left font-semibold text-themeText">₪{subtotal}</td>
-                </tr>
-                {discountAmount > 0 && (
-                  <tr className="border-b border-themeText/5 text-themePrimary">
-                    <td className="py-2 text-right">{isHe ? 'הטבה / הנחה:' : 'Discount:'}</td>
-                    <td className="py-2 text-left font-bold">-₪{discountAmount}</td>
-                  </tr>
-                )}
-                {deliveryFee > 0 && (
-                  <tr className="border-b border-themeText/5">
-                    <td className="py-2 text-right text-themeText/60">{isHe ? 'משלוח:' : 'Delivery:'}</td>
-                    <td className="py-2 text-left font-semibold text-themeText">₪{deliveryFee}</td>
-                  </tr>
-                )}
-                {wantsSetup && (
-                  <tr className="border-b border-themeText/5">
-                    <td className="py-2 text-right text-themeText/60">{isHe ? 'עריכה ופינוי:' : 'Setup & Cleanup:'}</td>
-                    <td className="py-2 text-left font-semibold text-themeText">₪1,000</td>
-                  </tr>
-                )}
-                <tr>
-                  <td className="py-4 text-right text-base font-bold text-themeText">{isHe ? 'סה״כ לתשלום:' : 'Total Price:'}</td>
-                  <td className="py-4 text-left text-2xl font-bold font-serif text-themePrimary">₪{finalTotal}</td>
-                </tr>
-              </tbody>
-            </table>
+            <div className="bg-themePrimary/5 border border-themePrimary/20 rounded-2xl p-5 text-left md:text-right min-w-[260px] shadow-sm">
+              <span className="text-xs uppercase font-bold tracking-wider text-themeText/60 block mb-1">
+                {isHe ? 'שורה תחתונה / סה״כ לתשלום:' : 'Bottom Line / Total Amount:'}
+              </span>
+              <span className="text-3xl font-serif font-bold text-themePrimary">
+                ₪{finalTotal}
+              </span>
+            </div>
           </div>
 
           {/* Terms / Bottom */}

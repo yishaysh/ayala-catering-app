@@ -14,6 +14,7 @@ import { ReviewsSection } from './components/ReviewsSection';
 import { AccessibilityMenu } from './components/AccessibilityMenu';
 import { Analytics } from '@vercel/analytics/react';
 import { CustomerQuoteView } from './components/CustomerQuoteView';
+import { NotificationBell } from './components/NotificationBell';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts', 'Picnic Baskets', 'Extras'];
 const NAV_LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png";
@@ -209,6 +210,10 @@ export default function App() {
             </div>
 
             <div className="flex items-center gap-2 md:gap-4">
+                 <NotificationBell onOpenOrder={(orderId) => {
+                     window.location.href = `/?quote=${orderId}`;
+                 }} />
+
                  <button 
                     onClick={() => setIsLoginOpen(true)}
                     className="p-2 text-themeHeaderTxt/70 hover:text-themePrimary transition-colors"
