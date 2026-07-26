@@ -183,12 +183,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             console.error("Failed to update order in database:", error);
         }
 
+        // Update local state immediately
+        setOrders(prev => prev.map(o => o.id === quoteOrder.id ? { ...o, ...updateData } : o));
+
         // Generate and open print window
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             const isHe = language === 'he';
             const dateStr = new Date(quoteOrder.created_at || quoteOrder.event_date).toLocaleDateString('he-IL');
             const quoteNo = quoteOrder.id?.slice(0, 8).toUpperCase();
+            const cleanPhone = quoteOrder.customer_phone ? quoteOrder.customer_phone.replace(/[-+\s]/g, '') : '';
+            const formattedPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.slice(1) : cleanPhone;
             
             const titleText = isHe ? 'הצעת מחיר לקייטרינג חלבי' : 'Dairy Catering Quote';
             const businessName = isHe ? 'איילה – פשוט טעים' : 'Ayala – Simply Delicious';
@@ -199,6 +204,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             <head>
                 <meta charset="UTF-8">
                 <title>${titleText} #${quoteNo}</title>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
                     
@@ -206,10 +212,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         font-family: 'Assistant', sans-serif;
                         color: ${theme?.text_color || '#292524'};
                         margin: 0;
-                        padding: 40px;
+                        padding: 30px;
                         background-color: ${theme?.bg_color || '#ffffff'};
                         line-height: 1.5;
                         position: relative;
+                    }
+
+                    .action-bar {
+                        position: sticky;
+                        top: 0;
+                        z-index: 1000;
+                        background: #1c1917;
+                        color: #ffffff;
+                        padding: 12px 20px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        border-radius: 12px;
+                        margin-bottom: 24px;
+                        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                    }
+                    .action-btn {
+                        background: ${theme?.primary_color || '#7c2d12'};
+                        color: #ffffff;
+                        border: none;
+                        padding: 8px 16px;
+                        border-radius: 8px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        font-size: 13px;
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
+                        font-family: inherit;
+                        transition: opacity 0.2s;
+                    }
+                    .action-btn:hover {
+                        opacity: 0.9;
+                    }
+                    .action-btn.secondary {
+                        background: rgba(255,255,255,0.15);
                     }
 
                     /* Watermark in background */
@@ -360,40 +402,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         margin-top: 3px;
                     }
                     
-                    .price-original {
-                        text-decoration: line-through;
-                        color: ${theme?.text_color || '#a8a29e'}60;
-                        font-size: 12px;
-                        margin-inline-end: 8px;
-                    }
-                    
-                    .price-discounted {
-                        color: ${theme?.primary_color || '#b45309'};
-                        font-weight: 700;
-                    }
-                    
                     .summary-wrapper {
                         display: flex;
                         justify-content: flex-end;
-                    }
-                    
-                    .summary-table {
-                        width: 320px;
-                        margin-bottom: 20px;
-                    }
-                    
-                    .summary-table td {
-                        padding: 8px 16px;
-                        border-bottom: 1px dashed ${theme?.text_color || '#e7e5e4'}20;
-                        font-size: 14px;
-                    }
-                    
-                    .summary-table tr:last-child td {
-                        border-bottom: none;
-                        font-size: 18px;
-                        font-weight: 800;
-                        color: ${theme?.text_color || '#1c1917'};
-                        padding-top: 15px;
                     }
                     
                     .terms {
@@ -406,129 +417,166 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     }
                     
                     @media print {
+                        .no-print {
+                            display: none !important;
+                        }
                         body {
-                            padding: 0;
+                            padding: 0 !important;
                         }
                     }
                 </style>
             </head>
             <body dir="${isHe ? 'rtl' : 'ltr'}">
-                <div class="watermark"></div>
-                <div class="header">
-                    <div class="logo-container">
-                        <img src="https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png" alt="Ayala Logo" class="brand-logo-img" />
-                        <div>
-                            <h1 class="business-title">${businessName}</h1>
-                            <p class="business-subtitle">${isHe ? 'קייטרינג חלבי בוטיק ומגשי אירוח מעוצבים' : 'Boutique Dairy Catering & Designed Platters'}</p>
+                <div class="action-bar no-print">
+                    <div style="font-weight:700;font-size:14px;">📄 ${titleText} #${quoteNo}</div>
+                    <div style="display:flex;gap:8px;">
+                        <button onclick="downloadPdfFile()" class="action-btn">📥 ${isHe ? 'הורדת PDF' : 'Download PDF'}</button>
+                        <button onclick="window.print()" class="action-btn secondary">🖨️ ${isHe ? 'הדפסה' : 'Print'}</button>
+                        <button onclick="sendViaWhatsapp()" class="action-btn secondary" style="background:#16a34a;">💬 ${isHe ? 'שליחה בוואטסאפ' : 'WhatsApp'}</button>
+                    </div>
+                </div>
+
+                <div id="pdf-content-area">
+                    <div class="watermark"></div>
+                    <div class="header">
+                        <div class="logo-container">
+                            <img src="https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png" alt="Ayala Logo" class="brand-logo-img" />
+                            <div>
+                                <h1 class="business-title">${businessName}</h1>
+                                <p class="business-subtitle">${isHe ? 'קייטרינג חלבי בוטיק ומגשי אירוח מעוצבים' : 'Boutique Dairy Catering & Designed Platters'}</p>
+                            </div>
+                        </div>
+                        <div class="quote-info">
+                            <h2 class="quote-title">${titleText}</h2>
+                            <div class="quote-meta-item"><strong>${isHe ? 'מספר הצעה:' : 'Quote No:'}</strong> #${quoteNo}</div>
+                            <div class="quote-meta-item"><strong>${isHe ? 'תאריך:' : 'Date:'}</strong> ${dateStr}</div>
                         </div>
                     </div>
-                    <div class="quote-info">
-                        <h2 class="quote-title">${titleText}</h2>
-                        <div class="quote-meta-item"><strong>${isHe ? 'מספר הצעה:' : 'Quote No:'}</strong> #${quoteNo}</div>
-                        <div class="quote-meta-item"><strong>${isHe ? 'תאריך:' : 'Date:'}</strong> ${dateStr}</div>
+                    
+                    <div class="details-grid">
+                        <div class="details-col">
+                            <h3>${isHe ? 'פרטי הלקוח' : 'Customer Details'}</h3>
+                            <p><strong>${isHe ? 'שם:' : 'Name:'}</strong> ${quoteOrder.customer_name || ''}</p>
+                            <p><strong>${isHe ? 'טלפון:' : 'Phone:'}</strong> ${quoteOrder.customer_phone || ''}</p>
+                        </div>
+                        <div class="details-col">
+                            <h3>${isHe ? 'פרטי האירוע' : 'Event Details'}</h3>
+                            <p><strong>${isHe ? 'סוג אירוע:' : 'Event Type:'}</strong> ${quoteOrder.event_type || (isHe ? 'לא נבחר' : 'None')}</p>
+                            <p><strong>${isHe ? 'תאריך אירוע:' : 'Event Date:'}</strong> ${dateStr}</p>
+                        </div>
                     </div>
-                </div>
+                    
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 70%; text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'פריט' : 'Item'}</th>
+                                <th style="width: 30%; text-align: ${isHe ? 'left' : 'right'}">${isHe ? 'כמות' : 'Qty'}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
                 
-                <div class="details-grid">
-                    <div class="details-col">
-                        <h3>${isHe ? 'פרטי הלקוח' : 'Customer Details'}</h3>
-                        <p><strong>${isHe ? 'שם:' : 'Name:'}</strong> ${quoteOrder.customer_name || ''}</p>
-                        <p><strong>${isHe ? 'טלפון:' : 'Phone:'}</strong> ${quoteOrder.customer_phone || ''}</p>
-                    </div>
-                    <div class="details-col">
-                        <h3>${isHe ? 'פרטי האירוע' : 'Event Details'}</h3>
-                        <p><strong>${isHe ? 'סוג אירוע:' : 'Event Type:'}</strong> ${quoteOrder.event_type || (isHe ? 'לא נבחר' : 'None')}</p>
-                        <p><strong>${isHe ? 'תאריך אירוע:' : 'Event Date:'}</strong> ${dateStr}</p>
-                    </div>
-                </div>
-                
-                <table>
-                    <thead>
+                quoteItems.forEach((item: any) => {
+                    const itemName = isHe ? item.name : (item.name_en || item.name);
+                    
+                    html += `
                         <tr>
-                            <th style="width: 70%; text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'פריט' : 'Item'}</th>
-                            <th style="width: 30%; text-align: ${isHe ? 'left' : 'right'}">${isHe ? 'כמות' : 'Qty'}</th>
+                            <td style="text-align: ${isHe ? 'right' : 'left'}">
+                                <div class="item-name">${itemName}</div>
+                                ${item.selected_modifications && item.selected_modifications.length > 0 ? `<div class="item-details">↳ ${item.selected_modifications.join(', ')}</div>` : ''}
+                                ${item.notes ? `<div class="item-details">↳ "${item.notes}"</div>` : ''}
+                            </td>
+                            <td style="text-align: ${isHe ? 'left' : 'right'}; font-weight: 600;">${item.quantity}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-            `;
-            
-            quoteItems.forEach((item: any) => {
-                const itemName = isHe ? item.name : (item.name_en || item.name);
+                    `;
+                });
                 
                 html += `
-                    <tr>
-                        <td style="text-align: ${isHe ? 'right' : 'left'}">
-                            <div class="item-name">${itemName}</div>
-                            ${item.selected_modifications && item.selected_modifications.length > 0 ? `<div class="item-details">↳ ${item.selected_modifications.join(', ')}</div>` : ''}
-                            ${item.notes ? `<div class="item-details">↳ "${item.notes}"</div>` : ''}
-                        </td>
-                        <td style="text-align: ${isHe ? 'left' : 'right'}; font-weight: 600;">${item.quantity}</td>
-                    </tr>
-                `;
-            });
-            
-            html += `
-                    </tbody>
-                </table>
-                
-                <div class="summary-wrapper">
-                    <div style="background-color: ${theme?.primary_color || '#7c2d12'}08; border: 1.5px solid ${theme?.primary_color || '#7c2d12'}30; border-radius: 14px; padding: 20px 24px; min-width: 300px; text-align: ${isHe ? 'right' : 'left'}; font-family: 'Assistant', sans-serif;">
-                        ${totalDiscount > 0 ? `
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #78716c;">
-                                <span>${isHe ? 'סכום לפני הנחה:' : 'Original Amount:'}</span>
-                                <span style="text-decoration: line-through; color: #9ca3af; font-weight: 700; font-size: 14px;">₪${totalSubtotal.toFixed(2)}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #d97706; font-weight: 700;">
-                                <span>${isHe ? `אחוזי הנחה (${quoteDiscountPercent}%):` : `Discount (${quoteDiscountPercent}%):`}</span>
-                                <span>-₪${totalDiscount.toFixed(2)}</span>
-                            </div>
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13px; color: #16a34a; font-weight: 700; border-bottom: 1px dashed #d1d5db; padding-bottom: 6px;">
-                                <span>${isHe ? 'סכום לאחר הנחה:' : 'Amount After Discount:'}</span>
-                                <span>₪${(totalSubtotal - totalDiscount).toFixed(2)}</span>
-                            </div>
-                        ` : ''}
+                        </tbody>
+                    </table>
+                    
+                    <div class="summary-wrapper">
+                        <div style="background-color: ${theme?.primary_color || '#7c2d12'}08; border: 1.5px solid ${theme?.primary_color || '#7c2d12'}30; border-radius: 14px; padding: 20px 24px; min-width: 300px; text-align: ${isHe ? 'right' : 'left'}; font-family: 'Assistant', sans-serif;">
+                            ${totalDiscount > 0 ? `
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #78716c;">
+                                    <span>${isHe ? 'סכום לפני הנחה:' : 'Original Amount:'}</span>
+                                    <span style="text-decoration: line-through; color: #9ca3af; font-weight: 700; font-size: 14px;">₪${totalSubtotal.toFixed(2)}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #d97706; font-weight: 700;">
+                                    <span>${isHe ? `אחוזי הנחה (${quoteDiscountPercent}%):` : `Discount (${quoteDiscountPercent}%):`}</span>
+                                    <span>-₪${totalDiscount.toFixed(2)}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13px; color: #16a34a; font-weight: 700; border-bottom: 1px dashed #d1d5db; padding-bottom: 6px;">
+                                    <span>${isHe ? 'סכום לאחר הנחה:' : 'Amount After Discount:'}</span>
+                                    <span>₪${(totalSubtotal - totalDiscount).toFixed(2)}</span>
+                                </div>
+                            ` : ''}
 
-                        ${quoteDeliveryFee > 0 ? `
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #4b5563;">
-                                <span>🚚 ${isHe ? 'דמי משלוח (חלק מהמחיר):' : 'Delivery Fee (Included):'}</span>
-                                <span style="font-weight: 700;">₪${quoteDeliveryFee.toFixed(2)}</span>
-                            </div>
-                        ` : ''}
+                            ${quoteDeliveryFee > 0 ? `
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #4b5563;">
+                                    <span>🚚 ${isHe ? 'דמי משלוח (חלק מהמחיר):' : 'Delivery Fee (Included):'}</span>
+                                    <span style="font-weight: 700;">₪${quoteDeliveryFee.toFixed(2)}</span>
+                                </div>
+                            ` : ''}
 
-                        ${quoteWantsSetup ? `
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #4b5563;">
-                                <span>✨ ${isHe ? 'שירותי עריכה ופינוי (חלק מהמחיר):' : 'Setup & Cleanup (Included):'}</span>
-                                <span style="font-weight: 700;">₪1,000.00</span>
-                            </div>
-                        ` : ''}
+                            ${quoteWantsSetup ? `
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #4b5563;">
+                                    <span>✨ ${isHe ? 'שירותי עריכה ופינוי (חלק מהמחיר):' : 'Setup & Cleanup (Included):'}</span>
+                                    <span style="font-weight: 700;">₪1,000.00</span>
+                                </div>
+                            ` : ''}
 
-                        <div style="border-top: 1.5px solid ${theme?.primary_color || '#7c2d12'}30; margin-top: 10px; padding-top: 10px;">
-                            <div style="font-size: 12px; font-weight: 700; color: ${theme?.text_color || '#78716c'}a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
-                                ${isHe ? 'שורה תחתונה / סה"כ לתשלום:' : 'Bottom Line / Total Price:'}
-                            </div>
-                            <div style="font-size: 28px; font-weight: 800; color: ${theme?.primary_color || '#7c2d12'}; font-family: 'Playfair Display', serif;">
-                                ₪${totalFinal.toFixed(2)}
+                            <div style="border-top: 1.5px solid ${theme?.primary_color || '#7c2d12'}30; margin-top: 10px; padding-top: 10px;">
+                                <div style="font-size: 12px; font-weight: 700; color: ${theme?.text_color || '#78716c'}a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                                    ${isHe ? 'שורה תחתונה / סה"כ לתשלום:' : 'Bottom Line / Total Price:'}
+                                </div>
+                                <div style="font-size: 28px; font-weight: 800; color: ${theme?.primary_color || '#7c2d12'}; font-family: 'Playfair Display', serif;">
+                                    ₪${totalFinal.toFixed(2)}
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    ${quoteNotes ? `
+                        <div style="margin-top: 25px; padding: 14px 18px; background-color: ${theme?.primary_color || '#7c2d12'}08; border-right: 4px solid ${theme?.primary_color || '#7c2d12'}; border-radius: 10px; font-size: 13px; color: ${theme?.text_color || '#292524'}; text-align: ${isHe ? 'right' : 'left'};">
+                            <strong style="color: ${theme?.primary_color || '#7c2d12'}; font-size: 13px; display: block; margin-bottom: 5px;">
+                                📌 ${isHe ? 'הערות ודגשים להצעה:' : 'Notes & Special Instructions:'}
+                            </strong>
+                            <div style="white-space: pre-wrap; line-height: 1.5; font-size: 13px;">${quoteNotes}</div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="terms">
+                        <p>${isHe ? 'תודה שבחרתם באיילה פשוט טעים! • הצעת המחיר בתוקף ל-30 ימים • טלפון: 054-7474764 • אימייל: info@ayala-catering.co.il' : 'Thank you for choosing Ayala Simply Delicious! • Quote valid for 30 days • Phone: 054-7474764 • Email: info@ayala-catering.co.il'}</p>
+                    </div>
                 </div>
 
-                ${quoteNotes ? `
-                    <div style="margin-top: 25px; padding: 14px 18px; background-color: ${theme?.primary_color || '#7c2d12'}08; border-right: 4px solid ${theme?.primary_color || '#7c2d12'}; border-radius: 10px; font-size: 13px; color: ${theme?.text_color || '#292524'}; text-align: ${isHe ? 'right' : 'left'};">
-                        <strong style="color: ${theme?.primary_color || '#7c2d12'}; font-size: 13px; display: block; margin-bottom: 5px;">
-                            📌 ${isHe ? 'הערות ודגשים להצעה:' : 'Notes & Special Instructions:'}
-                        </strong>
-                        <div style="white-space: pre-wrap; line-height: 1.5; font-size: 13px;">${quoteNotes}</div>
-                    </div>
-                ` : ''}
-                
-                <div class="terms">
-                    <p>${isHe ? 'תודה שבחרתם באיילה פשוט טעים! • הצעת המחיר בתוקף ל-30 ימים • טלפון: 054-7474764 • אימייל: info@ayala-catering.co.il' : 'Thank you for choosing Ayala Simply Delicious! • Quote valid for 30 days • Phone: 054-7474764 • Email: info@ayala-catering.co.il'}</p>
-                </div>
-                
                 <script>
+                    function downloadPdfFile() {
+                        const element = document.getElementById('pdf-content-area');
+                        const opt = {
+                            margin: [10, 10, 10, 10],
+                            filename: 'הצעת_מחיר_איילה_#${quoteNo}.pdf',
+                            image: { type: 'jpeg', quality: 0.98 },
+                            html2canvas: { scale: 2, useCORS: true },
+                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                        };
+                        if (window.html2pdf) {
+                            window.html2pdf().set(opt).from(element).save();
+                        } else {
+                            window.print();
+                        }
+                    }
+
+                    function sendViaWhatsapp() {
+                        const formattedPhone = '${formattedPhone}';
+                        const quoteUrl = '${window.location.origin}/?quote=${quoteOrder.id}';
+                        const message = '${isHe ? `היי ${quoteOrder.customer_name}, הנה הצעת המחיר המעוצבת שהכנתי עבורך לאירוע 📄✨:\n` : `Hi ${quoteOrder.customer_name}, here is the quote proposal for your event:\n`}' + quoteUrl;
+                        window.open('https://wa.me/' + formattedPhone + '?text=' + encodeURIComponent(message), '_blank');
+                    }
+
                     window.onload = function() {
-                        window.print();
+                        setTimeout(() => window.print(), 500);
                     }
                 </script>
             </body>
@@ -745,12 +793,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
         const order = orders.find(o => o.id === orderId);
         try {
+            let updatedPrice = order?.total_price || 0;
+            let updatedSubtotal = order?.subtotal || 0;
+
+            if (newStatus === 'approved' && (!updatedPrice || updatedPrice === 0) && order?.items) {
+                updatedSubtotal = order.items.reduce((sum: number, item: any) => {
+                    let p = item.price || 0;
+                    if (!p || p === 0) {
+                        const menuI = menuItems.find(m => m.id === item.id || m.name === item.name);
+                        if (menuI) p = menuI.price;
+                    }
+                    return sum + (p * (item.quantity || 1));
+                }, 0);
+                const disc = order.discount_amount || 0;
+                const deliv = order.delivery_fee || 0;
+                const setup = order.wants_setup ? 1000 : 0;
+                updatedPrice = Math.max(0, updatedSubtotal - disc + deliv + setup);
+                await supabase.from('orders').update({ total_price: updatedPrice, subtotal: updatedSubtotal }).eq('id', orderId);
+            }
+
             const { error } = await supabase
                 .from('orders')
                 .update({ status: newStatus })
                 .eq('id', orderId);
             if (!error) {
-                setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as any } : o));
+                setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as any, total_price: updatedPrice || o.total_price, subtotal: updatedSubtotal || o.subtotal } : o));
                 
                 if (order && (newStatus === 'approved' || newStatus === 'cancelled')) {
                     const partialId = orderId.slice(0, 8);
@@ -759,8 +826,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     let text = "";
                     if (newStatus === 'approved') {
                         text = language === 'he'
-                            ? `היי ${order.customer_name}, שמחה לבשר לך שהזמנתך מס' #${partialId} בקייטרינג של איילה אושרה! 🍽️\nסכום סופי לתשלום: ₪${order.total_price}.\nנתראה במועד האירוע! ✨`
-                            : `Hi ${order.customer_name}, I'm happy to inform you that your order #${partialId} with Ayala Catering has been approved! 🍽️\nTotal: ₪${order.total_price}.\nSee you at the event! ✨`;
+                            ? `היי ${order.customer_name}, שמחה לבשר לך שהזמנתך מס' #${partialId} בקייטרינג של איילה אושרה! 🍽️\nסכום סופי לתשלום: ₪${updatedPrice}.\nנתראה במועד האירוע! ✨`
+                            : `Hi ${order.customer_name}, I'm happy to inform you that your order #${partialId} with Ayala Catering has been approved! 🍽️\nTotal: ₪${updatedPrice}.\nSee you at the event! ✨`;
                     } else {
                         text = language === 'he'
                             ? `היי ${order.customer_name}, הזמנתך מס' #${partialId} בקייטרינג של איילה בוטלה. במידה ויש שאלות, ניתן ליצור קשר.`
@@ -2940,11 +3007,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         <div className="flex flex-col gap-3">
                             <button
                                 onClick={() => {
+                                    const orderToQuote = orders.find(o => o.id === quoteSuccessData.orderId);
+                                    if (orderToQuote) {
+                                        openQuoteDialog(orderToQuote);
+                                    } else {
+                                        window.open(`/?quote=${quoteSuccessData.orderId}`, '_blank');
+                                    }
+                                }}
+                                className="w-full bg-themePrimary text-themeCardBg font-bold py-3 rounded-xl hover:bg-themeSecondary transition-all shadow-md flex items-center justify-center gap-2 text-sm"
+                            >
+                                <FileText size={16} />
+                                <span>{language === 'he' ? '📄 פתיחה / הורדת קובץ PDF' : 'Open / Download PDF'}</span>
+                            </button>
+
+                            <button
+                                onClick={() => {
                                     const cleanPhone = quoteSuccessData.customerPhone.replace(/[-+\s]/g, '');
                                     const formattedPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.slice(1) : cleanPhone;
                                     const quoteUrl = `${window.location.origin}/?quote=${quoteSuccessData.orderId}`;
                                     const message = language === 'he'
-                                        ? `היי ${quoteSuccessData.customerName}, הנה הצעת המחיר שהכנתי עבורך לאירוע:\n${quoteUrl}`
+                                        ? `היי ${quoteSuccessData.customerName}, הנה הצעת המחיר המעוצבת שהכנתי עבורך לאירוע 📄✨:\n${quoteUrl}`
                                         : `Hi ${quoteSuccessData.customerName}, here is the quote proposal for your event:\n${quoteUrl}`;
                                     window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
                                 }}

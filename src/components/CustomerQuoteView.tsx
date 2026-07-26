@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store';
-import { Loader2, Printer, Phone } from 'lucide-react';
+import { Loader2, Printer, Phone, Download } from 'lucide-react';
 
 interface CustomerQuoteViewProps {
   quoteId: string;
 }
 
 export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId }) => {
-  const { theme, language } = useStore();
+  const { theme, language, menuItems } = useStore();
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,15 +62,43 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
   const deliveryFee = order.delivery_fee || 0;
   const wantsSetup = order.wants_setup || false;
   const setupFee = wantsSetup ? 1000 : 0;
-  const subtotal = order.subtotal || 0;
   
-  // Calculate final total based on prices saved in DB
-  const finalTotal = order.total_price || Math.max(0, subtotal - discountAmount + deliveryFee + setupFee);
+  // Dynamic fallback calculation if order.subtotal or item prices in DB are 0
+  const calculatedSubtotal = items.reduce((sum: number, item: any) => {
+    let price = item.price || 0;
+    if (!price || price === 0) {
+      const menuI = menuItems.find((m: any) => m.id === item.id || m.name === item.name);
+      if (menuI) price = menuI.price;
+    }
+    return sum + (price * (item.quantity || 1));
+  }, 0);
+
+  const subtotal = (order.subtotal && order.subtotal > 0) ? order.subtotal : calculatedSubtotal;
+  const finalTotal = (order.total_price && order.total_price > 0) 
+    ? order.total_price 
+    : Math.max(0, subtotal - discountAmount + deliveryFee + setupFee);
 
   const dateStr = order.event_date ? new Date(order.event_date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US') : '';
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPdf = () => {
+    const element = document.getElementById('quote-paper-container');
+    if (!element) return;
+    if ((window as any).html2pdf) {
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `הצעת_מחיר_איילה_#${order.id ? order.id.slice(0, 8) : 'quote'}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      (window as any).html2pdf().set(opt).from(element).save();
+    } else {
+      window.print();
+    }
   };
 
   const handleContactAyala = () => {
@@ -100,11 +128,18 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
           </a>
           <div className="flex gap-2">
             <button 
+              onClick={handleDownloadPdf}
+              className="flex items-center gap-2 px-4 py-2 bg-themePrimary text-themeCardBg rounded-xl hover:opacity-90 transition text-sm font-bold shadow-sm"
+            >
+              <Download size={16} />
+              <span>{isHe ? 'הורדת קובץ PDF' : 'Download PDF'}</span>
+            </button>
+            <button 
               onClick={handlePrint}
               className="flex items-center gap-2 px-4 py-2 border border-themeText/20 rounded-xl hover:bg-themeCardBg transition text-sm font-bold shadow-sm"
             >
               <Printer size={16} />
-              <span>{isHe ? 'הדפסה / שמירה כ-PDF' : 'Print / Save PDF'}</span>
+              <span>{isHe ? 'הדפסה' : 'Print'}</span>
             </button>
             <button 
               onClick={handleContactAyala}
@@ -117,7 +152,7 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
         </div>
 
         {/* Paper Container */}
-        <div className="bg-themeCardBg border border-themeText/5 rounded-3xl p-6 md:p-12 shadow-xl shadow-themeText/5">
+        <div id="quote-paper-container" className="bg-themeCardBg border border-themeText/5 rounded-3xl p-6 md:p-12 shadow-xl shadow-themeText/5">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6 border-b border-themeText/10 pb-8 mb-8">
             <div className="flex items-center gap-4">

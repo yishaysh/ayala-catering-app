@@ -460,11 +460,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 customer_name: customerDetails.name,
                 customer_phone: customerDetails.phone,
                 event_date: eventDate ? new Date(eventDate).toISOString() : new Date().toISOString(),
-                total_price: appConfig.ecommerce_mode ? finalTotal : 0,
-                subtotal: appConfig.ecommerce_mode ? subtotal : 0,
-                discount_amount: appConfig.ecommerce_mode ? discountAmount : 0,
-                coupon_code: (appConfig.ecommerce_mode && activeCoupon) ? activeCoupon.code : null,
-                items: cart,
+                total_price: finalTotal,
+                subtotal: subtotal,
+                discount_amount: discountAmount,
+                delivery_fee: deliveryFee,
+                coupon_code: activeCoupon ? activeCoupon.code : null,
+                items: cart.map(i => ({ ...i, price: i.price || 0 })),
                 status: 'pending', // It remains pending until manual approval
                 event_type: resolvedEventType,
                 wants_setup: wantsSetup
