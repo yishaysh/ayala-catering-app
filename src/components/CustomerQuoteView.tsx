@@ -297,27 +297,27 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
       </div>
 
       {/* Floating Action Bar at Bottom (Icon-Only) */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 bg-stone-900/95 backdrop-blur-md px-6 py-4 rounded-full shadow-2xl border border-white/20 flex items-center gap-5 print:hidden">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-900/95 backdrop-blur-md px-4 py-2.5 rounded-full shadow-2xl border border-white/20 flex items-center gap-3.5 print:hidden">
         <button 
           onClick={handleDownloadPdf}
           title={isHe ? 'הורדת קובץ PDF' : 'Download PDF'}
-          className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-red-700 to-red-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-2xl border border-white/20"
+          className="w-14 h-14 rounded-full bg-gradient-to-tr from-red-700 to-red-500 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg border border-white/20"
         >
-          <FileText size={36} />
+          <FileText size={26} />
         </button>
         <button 
           onClick={handleContactAyala}
           title={isHe ? 'שליחה בוואטסאפ' : 'Chat on WhatsApp'}
-          className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-emerald-600 to-green-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-2xl border border-white/20"
+          className="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 to-green-500 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-lg border border-white/20"
         >
-          <MessageCircle size={36} />
+          <MessageCircle size={26} />
         </button>
         <button 
           onClick={handlePrint}
           title={isHe ? 'הדפסה' : 'Print'}
-          className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-white/20 text-white border border-white/25 flex items-center justify-center hover:bg-white/30 hover:scale-110 active:scale-95 transition-all shadow-2xl"
+          className="w-14 h-14 rounded-full bg-white/20 text-white border border-white/25 flex items-center justify-center hover:bg-white/30 hover:scale-105 active:scale-95 transition-all shadow-lg"
         >
-          <Printer size={36} />
+          <Printer size={26} />
         </button>
       </div>
     </div>
