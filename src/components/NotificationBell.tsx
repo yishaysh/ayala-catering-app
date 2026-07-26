@@ -8,7 +8,7 @@ interface NotificationBellProps {
 }
 
 export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder }) => {
-  const { language } = useStore();
+  const { language, menuItems } = useStore();
   const [unreadOrders, setUnreadOrders] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -272,6 +272,19 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
                   : '';
                 const orderNo = order.id ? order.id.slice(0, 8) : '';
 
+                const displayPrice = (() => {
+                  if (order.total_price && order.total_price > 0) return order.total_price;
+                  if (!order.items || order.items.length === 0) return 0;
+                  return order.items.reduce((sum: number, item: any) => {
+                    let p = item.price || 0;
+                    if (!p || p === 0) {
+                      const menuI = menuItems.find((m: any) => m.id === item.id || m.name === item.name);
+                      if (menuI) p = menuI.price;
+                    }
+                    return sum + (p * (item.quantity || 1));
+                  }, 0);
+                })();
+
                 return (
                   <div
                     key={order.id}
@@ -291,8 +304,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
                       </p>
                       <div className="flex items-center gap-3 text-[11px] text-themeText/50">
                         <span>🕒 {dateStr}</span>
-                        {order.total_price > 0 && (
-                          <span className="font-bold text-themePrimary">₪{order.total_price}</span>
+                        {displayPrice > 0 && (
+                          <span className="font-bold text-themePrimary">₪{displayPrice}</span>
                         )}
                       </div>
                     </div>

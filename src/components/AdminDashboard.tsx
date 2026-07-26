@@ -770,7 +770,40 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 .from('orders')
                 .select('*')
                 .order('created_at', { ascending: false });
-            if (data) setOrders(data as Order[]);
+            if (data) {
+                const processed = (data as Order[]).map(order => {
+                    if ((!order.total_price || order.total_price === 0) && order.items && order.items.length > 0) {
+                        const calcSubtotal = order.items.reduce((sum: number, item: any) => {
+                            let p = item.price || 0;
+                            if (!p || p === 0) {
+                                const menuI = menuItems.find(m => m.id === item.id || m.name === item.name);
+                                if (menuI) p = menuI.price;
+                            }
+                            return sum + (p * (item.quantity || 1));
+                        }, 0);
+                        const disc = order.discount_amount || 0;
+                        const deliv = order.delivery_fee || 0;
+                        const setup = order.wants_setup ? 1000 : 0;
+                        const calculatedTotal = Math.max(0, calcSubtotal - disc + deliv + setup);
+                        
+                        // Auto-repair order in DB asynchronously if total_price was 0
+                        if (calculatedTotal > 0 && order.id) {
+                            supabase.from('orders').update({
+                                total_price: calculatedTotal,
+                                subtotal: order.subtotal || calcSubtotal
+                            }).eq('id', order.id).then(() => {});
+                        }
+
+                        return {
+                            ...order,
+                            subtotal: order.subtotal || calcSubtotal,
+                            total_price: calculatedTotal
+                        };
+                    }
+                    return order;
+                });
+                setOrders(processed);
+            }
         } catch (e) {
             console.error("Error loading orders:", e);
         } finally {
