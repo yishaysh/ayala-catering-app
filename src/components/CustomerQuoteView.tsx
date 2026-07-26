@@ -291,6 +291,31 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
           </div>
         </div>
       </div>
+
+      {/* Floating Action Bar at Bottom */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-900/95 backdrop-blur-md px-6 py-3 rounded-2xl shadow-2xl border border-white/10 flex items-center gap-3 print:hidden max-w-[95vw] overflow-x-auto">
+        <button 
+          onClick={handleDownloadPdf}
+          className="flex items-center gap-2 px-5 py-3 bg-themePrimary text-themeCardBg rounded-xl hover:opacity-90 active:scale-95 transition-all text-sm font-bold shadow-md whitespace-nowrap"
+        >
+          <Download size={18} />
+          <span>{isHe ? 'הורדת קובץ PDF' : 'Download PDF'}</span>
+        </button>
+        <button 
+          onClick={handlePrint}
+          className="flex items-center gap-2 px-5 py-3 bg-white/15 text-white rounded-xl hover:bg-white/25 active:scale-95 transition-all text-sm font-bold shadow-md whitespace-nowrap"
+        >
+          <Printer size={18} />
+          <span>{isHe ? 'הדפסה' : 'Print'}</span>
+        </button>
+        <button 
+          onClick={handleContactAyala}
+          className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 active:scale-95 transition-all text-sm font-bold shadow-md whitespace-nowrap"
+        >
+          <Phone size={18} />
+          <span>{isHe ? 'פנייה בוואטסאפ' : 'Chat on WhatsApp'}</span>
+        </button>
+      </div>
     </div>
   );
 };

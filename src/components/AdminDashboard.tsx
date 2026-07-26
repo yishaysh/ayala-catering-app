@@ -216,40 +216,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         position: relative;
                     }
 
-                    .action-bar {
-                        position: sticky;
-                        top: 0;
-                        z-index: 1000;
-                        background: #1c1917;
-                        color: #ffffff;
+                    .floating-action-bar {
+                        position: fixed;
+                        bottom: 24px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        z-index: 999999;
+                        background: rgba(28, 25, 23, 0.95);
+                        backdrop-filter: blur(12px);
+                        -webkit-backdrop-filter: blur(12px);
                         padding: 12px 20px;
+                        border-radius: 20px;
                         display: flex;
-                        justify-content: space-between;
                         align-items: center;
-                        border-radius: 12px;
-                        margin-bottom: 24px;
-                        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                        gap: 12px;
+                        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.12);
+                        max-width: 95vw;
+                        flex-wrap: wrap;
+                        justify-content: center;
                     }
-                    .action-btn {
-                        background: ${theme?.primary_color || '#7c2d12'};
-                        color: #ffffff;
-                        border: none;
-                        padding: 8px 16px;
-                        border-radius: 8px;
-                        font-weight: 700;
-                        cursor: pointer;
-                        font-size: 13px;
+
+                    .floating-btn {
                         display: inline-flex;
                         align-items: center;
-                        gap: 6px;
-                        font-family: inherit;
-                        transition: opacity 0.2s;
+                        justify-content: center;
+                        gap: 8px;
+                        padding: 12px 22px;
+                        border-radius: 14px;
+                        font-size: 14px;
+                        font-weight: 700;
+                        cursor: pointer;
+                        border: none;
+                        text-decoration: none;
+                        transition: all 0.2s ease;
+                        font-family: 'Assistant', sans-serif;
+                        white-space: nowrap;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
                     }
-                    .action-btn:hover {
-                        opacity: 0.9;
+
+                    .floating-btn:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 6px 18px rgba(0,0,0,0.3);
                     }
-                    .action-btn.secondary {
-                        background: rgba(255,255,255,0.15);
+
+                    .floating-btn:active {
+                        transform: translateY(0);
+                    }
+
+                    .floating-btn-primary {
+                        background: ${theme?.primary_color || '#7c2d12'};
+                        color: #ffffff;
+                    }
+
+                    .floating-btn-whatsapp {
+                        background: #16a34a;
+                        color: #ffffff;
+                    }
+
+                    .floating-btn-secondary {
+                        background: rgba(255, 255, 255, 0.18);
+                        color: #ffffff;
+                    }
+                    .floating-btn-secondary:hover {
+                        background: rgba(255, 255, 255, 0.28);
                     }
 
                     /* Watermark in background */
@@ -420,20 +449,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         }
                         body {
                             padding: 0 !important;
+                            margin: 0 !important;
                         }
                     }
                 </style>
             </head>
-            <body dir="${isHe ? 'rtl' : 'ltr'}">
-                <div class="action-bar no-print">
-                    <div style="font-weight:700;font-size:14px;">📄 ${titleText} #${quoteNo}</div>
-                    <div style="display:flex;gap:8px;">
-                        <button onclick="downloadPdfFile()" class="action-btn">📥 ${isHe ? 'הורדת PDF' : 'Download PDF'}</button>
-                        <button onclick="window.print()" class="action-btn secondary">🖨️ ${isHe ? 'הדפסה' : 'Print'}</button>
-                        <button onclick="sendViaWhatsapp()" class="action-btn secondary" style="background:#16a34a;">💬 ${isHe ? 'שליחה בוואטסאפ' : 'WhatsApp'}</button>
-                    </div>
-                </div>
-
+            <body dir="${isHe ? 'rtl' : 'ltr'}" style="padding-bottom: 100px;">
                 <div id="pdf-content-area">
                     <div class="watermark"></div>
                     <div class="header">
@@ -549,8 +570,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     </div>
                 </div>
 
+                <!-- Floating Bottom Action Bar -->
+                <div class="floating-action-bar no-print">
+                    <button id="btn-download-pdf" class="floating-btn floating-btn-primary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span>${isHe ? 'הורדת קובץ PDF' : 'Download PDF'}</span>
+                    </button>
+                    <button id="btn-print" class="floating-btn floating-btn-secondary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                        <span>${isHe ? 'הדפסה' : 'Print'}</span>
+                    </button>
+                    <a href="https://wa.me/${formattedPhone}?text=${encodeURIComponent(isHe ? `היי ${quoteOrder.customer_name}, הנה הצעת המחיר המעוצבת שהכנתי עבורך לאירוע 📄✨:\n${window.location.origin}/?quote=${quoteOrder.id}` : `Hi ${quoteOrder.customer_name}, here is your quote:\n${window.location.origin}/?quote=${quoteOrder.id}`)}" target="_blank" rel="noopener noreferrer" class="floating-btn floating-btn-whatsapp">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.326.002 9.66-4.322 9.663-9.654.002-2.585-1.005-5.01-2.835-6.84C16.25 2.28 13.824 1.272 11.24 1.27c-5.328 0-9.664 4.321-9.667 9.656-.001 1.544.412 3.052 1.196 4.385l-.974 3.556 3.649-.957z"/></svg>
+                        <span>${isHe ? 'שליחה בוואטסאפ ללקוח' : 'Send WhatsApp'}</span>
+                    </a>
+                    <button id="btn-copy-link" class="floating-btn floating-btn-secondary">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        <span id="copy-btn-text">${isHe ? 'העתקת קישור' : 'Copy Link'}</span>
+                    </button>
+                </div>
+
                 <script>
-                    function downloadPdfFile() {
+                    document.getElementById('btn-print').addEventListener('click', function() {
+                        window.print();
+                    });
+
+                    document.getElementById('btn-download-pdf').addEventListener('click', function() {
                         const element = document.getElementById('pdf-content-area');
                         const opt = {
                             margin: [10, 10, 10, 10],
@@ -564,18 +609,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         } else {
                             window.print();
                         }
-                    }
+                    });
 
-                    function sendViaWhatsapp() {
-                        const formattedPhone = '${formattedPhone}';
+                    document.getElementById('btn-copy-link').addEventListener('click', function() {
                         const quoteUrl = '${window.location.origin}/?quote=${quoteOrder.id}';
-                        const message = '${isHe ? `היי ${quoteOrder.customer_name}, הנה הצעת המחיר המעוצבת שהכנתי עבורך לאירוע 📄✨:\n` : `Hi ${quoteOrder.customer_name}, here is the quote proposal for your event:\n`}' + quoteUrl;
-                        window.open('https://wa.me/' + formattedPhone + '?text=' + encodeURIComponent(message), '_blank');
-                    }
-
-                    window.onload = function() {
-                        setTimeout(() => window.print(), 500);
-                    }
+                        if (navigator.clipboard) {
+                            navigator.clipboard.writeText(quoteUrl);
+                        } else {
+                            const el = document.createElement('textarea');
+                            el.value = quoteUrl;
+                            document.body.appendChild(el);
+                            el.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(el);
+                        }
+                        const txt = document.getElementById('copy-btn-text');
+                        if (txt) {
+                            txt.innerText = '${isHe ? '✓ הועתק!' : '✓ Copied!'}';
+                            setTimeout(() => { txt.innerText = '${isHe ? 'העתקת קישור' : 'Copy Link'}'; }, 2500);
+                        }
+                    });
                 </script>
             </body>
             </html>
