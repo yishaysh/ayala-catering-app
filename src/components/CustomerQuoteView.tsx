@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store';
-import { Loader2, Printer, Phone, Download, MessageCircle } from 'lucide-react';
+import { Loader2, Printer, Phone, Download, MessageCircle, FileText } from 'lucide-react';
 
 interface CustomerQuoteViewProps {
   quoteId: string;
@@ -59,7 +59,6 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
 
   const items = order.items || [];
   const discountAmount = order.discount_amount || 0;
-  const deliveryFee = order.delivery_fee || 0;
   const wantsSetup = order.wants_setup || false;
   const setupFee = wantsSetup ? 1000 : 0;
   
@@ -74,6 +73,11 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
   }, 0);
 
   const subtotal = (order.subtotal && order.subtotal > 0) ? order.subtotal : calculatedSubtotal;
+  
+  const rawDeliveryFee = order.delivery_fee !== undefined ? order.delivery_fee : 0;
+  const inferredDelivery = Math.max(0, (order.total_price || 0) - (subtotal - discountAmount + setupFee));
+  const deliveryFee = rawDeliveryFee > 0 ? rawDeliveryFee : inferredDelivery;
+
   const finalTotal = (order.total_price && order.total_price > 0) 
     ? order.total_price 
     : Math.max(0, subtotal - discountAmount + deliveryFee + setupFee);
@@ -292,28 +296,28 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
         </div>
       </div>
 
-      {/* Floating Action Bar at Bottom */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-900/95 backdrop-blur-md px-6 py-4 rounded-3xl shadow-2xl border border-white/20 flex items-center gap-4 print:hidden max-w-[95vw] overflow-x-auto">
+      {/* Floating Action Bar at Bottom (Icon-Only) */}
+      <div className="fixed bottom-7 left-1/2 -translate-x-1/2 z-50 bg-stone-900/95 backdrop-blur-md px-5 py-3 rounded-full shadow-2xl border border-white/20 flex items-center gap-4 print:hidden">
         <button 
           onClick={handleDownloadPdf}
-          className="flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-2xl hover:scale-105 active:scale-95 transition-all text-base font-extrabold shadow-lg whitespace-nowrap"
+          title={isHe ? 'הורדת קובץ PDF' : 'Download PDF'}
+          className="w-14 h-14 rounded-full bg-gradient-to-tr from-red-700 to-red-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl"
         >
-          <Download size={22} className="shrink-0" />
-          <span>📥 {isHe ? 'הורדת קובץ PDF' : 'Download PDF'}</span>
-        </button>
-        <button 
-          onClick={handlePrint}
-          className="flex items-center gap-2.5 px-6 py-3.5 bg-white/20 text-white border border-white/20 rounded-2xl hover:bg-white/30 hover:scale-105 active:scale-95 transition-all text-base font-extrabold shadow-lg whitespace-nowrap"
-        >
-          <Printer size={22} className="shrink-0" />
-          <span>🖨️ {isHe ? 'הדפסה' : 'Print'}</span>
+          <FileText size={28} />
         </button>
         <button 
           onClick={handleContactAyala}
-          className="flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-2xl hover:scale-105 active:scale-95 transition-all text-base font-extrabold shadow-lg whitespace-nowrap"
+          title={isHe ? 'שליחה בוואטסאפ' : 'Chat on WhatsApp'}
+          className="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 to-green-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl"
         >
-          <MessageCircle size={22} className="shrink-0" />
-          <span>💬 {isHe ? 'פנייה בוואטסאפ' : 'Chat on WhatsApp'}</span>
+          <MessageCircle size={28} />
+        </button>
+        <button 
+          onClick={handlePrint}
+          title={isHe ? 'הדפסה' : 'Print'}
+          className="w-14 h-14 rounded-full bg-white/15 text-white border border-white/20 flex items-center justify-center hover:bg-white/25 hover:scale-110 active:scale-95 transition-all shadow-xl"
+        >
+          <Printer size={28} />
         </button>
       </div>
     </div>
