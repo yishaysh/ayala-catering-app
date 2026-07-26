@@ -223,24 +223,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
                     .floating-action-bar {
                         position: fixed;
-                        bottom: 28px;
+                        bottom: 32px;
                         left: 50%;
                         transform: translateX(-50%);
                         z-index: 999999;
-                        background: rgba(24, 24, 27, 0.94);
+                        background: rgba(24, 24, 27, 0.95);
                         backdrop-filter: blur(16px);
                         -webkit-backdrop-filter: blur(16px);
-                        padding: 12px 22px;
+                        padding: 14px 26px;
                         border-radius: 9999px;
                         display: flex;
                         align-items: center;
-                        gap: 16px;
-                        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 0 0 1.5px rgba(255, 255, 255, 0.15);
+                        gap: 20px;
+                        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.18);
                     }
 
                     .floating-btn-icon {
-                        width: 58px;
-                        height: 58px;
+                        width: 72px;
+                        height: 72px;
                         border-radius: 50%;
                         display: inline-flex;
                         align-items: center;
@@ -249,13 +249,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         border: none;
                         text-decoration: none;
                         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-                        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+                        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
                         position: relative;
                     }
 
                     .floating-btn-icon:hover {
-                        transform: translateY(-4px) scale(1.1);
-                        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.4);
+                        transform: translateY(-5px) scale(1.12);
+                        box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45);
                     }
 
                     .floating-btn-icon:active {
@@ -273,17 +273,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     }
 
                     .btn-secondary {
-                        background: rgba(255, 255, 255, 0.15);
+                        background: rgba(255, 255, 255, 0.18);
                         color: #ffffff;
-                        border: 1px solid rgba(255, 255, 255, 0.2);
+                        border: 1.5px solid rgba(255, 255, 255, 0.25);
                     }
                     .btn-secondary:hover {
-                        background: rgba(255, 255, 255, 0.3);
+                        background: rgba(255, 255, 255, 0.32);
                     }
 
                     .btn-icon-svg {
-                        width: 28px;
-                        height: 28px;
+                        width: 36px;
+                        height: 36px;
                         flex-shrink: 0;
                     }
 
@@ -579,16 +579,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 <!-- Floating Bottom Action Bar (Icon-Only) -->
                 <div class="floating-action-bar no-print">
                     <button id="btn-download-pdf" class="floating-btn-icon btn-pdf" title="${isHe ? 'הורדת קובץ PDF' : 'Download PDF'}">
-                        <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
+                        <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
                     </button>
                     <a href="https://wa.me/${formattedPhone}?text=${encodeURIComponent(isHe ? `היי ${quoteOrder.customer_name}, הנה הצעת המחיר המעוצבת שהכנתי עבורך לאירוע 📄✨:\n${window.location.origin}/?quote=${quoteOrder.id}` : `Hi ${quoteOrder.customer_name}, here is your quote:\n${window.location.origin}/?quote=${quoteOrder.id}`)}" target="_blank" rel="noopener noreferrer" class="floating-btn-icon btn-whatsapp" title="${isHe ? 'שליחה בוואטסאפ ללקוח' : 'Send WhatsApp'}">
-                        <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.326.002 9.66-4.322 9.663-9.654.002-2.585-1.005-5.01-2.835-6.84C16.25 2.28 13.824 1.272 11.24 1.27c-5.328 0-9.664 4.321-9.667 9.656-.001 1.544.412 3.052 1.196 4.385l-.974 3.556 3.649-.957z"/></svg>
+                        <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.326.002 9.66-4.322 9.663-9.654.002-2.585-1.005-5.01-2.835-6.84C16.25 2.28 13.824 1.272 11.24 1.27c-5.328 0-9.664 4.321-9.667 9.656-.001 1.544.412 3.052 1.196 4.385l-.974 3.556 3.649-.957z"/></svg>
                     </a>
                     <button id="btn-print" class="floating-btn-icon btn-secondary" title="${isHe ? 'הדפסת הצעת מחיר' : 'Print Quote'}">
-                        <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                        <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                     </button>
                     <button id="btn-copy-link" class="floating-btn-icon btn-secondary" title="${isHe ? 'העתקת קישור להצעה' : 'Copy Quote Link'}">
-                        <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                        <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                     </button>
                 </div>
 
