@@ -175,12 +175,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             .update(updateData)
             .eq('id', quoteOrder.id);
 
-        if (error && error.code === '42703') {
-            // Fallback if notes column is missing in schema
-            const { notes, ...fallbackPayload } = updateData;
+        if (error) {
+            console.warn("Retrying quote update with schema fallback...", error);
+            const { notes, delivery_fee, ...fallbackPayload } = updateData;
             await supabase.from('orders').update(fallbackPayload).eq('id', quoteOrder.id);
-        } else if (error) {
-            console.error("Failed to update order in database:", error);
         }
 
         // Update local state immediately

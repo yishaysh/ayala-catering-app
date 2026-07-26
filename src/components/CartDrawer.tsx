@@ -473,10 +473,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
             let { error, data } = await supabase.from('orders').insert([orderData]).select('id');
 
-            // Fallback if event_type or wants_setup columns do not exist in backend database
-            if (error && error.code === '42703') {
-                console.warn("event_type/wants_setup columns missing in Supabase schema, retrying fallback insert...");
-                const { event_type, wants_setup, ...fallbackOrderData } = orderData;
+            // Fallback if delivery_fee, event_type, or wants_setup columns do not exist in backend database
+            if (error) {
+                console.warn("Columns missing in Supabase schema, retrying fallback insert...", error);
+                const { delivery_fee, event_type, wants_setup, ...fallbackOrderData } = orderData;
                 let extraInfo = `(${resolvedEventType})`;
                 if (wantsSetup) {
                     extraInfo += ` (עם סידור)`;
@@ -484,8 +484,12 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 fallbackOrderData.customer_name = `${customerDetails.name} ${extraInfo}`;
                 
                 const retry = await supabase.from('orders').insert([fallbackOrderData]).select('id');
-                error = retry.error;
-                data = retry.data;
+                if (!retry.error) {
+                    error = null;
+                    data = retry.data;
+                } else {
+                    error = retry.error;
+                }
             }
 
             if (error) {
