@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useStore } from '../store';
-import { Loader2, Printer, Phone, Download } from 'lucide-react';
+import { Loader2, Printer, Phone, Download, MessageCircle } from 'lucide-react';
 
 interface CustomerQuoteViewProps {
   quoteId: string;
@@ -293,27 +293,27 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
       </div>
 
       {/* Floating Action Bar at Bottom */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-900/95 backdrop-blur-md px-6 py-3 rounded-2xl shadow-2xl border border-white/10 flex items-center gap-3 print:hidden max-w-[95vw] overflow-x-auto">
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-stone-900/95 backdrop-blur-md px-6 py-4 rounded-3xl shadow-2xl border border-white/20 flex items-center gap-4 print:hidden max-w-[95vw] overflow-x-auto">
         <button 
           onClick={handleDownloadPdf}
-          className="flex items-center gap-2 px-5 py-3 bg-themePrimary text-themeCardBg rounded-xl hover:opacity-90 active:scale-95 transition-all text-sm font-bold shadow-md whitespace-nowrap"
+          className="flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-2xl hover:scale-105 active:scale-95 transition-all text-base font-extrabold shadow-lg whitespace-nowrap"
         >
-          <Download size={18} />
-          <span>{isHe ? 'הורדת קובץ PDF' : 'Download PDF'}</span>
+          <Download size={22} className="shrink-0" />
+          <span>📥 {isHe ? 'הורדת קובץ PDF' : 'Download PDF'}</span>
         </button>
         <button 
           onClick={handlePrint}
-          className="flex items-center gap-2 px-5 py-3 bg-white/15 text-white rounded-xl hover:bg-white/25 active:scale-95 transition-all text-sm font-bold shadow-md whitespace-nowrap"
+          className="flex items-center gap-2.5 px-6 py-3.5 bg-white/20 text-white border border-white/20 rounded-2xl hover:bg-white/30 hover:scale-105 active:scale-95 transition-all text-base font-extrabold shadow-lg whitespace-nowrap"
         >
-          <Printer size={18} />
-          <span>{isHe ? 'הדפסה' : 'Print'}</span>
+          <Printer size={22} className="shrink-0" />
+          <span>🖨️ {isHe ? 'הדפסה' : 'Print'}</span>
         </button>
         <button 
           onClick={handleContactAyala}
-          className="flex items-center gap-2 px-5 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 active:scale-95 transition-all text-sm font-bold shadow-md whitespace-nowrap"
+          className="flex items-center gap-2.5 px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-2xl hover:scale-105 active:scale-95 transition-all text-base font-extrabold shadow-lg whitespace-nowrap"
         >
-          <Phone size={18} />
-          <span>{isHe ? 'פנייה בוואטסאפ' : 'Chat on WhatsApp'}</span>
+          <MessageCircle size={22} className="shrink-0" />
+          <span>💬 {isHe ? 'פנייה בוואטסאפ' : 'Chat on WhatsApp'}</span>
         </button>
       </div>
     </div>
