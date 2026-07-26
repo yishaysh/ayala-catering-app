@@ -206,6 +206,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             <html lang="${isHe ? 'he' : 'en'}" dir="${isHe ? 'rtl' : 'ltr'}">
             <head>
                 <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
                 <title>${titleText} #${quoteNo}</title>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
                 <style>
