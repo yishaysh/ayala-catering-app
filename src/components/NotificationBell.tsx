@@ -100,7 +100,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
       if (!error && data) {
         // Detect newly arrived orders during polling
         if (isPolling) {
-          const brandNewOrders = data.filter(order => !knownOrderIdsRef.current.has(order.id));
+          const brandNewOrders = data.filter((order: any) => !knownOrderIdsRef.current.has(order.id));
           if (brandNewOrders.length > 0) {
             playChimeSound();
             const latest = brandNewOrders[0];
@@ -115,7 +115,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
         }
 
         // Update known IDs
-        data.forEach(order => knownOrderIdsRef.current.add(order.id));
+        data.forEach((order: any) => knownOrderIdsRef.current.add(order.id));
         setUnreadOrders(data);
       }
     } catch (err) {
@@ -145,7 +145,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
           schema: 'public',
           table: 'orders'
         },
-        (payload) => {
+        (payload: any) => {
           const newOrder = payload.new;
           if (newOrder && !knownOrderIdsRef.current.has(newOrder.id)) {
             knownOrderIdsRef.current.add(newOrder.id);
