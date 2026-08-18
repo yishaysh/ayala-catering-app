@@ -17,7 +17,7 @@ import { CustomerQuoteView } from './components/CustomerQuoteView';
 import { NotificationBell } from './components/NotificationBell';
 
 const CATEGORIES: Category[] = ['Salads', 'Cold Platters', 'Sandwiches', 'Dips', 'Main Courses', 'Pastries', 'Desserts', 'Picnic Baskets', 'Extras'];
-const NAV_LOGO_SRC = "https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png";
+const NAV_LOGO_SRC = "https://res.cloudinary.com/md6mhfhd/image/upload/v1787038447/ayala_catering/menu-images/logo.jpg";
 const BRAND_LOGO_SRC = "/logo_text.png";
 const ADMIN_PIN = import.meta.env.VITE_ADMIN_PIN || '2024';
 

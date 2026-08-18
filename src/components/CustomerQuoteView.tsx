@@ -160,7 +160,7 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
           {/* Header */}
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6 border-b border-themeText/10 pb-8 mb-8">
             <div className="flex items-center gap-4">
-              <img src="https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png" alt="Ayala Logo" className="w-16 h-16 object-contain" />
+              <img src="https://res.cloudinary.com/md6mhfhd/image/upload/v1787038447/ayala_catering/menu-images/logo.jpg" alt="Ayala Logo" className="w-16 h-16 object-contain" />
               <div>
                 <h1 className="text-2xl md:text-3xl font-serif font-bold text-themePrimary mb-1">איילה פשוט טעים</h1>
                 <p className="text-xs text-themeText/60">{isHe ? 'קייטרינג חלבי בוטיק ומגשי אירוח מעוצבים' : 'Boutique Dairy Catering & Designed Platters'}</p>

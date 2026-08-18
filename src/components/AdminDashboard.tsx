@@ -468,7 +468,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     <div class="watermark"></div>
                     <div class="header">
                         <div class="logo-container">
-                            <img src="https://txzzpwgmkhfemoiehjym.supabase.co/storage/v1/object/public/menu-images/logo.png" alt="Ayala Logo" class="brand-logo-img" />
+                            <img src="https://res.cloudinary.com/md6mhfhd/image/upload/v1787038447/ayala_catering/menu-images/logo.jpg" alt="Ayala Logo" class="brand-logo-img" />
                             <div>
                                 <h1 class="business-title">${businessName}</h1>
                                 <p class="business-subtitle">${isHe ? 'קייטרינג חלבי בוטיק ומגשי אירוח מעוצבים' : 'Boutique Dairy Catering & Designed Platters'}</p>

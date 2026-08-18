@@ -233,9 +233,68 @@ export const supabase = {
   }),
   removeChannel: (_channel: any) => {},
   storage: {
-    from: (_bucket: string) => ({
-      upload: async (_path: string, _file: any, _options?: any) => ({ error: null, data: { path: _path } }),
-      getPublicUrl: (path: string) => ({ data: { publicUrl: path } })
-    })
+    from: (bucket: string) => {
+      let lastUploadedUrl = '';
+      return {
+        upload: async (fileName: string, file: any, options?: any) => {
+          try {
+            const cloudName = (import.meta as any).env?.VITE_CLOUDINARY_CLOUD_NAME || 'md6mhfhd';
+            const apiKey = (import.meta as any).env?.VITE_CLOUDINARY_API_KEY || '896717328968567';
+            const apiSecret = (import.meta as any).env?.VITE_CLOUDINARY_API_SECRET || 'feYh79XfGm6QZHbF1UFDLdw_0Jg';
+
+            const timestamp = Math.floor(Date.now() / 1000);
+            const folder = `ayala_catering/${bucket || 'menu'}`;
+            const toSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+
+            // SHA-1 signature calculation in Web Crypto API
+            const enc = new TextEncoder();
+            const hashBuffer = await crypto.subtle.digest('SHA-1', enc.encode(toSign));
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const signature = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            const formData = new FormData();
+            let blob: Blob;
+            if (file instanceof Blob || file instanceof File) {
+              blob = file;
+            } else if (file instanceof Uint8Array || file instanceof ArrayBuffer) {
+              blob = new Blob([file as any], { type: options?.contentType || 'image/jpeg' });
+            } else {
+              blob = new Blob([file as any]);
+            }
+
+            formData.append('file', blob, fileName);
+            formData.append('api_key', apiKey);
+            formData.append('timestamp', timestamp.toString());
+            formData.append('folder', folder);
+            formData.append('signature', signature);
+
+            const resp = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+              method: 'POST',
+              body: formData
+            });
+
+            const json = await resp.json();
+            if (json.secure_url) {
+              lastUploadedUrl = json.secure_url;
+              return { data: { path: json.secure_url }, error: null };
+            }
+            return { data: null, error: new Error(json.error?.message || 'Upload to Cloudinary failed') };
+          } catch (err: any) {
+            console.error('Cloudinary upload error:', err);
+            return { data: null, error: err };
+          }
+        },
+        getPublicUrl: (path: string) => {
+          if (lastUploadedUrl) {
+            return { data: { publicUrl: lastUploadedUrl } };
+          }
+          if (path && (path.startsWith('http://') || path.startsWith('https://'))) {
+            return { data: { publicUrl: path } };
+          }
+          return { data: { publicUrl: path } };
+        }
+      };
+    }
   }
 };
+

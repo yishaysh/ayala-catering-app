@@ -27,3 +27,8 @@ dist-ssr
 .env
 .env.*
 !.env.example
+
+# Temporary migration scripts & backups
+scripts/
+public/storage_backup/
+
