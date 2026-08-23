@@ -399,9 +399,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     items: itemSummary,
                     total_price: total
                 })
-            }).catch(err => console.warn("Email alert fetch catch:", err));
-        } catch (e) {
-            console.warn("Could not trigger email notification:", e);
+            }).catch(() => {
+                // Silently swallow formsubmit SSL/CORS issues if external service fails
+            });
+        } catch {
+            // Ignore background email notification exceptions
         }
     };
 
@@ -474,8 +476,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             let { error, data } = await supabase.from('orders').insert([orderData]).select('id');
 
             // Fallback if delivery_fee, event_type, or wants_setup columns do not exist in backend database
-            if (error) {
-                console.warn("Columns missing in Supabase schema, retrying fallback insert...", error);
+            if (error || !data || data.length === 0) {
+                console.warn("Columns missing or insert issue in Supabase schema, retrying fallback insert...", error);
                 const { delivery_fee, event_type, wants_setup, ...fallbackOrderData } = orderData;
                 let extraInfo = `(${resolvedEventType})`;
                 if (wantsSetup) {
@@ -484,23 +486,26 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 fallbackOrderData.customer_name = `${customerDetails.name} ${extraInfo}`;
                 
                 const retry = await supabase.from('orders').insert([fallbackOrderData]).select('id');
-                if (!retry.error) {
+                if (!retry.error && retry.data && retry.data.length > 0) {
                     error = null;
                     data = retry.data;
                 } else {
-                    error = retry.error;
+                    error = retry.error || new Error("Failed to insert order into database");
                 }
             }
 
-            if (error) {
+            const fullOrderId = data?.[0]?.id;
+            const orderId = fullOrderId ? fullOrderId.slice(0, 8) : undefined;
+
+            if (error || !orderId) {
                 console.error("Failed to save order:", error);
                 setFeedback({
                     isOpen: true,
                     type: 'warning',
                     title: language === 'he' ? 'שגיאה בשמירת ההזמנה במערכת' : 'Order Database Save Error',
                     message: language === 'he' 
-                        ? `ההזמנה תישלח לוואטסאפ של איילה, אך שים לב שהיא לא נשמרה במערכת הניהול בגלל השגיאה הבאה:\n"${error.message || error.details || 'שגיאה לא ידועה'}"\n\nתרצה להמשיך בשליחה לוואטסאפ?`
-                        : `The order will be sent to WhatsApp, but it could not be saved to the database due to the following error:\n"${error.message || error.details || 'Unknown error'}"\n\nDo you want to continue to WhatsApp anyway?`,
+                        ? `ההזמנה תישלח לוואטסאפ של איילה, אך שים לב שהיא לא נשמרה במערכת הניהול בגלל השגיאה הבאה:\n"${error?.message || 'שגיאה לא ידועה'}"\n\nתרצה להמשיך בשליחה לוואטסאפ?`
+                        : `The order will be sent to WhatsApp, but it could not be saved to the database due to the following error:\n"${error?.message || 'Unknown error'}"\n\nDo you want to continue to WhatsApp anyway?`,
                     isConfirm: true,
                     confirmText: language === 'he' ? 'כן, המשך לוואטסאפ' : 'Yes, continue to WhatsApp',
                     onConfirm: () => {
@@ -512,11 +517,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 return;
             }
 
-            const fullOrderId = data?.[0]?.id;
-            const orderId = fullOrderId?.slice(0, 8); // Get partial ID for reference
-
             // Lock order duplication for this cart state
-            setLastSubmittedOrderId(fullOrderId || orderId || 'submitted');
+            setLastSubmittedOrderId(fullOrderId || orderId);
             setLastCartSignature(currentSignature);
 
             // Send email notification in background

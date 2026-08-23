@@ -11,7 +11,7 @@ const sql = databaseUrl ? neon(databaseUrl) : null;
 async function runSql(queryText: string, params: any[] = []): Promise<any[]> {
   if (!databaseUrl || !sql) {
     console.warn('Neon database URL is not configured.');
-    return [];
+    throw new Error('Neon database URL is not configured.');
   }
   try {
     // In @neondatabase/serverless, sql.query executes parameterized dynamic SQL strings
@@ -19,23 +19,11 @@ async function runSql(queryText: string, params: any[] = []): Promise<any[]> {
       const res = await (sql as any).query(queryText, params);
       return Array.isArray(res) ? res : res.rows || [];
     }
-    // Fallback: direct HTTP execute against Neon endpoint
-    const urlObj = new URL(databaseUrl.replace('postgresql://', 'https://').replace('postgres://', 'https://'));
-    const auth = btoa(`${decodeURIComponent(urlObj.username)}:${decodeURIComponent(urlObj.password)}`);
-    const endpoint = `https://${urlObj.host}/sql`;
-    const resp = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${auth}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ query: queryText, params })
-    });
-    const json = await resp.json();
-    return json.rows || [];
+    const res = await (sql as any)(queryText, params);
+    return Array.isArray(res) ? res : res.rows || [];
   } catch (err) {
     console.error('Neon SQL Execution Error:', err);
-    return [];
+    throw err;
   }
 }
 
