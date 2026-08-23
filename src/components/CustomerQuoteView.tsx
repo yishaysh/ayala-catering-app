@@ -72,14 +72,16 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
     return sum + (price * (item.quantity || 1));
   }, 0);
 
-  const subtotal = (order.subtotal && order.subtotal > 0) ? order.subtotal : calculatedSubtotal;
+  const rawSubtotal = Number(order.subtotal || 0);
+  const subtotal = rawSubtotal > 0 ? rawSubtotal : calculatedSubtotal;
   
-  const rawDeliveryFee = order.delivery_fee !== undefined ? order.delivery_fee : 0;
-  const inferredDelivery = Math.max(0, (order.total_price || 0) - (subtotal - discountAmount + setupFee));
+  const rawDeliveryFee = order.delivery_fee !== undefined ? Number(order.delivery_fee) : 0;
+  const rawTotalPrice = Number(order.total_price || 0);
+  const inferredDelivery = Math.max(0, rawTotalPrice - (subtotal - discountAmount + setupFee));
   const deliveryFee = rawDeliveryFee > 0 ? rawDeliveryFee : inferredDelivery;
 
-  const finalTotal = (order.total_price && order.total_price > 0) 
-    ? order.total_price 
+  const finalTotal = rawTotalPrice > 0 
+    ? rawTotalPrice 
     : Math.max(0, subtotal - discountAmount + deliveryFee + setupFee);
 
   const dateStr = order.event_date ? new Date(order.event_date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US') : '';

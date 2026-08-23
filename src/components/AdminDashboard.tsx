@@ -92,23 +92,27 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         const items = JSON.parse(JSON.stringify(order.items || []));
         // Populate standard menu prices if item price is 0
         items.forEach((item: any) => {
+            item.price = Number(item.price || 0);
+            item.quantity = Number(item.quantity || 1);
             if (!item.price || item.price === 0) {
                 // Try to find the item in menuItems to get its original price as default
                 const menuI = menuItems.find(m => m.id === item.id || m.name === item.name);
                 if (menuI) {
-                    item.price = menuI.price;
+                    item.price = Number(menuI.price || 0);
                 }
             }
         });
-        const calcSubtotal = items.reduce((sum: number, i: any) => sum + ((i.price || 0) * (i.quantity || 1)), 0);
+        const calcSubtotal = items.reduce((sum: number, i: any) => sum + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
         const calcSetup = order.wants_setup ? 1000 : 0;
-        const calcDisc = order.discount_amount || 0;
-        const deducedDelivery = Math.max(0, (order.total_price || 0) - (calcSubtotal - calcDisc + calcSetup));
+        const calcDisc = Number(order.discount_amount || 0);
+        const rawTotalPrice = Number(order.total_price || 0);
+        const rawDeliveryFee = Number(order.delivery_fee || 0);
+        const deducedDelivery = Math.max(0, rawTotalPrice - (calcSubtotal - calcDisc + calcSetup));
 
         setQuoteItems(items);
         setQuoteDiscountPercent(0);
         setQuoteWantsSetup(!!order.wants_setup);
-        setQuoteDeliveryFee(order.delivery_fee && order.delivery_fee > 0 ? order.delivery_fee : deducedDelivery);
+        setQuoteDeliveryFee(rawDeliveryFee > 0 ? rawDeliveryFee : deducedDelivery);
     };
 
     const handleRemoveDishFromQuote = (index: number) => {
@@ -118,7 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     const handleUpdateDishQuantity = (index: number, delta: number) => {
         setQuoteItems(prev => {
             const copy = [...prev];
-            const newQty = Math.max(1, (copy[index].quantity || 1) + delta);
+            const newQty = Math.max(1, (Number(copy[index].quantity) || 1) + delta);
             copy[index] = { ...copy[index], quantity: newQty };
             return copy;
         });
@@ -127,7 +131,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     const handleSetDishQuantity = (index: number, newQty: number) => {
         setQuoteItems(prev => {
             const copy = [...prev];
-            copy[index] = { ...copy[index], quantity: Math.max(1, newQty) };
+            copy[index] = { ...copy[index], quantity: Math.max(1, Number(newQty) || 1) };
             return copy;
         });
     };
@@ -141,7 +145,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 id: dish.id,
                 name: dish.name,
                 name_en: dish.name_en,
-                price: dish.price,
+                price: Number(dish.price || 0),
                 quantity: 1,
                 unit_type: dish.unit_type,
                 is_tray: dish.is_tray,
@@ -158,17 +162,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     const handleGenerateQuotePdf = async () => {
         if (!quoteOrder) return;
 
-        const totalSubtotal = quoteItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const totalDiscount = totalSubtotal * (quoteDiscountPercent / 100);
+        const totalSubtotal = quoteItems.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+        const totalDiscount = totalSubtotal * (Number(quoteDiscountPercent || 0) / 100);
         const totalSetup = quoteWantsSetup ? 1000 : 0;
-        const totalFinal = Math.max(0, totalSubtotal - totalDiscount + quoteDeliveryFee + totalSetup);
+        const deliveryFeeNum = Number(quoteDeliveryFee || 0);
+        const totalFinal = Math.max(0, totalSubtotal - totalDiscount + deliveryFeeNum + totalSetup);
 
         // Update in Supabase
         const updateData: any = {
             items: quoteItems,
             subtotal: totalSubtotal,
             discount_amount: totalDiscount,
-            delivery_fee: quoteDeliveryFee,
+            delivery_fee: deliveryFeeNum,
             total_price: totalFinal,
             status: 'approved', // Automatically mark approved upon quote creation
             wants_setup: quoteWantsSetup,
@@ -528,22 +533,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                             ${totalDiscount > 0 ? `
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #78716c;">
                                     <span>${isHe ? 'סכום לפני הנחה:' : 'Original Amount:'}</span>
-                                    <span style="text-decoration: line-through; color: #9ca3af; font-weight: 700; font-size: 14px;">₪${totalSubtotal.toFixed(2)}</span>
+                                    <span style="text-decoration: line-through; color: #9ca3af; font-weight: 700; font-size: 14px;">₪${Number(totalSubtotal || 0).toFixed(2)}</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #d97706; font-weight: 700;">
                                     <span>${isHe ? `אחוזי הנחה (${quoteDiscountPercent}%):` : `Discount (${quoteDiscountPercent}%):`}</span>
-                                    <span>-₪${totalDiscount.toFixed(2)}</span>
+                                    <span>-₪${Number(totalDiscount || 0).toFixed(2)}</span>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 13px; color: #16a34a; font-weight: 700; border-bottom: 1px dashed #d1d5db; padding-bottom: 6px;">
                                     <span>${isHe ? 'סכום לאחר הנחה:' : 'Amount After Discount:'}</span>
-                                    <span>₪${(totalSubtotal - totalDiscount).toFixed(2)}</span>
+                                    <span>₪${(Number(totalSubtotal || 0) - Number(totalDiscount || 0)).toFixed(2)}</span>
                                 </div>
                             ` : ''}
 
-                            ${quoteDeliveryFee > 0 ? `
+                            ${deliveryFeeNum > 0 ? `
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #4b5563;">
                                     <span>🚚 ${isHe ? 'דמי משלוח (חלק מהמחיר):' : 'Delivery Fee (Included):'}</span>
-                                    <span style="font-weight: 700;">₪${quoteDeliveryFee.toFixed(2)}</span>
+                                    <span style="font-weight: 700;">₪${deliveryFeeNum.toFixed(2)}</span>
                                 </div>
                             ` : ''}
 
@@ -559,7 +564,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                     ${isHe ? 'שורה תחתונה / סה"כ לתשלום:' : 'Bottom Line / Total Price:'}
                                 </div>
                                 <div style="font-size: 28px; font-weight: 800; color: ${theme?.primary_color || '#7c2d12'}; font-family: 'Playfair Display', serif;">
-                                    ₪${totalFinal.toFixed(2)}
+                                    ₪${Number(totalFinal || 0).toFixed(2)}
                                 </div>
                             </div>
                         </div>
@@ -2917,7 +2922,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                                     <div className="flex flex-col text-end min-w-[55px]">
                                                         <span className="text-[9px] text-themeText/50">{language === 'he' ? 'סה"כ' : 'Total'}</span>
                                                         <span className="text-xs font-bold text-themeText">
-                                                            ₪{(item.price * item.quantity).toFixed(0)}
+                                                            ₪{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(0)}
                                                         </span>
                                                     </div>
 
@@ -3000,10 +3005,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
                             {/* Summary Preview */}
                             {(() => {
-                                const subtotal = quoteItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                                const discountAmount = subtotal * (quoteDiscountPercent / 100);
+                                const subtotal = quoteItems.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.quantity || 1)), 0);
+                                const discountAmount = subtotal * (Number(quoteDiscountPercent || 0) / 100);
                                 const setupFee = quoteWantsSetup ? 1000 : 0;
-                                const finalTotal = Math.max(0, subtotal - discountAmount + quoteDeliveryFee + setupFee);
+                                const deliveryFeeNum = Number(quoteDeliveryFee || 0);
+                                const finalTotal = Math.max(0, subtotal - discountAmount + deliveryFeeNum + setupFee);
 
                                 return (
                                     <div className="bg-themeCardBg p-4 rounded-xl border border-themeText/10 shadow-sm space-y-2 text-sm text-themeText/80 font-medium">
