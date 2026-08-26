@@ -4,7 +4,7 @@ import { useStore, translations, getLocalizedItem } from '../store';
 import { X, ShoppingBag, Send, Minus, Plus, Trash2, Share2, Sparkles, User, MapPin, Phone, Route, Loader2, CheckCircle2, Lock, LocateFixed, Tag, Truck, Calendar } from 'lucide-react';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/db';
 
 interface CartDrawerProps {
     isOpen: boolean;
@@ -473,11 +473,11 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 wants_setup: wantsSetup
             };
 
-            let { error, data } = await supabase.from('orders').insert([orderData]).select('id');
+            let { error, data } = await db.from('orders').insert([orderData]).select('id');
 
             // Fallback if delivery_fee, event_type, or wants_setup columns do not exist in backend database
             if (error || !data || data.length === 0) {
-                console.warn("Columns missing or insert issue in Supabase schema, retrying fallback insert...", error);
+                console.warn("Columns missing or insert issue in database schema, retrying fallback insert...", error);
                 const { delivery_fee, event_type, wants_setup, ...fallbackOrderData } = orderData;
                 let extraInfo = `(${resolvedEventType})`;
                 if (wantsSetup) {
@@ -485,7 +485,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 }
                 fallbackOrderData.customer_name = `${customerDetails.name} ${extraInfo}`;
                 
-                const retry = await supabase.from('orders').insert([fallbackOrderData]).select('id');
+                const retry = await db.from('orders').insert([fallbackOrderData]).select('id');
                 if (!retry.error && retry.data && retry.data.length > 0) {
                     error = null;
                     data = retry.data;

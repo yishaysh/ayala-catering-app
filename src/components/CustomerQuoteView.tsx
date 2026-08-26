@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/db';
 import { useStore } from '../store';
 import { Loader2, Printer, Phone, Download, MessageCircle, FileText } from 'lucide-react';
 
@@ -16,8 +16,7 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const { data, error } = await supabase
-          .from('orders')
+        const { data, error } = await db.from('orders')
           .select('*')
           .eq('id', quoteId)
           .single();

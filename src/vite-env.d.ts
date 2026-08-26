@@ -1,24 +1,14 @@
-
-// Removed reference to vite/client to avoid type definition error in this environment
-// /// <reference types="vite/client" />
+/// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_SUPABASE_URL: string;
-  readonly VITE_SUPABASE_ANON_KEY: string;
-  readonly VITE_ADMIN_PIN?: string;
-  readonly VITE_GEMINI_API_KEY?: string;
-  [key: string]: any;
+  readonly VITE_NEON_DATABASE_URL: string;
+  readonly DATABASE_URL: string;
+  readonly VITE_CLOUDINARY_CLOUD_NAME: string;
+  readonly VITE_CLOUDINARY_API_KEY: string;
+  readonly VITE_CLOUDINARY_API_SECRET: string;
+  readonly VITE_GEMINI_API_KEY: string;
 }
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;
-}
-
-interface AIStudio {
-  hasSelectedApiKey: () => Promise<boolean>;
-  openSelectKey: () => Promise<void>;
-}
-
-interface Window {
-  aistudio?: AIStudio;
 }

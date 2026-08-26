@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon, AppSettings, ThemeConfig, GalleryItem, Review, AboutUsConfig } from './types';
-import { supabase } from './lib/supabase';
+import { db } from './lib/db';
 
 type Language = 'he' | 'en';
 
@@ -687,32 +687,32 @@ export const useStore = create<AppState>()(
 
       fetchMenuItems: async () => {
           set({ isLoading: true });
-          const { data } = await supabase.from('menu_items').select('*').order('category', { ascending: true });
+          const { data } = await db.from('menu_items').select('*').order('category', { ascending: true });
           if (data) set({ menuItems: data as MenuItem[] });
           set({ isLoading: false });
       },
 
       fetchSettings: async () => {
         // Fetch Features
-        const { data: featuresData } = await supabase.from('app_settings').select('*').eq('key', 'features');
+        const { data: featuresData } = await db.from('app_settings').select('*').eq('key', 'features');
         if (featuresData && featuresData.length > 0 && featuresData[0].value) {
             set({ featureFlags: featuresData[0].value as FeatureFlags });
         }
 
         // Fetch Calculation Settings
-        const { data: calcData } = await supabase.from('app_settings').select('*').eq('key', 'calculation_settings');
+        const { data: calcData } = await db.from('app_settings').select('*').eq('key', 'calculation_settings');
         if (calcData && calcData.length > 0 && calcData[0].value) {
             set({ calculationSettings: { ...get().calculationSettings, ...calcData[0].value } });
         }
 
         // Fetch Advanced Settings
-        const { data: advData } = await supabase.from('app_settings').select('*').eq('key', 'advanced_settings');
+        const { data: advData } = await db.from('app_settings').select('*').eq('key', 'advanced_settings');
         if (advData && advData.length > 0 && advData[0].value) {
             set({ advancedSettings: { ...get().advancedSettings, ...advData[0].value } });
         }
 
         // Fetch Config
-        const { data: configData } = await supabase.from('app_settings').select('*').eq('key', 'config');
+        const { data: configData } = await db.from('app_settings').select('*').eq('key', 'config');
         if (configData && configData.length > 0 && configData[0].value) {
             // Merge with defaults to ensure new fields exist
             const defaults = {
@@ -729,25 +729,25 @@ export const useStore = create<AppState>()(
         }
 
         // Fetch Theme
-        const { data: themeData } = await supabase.from('app_settings').select('*').eq('key', 'theme');
+        const { data: themeData } = await db.from('app_settings').select('*').eq('key', 'theme');
         if (themeData && themeData.length > 0 && themeData[0].value) {
             set({ theme: { ...defaultTheme, ...themeData[0].value } });
         }
 
         // Fetch Gallery
-        const { data: galleryData } = await supabase.from('app_settings').select('*').eq('key', 'gallery');
+        const { data: galleryData } = await db.from('app_settings').select('*').eq('key', 'gallery');
         if (galleryData && galleryData.length > 0 && galleryData[0].value) {
             set({ gallery: galleryData[0].value as GalleryItem[] });
         }
 
         // Fetch Kosher Cert
-        const { data: kosherData } = await supabase.from('app_settings').select('*').eq('key', 'kosher');
+        const { data: kosherData } = await db.from('app_settings').select('*').eq('key', 'kosher');
         if (kosherData && kosherData.length > 0 && kosherData[0].value) {
             set({ kosherCertUrl: kosherData[0].value as string });
         }
 
         // Fetch About Us
-        const { data: aboutData } = await supabase.from('app_settings').select('*').eq('key', 'about');
+        const { data: aboutData } = await db.from('app_settings').select('*').eq('key', 'about');
         if (aboutData && aboutData.length > 0 && aboutData[0].value) {
             set({ aboutUs: aboutData[0].value as AboutUsConfig });
         } else {
@@ -807,46 +807,45 @@ export const useStore = create<AppState>()(
 
       updateMenuItem: async (id, updates) => {
           set({ menuItems: get().menuItems.map(item => item.id === id ? { ...item, ...updates } : item) });
-          await supabase.from('menu_items').update(updates).eq('id', id);
+          await db.from('menu_items').update(updates).eq('id', id);
       },
 
       addMenuItem: async (item) => {
-          const { data } = await supabase.from('menu_items').insert([item]).select();
+          const { data } = await db.from('menu_items').insert([item]).select();
           if (data) set({ menuItems: [...get().menuItems, data[0] as MenuItem] });
       },
 
       deleteMenuItem: async (id) => {
           set({ menuItems: get().menuItems.filter(item => item.id !== id) });
-          await supabase.from('menu_items').delete().eq('id', id);
+          await db.from('menu_items').delete().eq('id', id);
       },
 
       updateCalculationSettings: async (settings) => {
         const newSettings = { ...get().calculationSettings, ...settings };
         set({ calculationSettings: newSettings });
-        await supabase.from('app_settings').upsert({ key: 'calculation_settings', value: newSettings });
+        await db.from('app_settings').upsert({ key: 'calculation_settings', value: newSettings });
       },
       updateAdvancedSettings: async (settings) => {
         const newSettings = { ...get().advancedSettings, ...settings };
         set({ advancedSettings: newSettings });
-        await supabase.from('app_settings').upsert({ key: 'advanced_settings', value: newSettings });
+        await db.from('app_settings').upsert({ key: 'advanced_settings', value: newSettings });
       },
       updateFeatureFlags: async (flags) => {
         const newFlags = { ...get().featureFlags, ...flags };
         set({ featureFlags: newFlags });
-        await supabase.from('app_settings').upsert({ key: 'features', value: newFlags });
+        await db.from('app_settings').upsert({ key: 'features', value: newFlags });
       },
       updateAppConfig: async (config) => {
         const newConfig = { ...get().appConfig, ...config };
         set({ appConfig: newConfig });
-        await supabase.from('app_settings').upsert({ key: 'config', value: newConfig });
+        await db.from('app_settings').upsert({ key: 'config', value: newConfig });
       },
       clearCart: () => set({ cart: [], activeCoupon: null }),
       cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
 
       validateCoupon: async (code) => {
           try {
-              const { data, error } = await supabase
-                  .from('coupons')
+              const { data, error } = await db.from('coupons')
                   .select('*')
                   .eq('code', code)
                   .eq('is_active', true);
@@ -870,20 +869,20 @@ export const useStore = create<AppState>()(
       removeCoupon: () => set({ activeCoupon: null }),
       
       createCoupon: async (coupon) => {
-          await supabase.from('coupons').insert([coupon]);
+          await db.from('coupons').insert([coupon]);
       },
 
       deleteCoupon: async (code) => {
-          await supabase.from('coupons').delete().eq('code', code);
+          await db.from('coupons').delete().eq('code', code);
       },
 
       getCoupons: async () => {
-          const { data } = await supabase.from('coupons').select('*');
+          const { data } = await db.from('coupons').select('*');
           return (data as Coupon[]) || [];
       },
 
       incrementCouponUsage: async (code) => {
-         await supabase.rpc('increment_coupon_usage', { coupon_code: code });
+         await db.rpc('increment_coupon_usage', { coupon_code: code });
       },
 
       getDeliveryFee: (distance: number, subtotal: number) => {
@@ -913,29 +912,28 @@ export const useStore = create<AppState>()(
       updateTheme: async (theme) => {
         const newTheme = { ...get().theme, ...theme };
         set({ theme: newTheme });
-        await supabase.from('app_settings').upsert({ key: 'theme', value: newTheme });
+        await db.from('app_settings').upsert({ key: 'theme', value: newTheme });
       },
 
       updateAboutUs: async (aboutUsUpdates) => {
         const newAboutUs = { ...get().aboutUs, ...aboutUsUpdates };
         set({ aboutUs: newAboutUs });
-        await supabase.from('app_settings').upsert({ key: 'about', value: newAboutUs });
+        await db.from('app_settings').upsert({ key: 'about', value: newAboutUs });
       },
 
       updateGallery: async (gallery) => {
         set({ gallery });
-        await supabase.from('app_settings').upsert({ key: 'gallery', value: gallery });
+        await db.from('app_settings').upsert({ key: 'gallery', value: gallery });
       },
 
       updateKosherCertUrl: async (url) => {
         set({ kosherCertUrl: url });
-        await supabase.from('app_settings').upsert({ key: 'kosher', value: url });
+        await db.from('app_settings').upsert({ key: 'kosher', value: url });
       },
 
       fetchReviews: async () => {
           try {
-              const { data, error } = await supabase
-                  .from('reviews')
+              const { data, error } = await db.from('reviews')
                   .select('*')
                   .order('created_at', { ascending: false });
               
@@ -944,8 +942,7 @@ export const useStore = create<AppState>()(
                   return;
               }
               
-              const { data: settingData } = await supabase
-                  .from('app_settings')
+              const { data: settingData } = await db.from('app_settings')
                   .select('*')
                   .eq('key', 'reviews');
                   
@@ -969,7 +966,7 @@ export const useStore = create<AppState>()(
           };
           
           try {
-              const { error } = await supabase.from('reviews').insert([newReview]);
+              const { error } = await db.from('reviews').insert([newReview]);
               if (!error) {
                   set((state) => ({ reviews: [newReview, ...state.reviews] }));
                   return;
@@ -978,7 +975,7 @@ export const useStore = create<AppState>()(
               const currentReviews = get().reviews;
               const updated = [newReview, ...currentReviews];
               set({ reviews: updated });
-              await supabase.from('app_settings').upsert({ key: 'reviews', value: updated });
+              await db.from('app_settings').upsert({ key: 'reviews', value: updated });
           } catch (e) {
               console.error("Error adding review:", e);
           }
@@ -986,7 +983,7 @@ export const useStore = create<AppState>()(
 
       deleteReview: async (id) => {
           try {
-              const { error } = await supabase.from('reviews').delete().eq('id', id);
+              const { error } = await db.from('reviews').delete().eq('id', id);
               if (!error) {
                   set((state) => ({ reviews: state.reviews.filter(r => r.id !== id) }));
                   return;
@@ -995,7 +992,7 @@ export const useStore = create<AppState>()(
               const currentReviews = get().reviews;
               const updated = currentReviews.filter(r => r.id !== id);
               set({ reviews: updated });
-              await supabase.from('app_settings').upsert({ key: 'reviews', value: updated });
+              await db.from('app_settings').upsert({ key: 'reviews', value: updated });
           } catch (e) {
               console.error("Error deleting review:", e);
           }

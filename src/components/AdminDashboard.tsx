@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { MenuItem, Category, UnitType, EventType, Coupon, ThemeConfig, GalleryItem, Order, Review } from '../types';
 import { useStore, translations, getLocalizedItem } from '../store';
 import { Pencil, Save, X, LogOut, Plus, Minus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Video, Award, ShoppingBag, Calendar, Eye, MessageSquare, Check, CheckCheck, FileText } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/db';
 import { useBackButton } from '../hooks/useBackButton';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
 import { ConfirmationModal } from './ConfirmationModal';
@@ -168,7 +168,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         const deliveryFeeNum = Number(quoteDeliveryFee || 0);
         const totalFinal = Math.max(0, totalSubtotal - totalDiscount + deliveryFeeNum + totalSetup);
 
-        // Update in Supabase
+        // Update in database
         const updateData: any = {
             items: quoteItems,
             subtotal: totalSubtotal,
@@ -180,15 +180,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             notes: quoteNotes
         };
 
-        let { error } = await supabase
-            .from('orders')
+        let { error } = await db.from('orders')
             .update(updateData)
             .eq('id', quoteOrder.id);
 
         if (error) {
             console.warn("Retrying quote update with schema fallback...", error);
             const { notes, delivery_fee, ...fallbackPayload } = updateData;
-            await supabase.from('orders').update(fallbackPayload).eq('id', quoteOrder.id);
+            await db.from('orders').update(fallbackPayload).eq('id', quoteOrder.id);
         }
 
         // Update local state immediately
@@ -671,16 +670,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             isDestructive: true,
             onConfirm: async () => {
                 try {
-                    const { error } = await supabase
-                        .from('orders')
+                    const { error } = await db.from('orders')
                         .delete()
                         .eq('id', orderId);
                     
                     if (error) {
                         console.error("Error deleting order:", error);
                         alert(language === 'he' 
-                            ? 'שגיאה במחיקת ההזמנה. אנא ודא שקיים RLS Policy למחיקה ב-Supabase.' 
-                            : 'Error deleting order. Please make sure a DELETE RLS policy exists in Supabase.');
+                            ? 'שגיאה במחיקת ההזמנה. אנא ודא שקיים RLS Policy למחיקה ב-db.' 
+                            : 'Error deleting order. Please make sure a DELETE RLS policy exists in db.');
                         return;
                     }
                     
@@ -829,8 +827,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     const loadOrders = async () => {
         setLoadingOrders(true);
         try {
-            const { data, error } = await supabase
-                .from('orders')
+            const { data, error } = await db.from('orders')
                 .select('*')
                 .order('created_at', { ascending: false });
             if (data) {
@@ -851,7 +848,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         
                         // Auto-repair order in DB asynchronously if total_price was 0
                         if (calculatedTotal > 0 && order.id) {
-                            supabase.from('orders').update({
+                            db.from('orders').update({
                                 total_price: calculatedTotal,
                                 subtotal: order.subtotal || calcSubtotal
                             }).eq('id', order.id).then(() => {});
@@ -903,11 +900,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 const deliv = order.delivery_fee || 0;
                 const setup = order.wants_setup ? 1000 : 0;
                 updatedPrice = Math.max(0, updatedSubtotal - disc + deliv + setup);
-                await supabase.from('orders').update({ total_price: updatedPrice, subtotal: updatedSubtotal }).eq('id', orderId);
+                await db.from('orders').update({ total_price: updatedPrice, subtotal: updatedSubtotal }).eq('id', orderId);
             }
 
-            const { error } = await supabase
-                .from('orders')
+            const { error } = await db.from('orders')
                 .update({ status: newStatus })
                 .eq('id', orderId);
             if (!error) {
@@ -1133,7 +1129,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             const arrayBuffer = await file.arrayBuffer();
             const fileData = new Uint8Array(arrayBuffer);
 
-            const { error: uploadError } = await supabase.storage
+            const { error: uploadError } = await db.storage
                 .from('menu-images')
                 .upload(cleanFileName, fileData, {
                     cacheControl: '3600',
@@ -1143,7 +1139,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
             if (uploadError) throw uploadError;
 
-            const { data } = supabase.storage
+            const { data } = db.storage
                 .from('menu-images')
                 .getPublicUrl(cleanFileName);
 
@@ -1178,7 +1174,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             const arrayBuffer = await file.arrayBuffer();
             const fileData = new Uint8Array(arrayBuffer);
 
-            const { error: uploadError } = await supabase.storage
+            const { error: uploadError } = await db.storage
                 .from('menu-images')
                 .upload(cleanFileName, fileData, {
                     cacheControl: '3600',
@@ -1188,7 +1184,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
             if (uploadError) throw uploadError;
 
-            const { data } = supabase.storage
+            const { data } = db.storage
                 .from('menu-images')
                 .getPublicUrl(cleanFileName);
 
@@ -1236,7 +1232,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             const arrayBuffer = await file.arrayBuffer();
             const fileData = new Uint8Array(arrayBuffer);
 
-            const { error: uploadError } = await supabase.storage
+            const { error: uploadError } = await db.storage
                 .from('menu-images')
                 .upload(cleanFileName, fileData, {
                     cacheControl: '3600',
@@ -1246,7 +1242,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
             if (uploadError) throw uploadError;
 
-            const { data } = supabase.storage
+            const { data } = db.storage
                 .from('menu-images')
                 .getPublicUrl(cleanFileName);
 
@@ -1323,7 +1319,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             const arrayBuffer = await file.arrayBuffer();
             const fileData = new Uint8Array(arrayBuffer);
 
-            const { error: uploadError } = await supabase.storage
+            const { error: uploadError } = await db.storage
                 .from('menu-images')
                 .upload(cleanFileName, fileData, {
                     cacheControl: '3600',
@@ -1335,7 +1331,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 throw uploadError;
             }
 
-            const { data } = supabase.storage
+            const { data } = db.storage
                 .from('menu-images')
                 .getPublicUrl(cleanFileName);
 

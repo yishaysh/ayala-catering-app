@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, CheckCheck, ExternalLink, Volume2, VolumeX, X } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { db } from '../lib/db';
 import { useStore } from '../store';
 
 interface NotificationBellProps {
@@ -90,8 +90,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
   // Fetch pending orders function
   const fetchPendingOrders = async (isPolling = false) => {
     try {
-      const { data, error } = await supabase
-        .from('orders')
+      const { data, error } = await db.from('orders')
         .select('*')
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
@@ -134,10 +133,9 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
     return () => clearInterval(interval);
   }, [language, soundEnabled]);
 
-  // Listen for real-time WebSocket inserts in Supabase
+  // Listen for real-time WebSocket inserts in database
   useEffect(() => {
-    const channel = supabase
-      .channel('orders-realtime-bell')
+    const channel = db.channel('orders-realtime-bell')
       .on(
         'postgres_changes',
         {
@@ -165,7 +163,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      db.removeChannel(channel);
     };
   }, [soundEnabled, language]);
 

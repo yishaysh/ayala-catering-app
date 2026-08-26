@@ -1,4 +1,4 @@
-// Neon.tech Serverless SQL Adapter
+// Database & Storage Client Adapter (Neon PostgreSQL + Cloudinary)
 import { neon } from '@neondatabase/serverless';
 
 const databaseUrl =
@@ -10,11 +10,10 @@ const sql = databaseUrl ? neon(databaseUrl) : null;
 
 async function runSql(queryText: string, params: any[] = []): Promise<any[]> {
   if (!databaseUrl || !sql) {
-    console.warn('Neon database URL is not configured.');
-    throw new Error('Neon database URL is not configured.');
+    console.warn('Database URL is not configured.');
+    throw new Error('Database URL is not configured.');
   }
   try {
-    // In @neondatabase/serverless, sql.query executes parameterized dynamic SQL strings
     if (typeof (sql as any).query === 'function') {
       const res = await (sql as any).query(queryText, params);
       return Array.isArray(res) ? res : res.rows || [];
@@ -22,12 +21,12 @@ async function runSql(queryText: string, params: any[] = []): Promise<any[]> {
     const res = await (sql as any)(queryText, params);
     return Array.isArray(res) ? res : res.rows || [];
   } catch (err) {
-    console.error('Neon SQL Execution Error:', err);
+    console.error('Database SQL Execution Error:', err);
     throw err;
   }
 }
 
-class NeonQueryBuilder implements PromiseLike<any> {
+class QueryBuilder implements PromiseLike<any> {
   private tableName: string;
   private action: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'UPSERT' = 'SELECT';
   private selectedFields: string = '*';
@@ -188,7 +187,7 @@ class NeonQueryBuilder implements PromiseLike<any> {
 
       return { data: null, error: null };
     } catch (error) {
-      console.error(`Neon database error on ${this.tableName}:`, error);
+      console.error(`Database error on ${this.tableName}:`, error);
       return { data: null, error };
     }
   }
@@ -201,9 +200,9 @@ class NeonQueryBuilder implements PromiseLike<any> {
   }
 }
 
-// Drop-in Supabase object that forwards everything to Neon SQL
-export const supabase = {
-  from: (tableName: string) => new NeonQueryBuilder(tableName),
+// Generic database & storage client
+export const db = {
+  from: (tableName: string) => new QueryBuilder(tableName),
   rpc: async (fnName: string, params: Record<string, any>) => {
     try {
       if (fnName === 'increment_coupon_usage' && params.coupon_code) {
@@ -285,4 +284,7 @@ export const supabase = {
     }
   }
 };
+
+// Storage export
+export const storage = db.storage;
 
