@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>המדריך האינטראקטיבי לפרסום ממומן | קייטרינג איילה</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Rubik:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #c27803;
+      --primary-dark: #975a16;
+      --primary-light: #fef3c7;
+      --bg-page: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --success-bg: #ecfdf5;
+      --accent-blue: #2563eb;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.08), 0 2px 4px -2px rgba(0,0,0,0.05);
+      --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.08);
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Heebo', sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 20px 12px 60px 12px;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .hero {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #ffffff;
+      padding: 36px 28px;
+      border-radius: var(--radius-lg);
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      top: -40px;
+      left: -40px;
+      width: 180px;
+      height: 180px;
+      background: radial-gradient(circle, rgba(194, 120, 3, 0.4) 0%, rgba(0,0,0,0) 70%);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(194, 120, 3, 0.25);
+      color: #fde68a;
+      border: 1px solid rgba(253, 230, 138, 0.3);
+      padding: 4px 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: 999px;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 {
+      font-family: 'Rubik', sans-serif;
+      font-size: 2.1rem;
+      font-weight: 700;
+      line-height: 1.25;
+      margin-bottom: 10px;
+      color: #ffffff;
+    }
+
+    .hero p {
+      color: #cbd5e1;
+      font-size: 1.05rem;
+      max-width: 650px;
+    }
+
+    /* Sticky Progress Bar */
+    .progress-bar-card {
+      position: sticky;
+      top: 12px;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #c27803, #10b981);
+      border-radius: 999px;
+      transition: width 0.4s ease;
+    }
+
+    /* Sections / Steps */
+    .step-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      padding: 28px 24px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+
+    .step-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: #cbd5e1;
+    }
+
+    .step-title {
+      font-family: 'Rubik', sans-serif;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #f1f5f9;
+    }
+
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      font-size: 1.05rem;
+      font-weight: 700;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .step-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 18px;
+    }
+
+    /* Checklist Items */
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .check-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      background: #f8fafc;
+      border: 1px solid #edf2f7;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .check-item:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+
+    .check-item.completed {
+      background: var(--success-bg);
+      border-color: #a7f3d0;
+    }
+
+    .check-item input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border: 2px solid #cbd5e1;
+      border-radius: 6px;
+      cursor: pointer;
+      display: grid;
+      place-content: center;
+      margin-top: 2px;
+      flex-shrink: 0;
+      background: #fff;
+      transition: all 0.2s ease;
+    }
+
+    .check-item input[type="checkbox"]:checked {
+      background: var(--success);
+      border-color: var(--success);
+    }
+
+    .check-item input[type="checkbox"]:checked::before {
+      content: "✓";
+      color: white;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .check-content {
+      flex: 1;
+    }
+
+    .check-title {
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--text-main);
+      margin-bottom: 3px;
+    }
+
+    .check-item.completed .check-title {
+      text-decoration: line-through;
+      color: #059669;
+    }
+
+    .check-details {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Prompt Box & Buttons */
+    .prompt-box {
+      background: #0f172a;
+      color: #f8fafc;
+      border-radius: var(--radius-md);
+      padding: 18px;
+      margin: 14px 0;
+      position: relative;
+      font-family: monospace;
+      font-size: 0.88rem;
+      white-space: pre-wrap;
+      line-height: 1.6;
+      border: 1px solid #334155;
+    }
+
+    .prompt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .ai-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #334155;
+      color: #38bdf8;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: 'Heebo', sans-serif;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #475569;
+      color: #cbd5e1;
+    }
+
+    .btn-outline:hover {
+      background: #1e293b;
+      color: #ffffff;
+    }
+
+    .btn-link-action {
+      background: #eff6ff;
+      color: var(--accent-blue);
+      border: 1px solid #bfdbfe;
+      padding: 6px 14px;
+      font-size: 0.85rem;
+    }
+
+    .btn-link-action:hover {
+      background: #dbeafe;
+    }
+
+    /* Tip callout */
+    .callout {
+      background: #fffbeb;
+      border-right: 4px solid var(--primary);
+      padding: 14px 16px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      margin: 12px 0;
+      font-size: 0.9rem;
+      color: #92400e;
+    }
+
+    .callout strong {
+      color: #78350f;
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: #10b981;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 999px;
+      font-weight: 600;
+      box-shadow: var(--shadow-lg);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    #toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .footer-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 36px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    @media (max-width: 640px) {
+      .hero {
+        padding: 24px 18px;
+      }
+      .hero h1 {
+        font-size: 1.6rem;
+      }
+      .step-card {
+        padding: 20px 16px;
+      }
+      .footer-actions {
+        flex-direction: column;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Hero Header -->
+    <header class="hero">
+      <div class="badge">🚀 מדריך מעשי וממוקד</div>
+      <h1>המדריך שלך לפרסום ממומן</h1>
+      <p>שלב אחרי שלב: איך להקים קמפיין בפייסבוק ובאינסטגרם שיביא לקוחות בשומרון ובשרון ישירות לאפליקציה של איילה.</p>
+    </header>
+
+    <!-- Sticky Progress Tracker -->
+    <div class="progress-bar-card">
+      <div class="progress-header">
+        <span>ההתקדמות שלך במדריך:</span>
+        <span id="progress-text">0 מתוך 16 שלבים הושלמו (0%)</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- STEP 0 -->
+    <section class="step-card">
+      <h2 class="step-title">
+        <span class="step-num">0</span>
+        הכנות ראשוניות (עושים פעם אחת בלבד)
+      </h2>
+      <p class="step-desc">לפני שמתחילים לפרסם, נוודא שהכלים הבסיסיים מחוברים ומוכנים לפעולה.</p>
+
+      <ul class="checklist">
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step0_1" />
+          <div class="check-content">
+            <div class="check-title">1. חשבון אינסטגרם מקצועי ועמוד פייסבוק מחוברים</div>
+            <div class="check-details">
+              וודאי שבאינסטגרם החשבון מוגדר כ-Professional/Business ושהוא מחובר לעמוד הפייסבוק של "קייטרינג איילה".
+            </div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step0_2" />
+          <div class="check-content">
+            <div class="check-title">2. כניסה למנהל המודעות במחשב (Ads Manager)</div>
+            <div class="check-details">
+              מומלץ מאוד לעבוד ממחשב ולא מהטלפון. 
+              <br/>
+              <a href="https://adsmanager.facebook.com" target="_blank" class="btn btn-link-action" style="margin-top: 6px; display: inline-block;">
+                פתחי את Meta Ads Manager ↗
+              </a>
+            </div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step0_3" />
+          <div class="check-content">
+            <div class="check-title">3. הגדרת כרטיס אשראי לתשלום</div>
+            <div class="check-details">
+              במנהל המודעות: לחצי על תפריט הצד (☰) > **Billing & Payments** > הזיני את כרטיס האשראי של העסק.
+            </div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- STEP 1: AI Prompting -->
+    <section class="step-card">
+      <h2 class="step-title">
+        <span class="step-num">1</span>
+        יצירת תוכן המודעות בעזרת AI
+      </h2>
+      <p class="step-desc">במקום להמציא טקסטים מהראש – נשתמש ב-ChatGPT או Claude שיכתבו עבורך מודעות מושכות שמתאימות בדיוק לקייטרינג.</p>
+
+      <div class="callout">
+        <strong>🤖 לאיזה מודל לפנות?</strong> כנסי ל-<strong>ChatGPT</strong> (חינם או פלוס) או <strong>Claude</strong>.
+      </div>
+
+      <div class="prompt-header">
+        <span class="ai-badge">✨ פרומפט מוכן להעתקה ל-ChatGPT:</span>
+        <button class="btn btn-primary" onclick="copyPrompt('prompt-copy')">📋 העתק פרומפט</button>
+      </div>
+
+      <div class="prompt-box" id="prompt-copy">אתה מנהל שיווק וקופירייטר מקצועי שמתמחה בעסקי מזון וקייטרינג בישראל.
+אני רוצה לפרסם את האפליקציה הדיגיטלית החדשה של הקייטרינג שלי: "איילה - פשוט טעים".
+הקייטרינג פועל באזורי השומרון והשרון.
+הייחודיות שלנו: הלקוח יכול להיכנס לאפליקציה, לבחור מנות, להרכיב תפריט מלא לשבת או לאירוע ולקבל הצעת מחיר מדויקת אונליין תוך 2 דקות - בלי לחכות לטלפונים.
+
+סוגי השירותים שאנחנו מציעים:
+1. אוכל מוכן לשבתות ושבתות חתן
+2. מגשי אירוח לאירועים קטנים, בריתות, ימי הולדת והרמות כוסית
+3. אירועי בוטיק בהתאמה אישית
+
+אנא כתוב לי 3 גרסאות שונות של מודעות לפייסבוק ולאינסטגרם:
+- גרסה 1: פנייה למשפחות ומארחים לשבת (חיסכון בזמן, טריות, פינוק, הזמנה קלה באפליקציה).
+- גרסה 2: פנייה למתכנני אירועים קטנים / בריתות / שבת חתן בשרון ובשומרון.
+- גרסה 3: מודעה קצרה וממוקדת ששמה דגש על נוחות השימוש באפליקציה ("מרכיבים תפריט בקליק").
+
+עבור כל גרסה ספק:
+1. כותרת ראשית בולטת (Headline) עם אימוג'יז.
+2. טקסט גוף משכנע וקצר (Primary Text).
+3. קריאה לפעולה ברורה עם כפתור (Call To Action).</div>
+
+      <ul class="checklist" style="margin-top: 16px;">
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step1_1" />
+          <div class="check-content">
+            <div class="check-title">העתקתי את הפרומפט ל-ChatGPT ובחרתי 2 נוסחים מנצחים</div>
+            <div class="check-details">שמרי את הטקסטים והכותרות במסמך נגיש כדי להדביק אותם עוד רגע במודעה.</div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step1_2" />
+          <div class="check-content">
+            <div class="check-title">הכנתי 2-3 תמונות מגרות של מנות / שולחן ערוך</div>
+            <div class="check-details">
+              הכי מומלץ: תמונות אותנטיות מהמטבח שלך. אם רוצים להוסיף כיתוב יפה, אפשר לפתוח ב-<strong>Canva</strong> ולהוסיף כיתוב: <em>"מרכיבים תפריט באפליקציה תוך 2 דקות 📲"</em>.
+            </div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- STEP 2: Campaign Setup -->
+    <section class="step-card">
+      <h2 class="step-title">
+        <span class="step-num">2</span>
+        פתיחת קמפיין חדש (Campaign)
+      </h2>
+      <p class="step-desc">עכשיו נכנסים למנהל המודעות ויוצרים את הקמפיין הראשון.</p>
+
+      <ul class="checklist">
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step2_1" />
+          <div class="check-content">
+            <div class="check-title">1. לחיצה על כפתור Create הירוק</div>
+            <div class="check-details">בראש הטבלה ב-Ads Manager, לחצי על הכפתור הירוק הגדול <strong>+ Create</strong> (צור).</div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step2_2" />
+          <div class="check-content">
+            <div class="check-title">2. בחירת יעד הקמפיין: Traffic (תנועה לאתר)</div>
+            <div class="check-details">סמני <strong>Traffic</strong> (או <strong>Leads</strong>) ולחצי על <strong>Continue</strong> (המשך).</div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step2_3" />
+          <div class="check-content">
+            <div class="check-title">3. מתן שם לקמפיין</div>
+            <div class="check-details">בשדה שם הקמפיין כתבי: <code>קמפיין אפליקציה - שומרון והשרון</code> > לחצי <strong>Next</strong> (הבא).</div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- STEP 3: Ad Set (Targeting & Budget) -->
+    <section class="step-card">
+      <h2 class="step-title">
+        <span class="step-num">3</span>
+        הגדרת קהל היעד והתקציב (Ad Set)
+      </h2>
+      <p class="step-desc">השלב הקריטי ביותר – כאן אנחנו מבטיחים שהמודעה תוצג אך ורק לאנשים רלוונטיים באזור הפעילות של איילה.</p>
+
+      <ul class="checklist">
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step3_1" />
+          <div class="check-content">
+            <div class="check-title">1. יעד: Website (אתר אינטרנט)</div>
+            <div class="check-details">וודאי שבאזור Conversion Location מסומן <strong>Website</strong>.</div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step3_2" />
+          <div class="check-content">
+            <div class="check-title">2. תקציב יומי (Daily Budget)</div>
+            <div class="check-details">
+              הגדירי תקציב נוח לבדיקה: <strong>30 ₪ עד 50 ₪ ליום</strong>. (אפשר לעצור או לשנות בכל רגע).
+            </div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step3_3" />
+          <div class="check-content">
+            <div class="check-title">3. מיקום גיאוגרפי (Locations): שומרון והשרון</div>
+            <div class="check-details">
+              לחצי על <strong>Edit</strong> במיקומים. הסירי את "ישראל" כולה, והוסיפי ערים ויישובים:
+              <br/>
+              📍 <strong>השרון:</strong> כפר סבא, רעננה, הוד השרון, נתניה, יישובי לב השרון, דרום השרון.
+              <br/>
+              📍 <strong>השומרון:</strong> אריאל, קרני שומרון, אלפי מנשה, קדומים, עלי, שילה ויישובי המועצה.
+            </div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step3_4" />
+          <div class="check-content">
+            <div class="check-title">4. גילאים ושפות</div>
+            <div class="check-details">שני את הגילאים ל-<strong>25 עד 60</strong> (הקהל שמארח ומזמין קייטרינג). שפה: <strong>עברית</strong>.</div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step3_5" />
+          <div class="check-content">
+            <div class="check-title">5. מיקומי הצגה: Advantage+ Placements</div>
+            <div class="check-details">השאירי על ברירת המחדל המומלצת כדי שפייסבוק יציג בפיד ובסטוריז איפה שהכי זול ומשתלם > לחצי <strong>Next</strong>.</div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- STEP 4: Ad Setup -->
+    <section class="step-card">
+      <h2 class="step-title">
+        <span class="step-num">4</span>
+        העלאת המודעה עצמה (Ad)
+      </h2>
+      <p class="step-desc">השלב שבו אנחנו מחברים את התמונה, הטקסט והקישור לאפליקציה.</p>
+
+      <ul class="checklist">
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step4_1" />
+          <div class="check-content">
+            <div class="check-title">1. בחירת העמודים (Identity)</div>
+            <div class="check-details">וודאי שבעמוד הפייסבוק והאינסטגרם נבחר העמוד של קייטרינג איילה.</div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step4_2" />
+          <div class="check-content">
+            <div class="check-title">2. העלאת התמונה (Add Media)</div>
+            <div class="check-details">לחצי על <strong>Add Media</strong> > <strong>Add Image</strong> > העלי את התמונה שהכנת בשלב 1.</div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step4_3" />
+          <div class="check-content">
+            <div class="check-title">3. הדבקת הטקסט והכותרת מ-ChatGPT</div>
+            <div class="check-details">
+              <strong>Primary Text (טקסט ראשי):</strong> הדביקי את הטקסט שיצרת.
+              <br/>
+              <strong>Headline (כותרת תחתונה):</strong> לדוגמה: <em>הרכבת תפריט לאירוע או שבת בקליק 🍽️</em>
+            </div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step4_4" />
+          <div class="check-content">
+            <div class="check-title">4. הזנת הקישור לאפליקציה וכפתור הנעה לפעולה</div>
+            <div class="check-details">
+              בשדה <strong>Website URL</strong> הדביקי את כתובת האפליקציה של איילה.
+              <br/>
+              בכפתור <strong>Call to Action</strong> בחרי: <strong>Order Now</strong> (הזמן עכשיו) או <strong>View Menu</strong>.
+            </div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- STEP 5: Launch -->
+    <section class="step-card">
+      <h2 class="step-title">
+        <span class="step-num">5</span>
+        פרסום ומעקב (Launch!)
+      </h2>
+      <p class="step-desc">רגע השיגור – מוודאים שהכל תקין ומפרסמים!</p>
+
+      <ul class="checklist">
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step5_1" />
+          <div class="check-content">
+            <div class="check-title">1. לחיצה על כפתור Publish הירוק</div>
+            <div class="check-details">בתחתית המסך לחצי על <strong>Publish</strong>. המודעה תיכנס לבדיקה קצרה (שעה-שעתיים) ותתחיל לרוץ!</div>
+          </div>
+        </li>
+
+        <li class="check-item" onclick="toggleCheckbox(this)">
+          <input type="checkbox" id="step5_2" />
+          <div class="check-content">
+            <div class="check-title">2. מעקב אחרי הזמנות בדשבורד האפליקציה</div>
+            <div class="check-details">
+              אחרי 48 שעות, כנסי ל-<strong>Admin Dashboard</strong> באפליקציה של איילה ובדקי את הפניות וההזמנות החדשות שהתקבלו.
+            </div>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Footer Actions -->
+    <div class="footer-actions">
+      <button class="btn btn-outline" onclick="resetProgress()" style="color: #64748b; border-color: #cbd5e1;">
+        🔄 איפוס סימונים
+      </button>
+      <button class="btn btn-primary" onclick="window.print()">
+        🖨️ הדפסה / שמירה כ-PDF
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast">
+    <span>✓ הפרומפט הועתק בהצלחה! אפשר להדביק ב-ChatGPT</span>
+  </div>
+
+  <script>
+    // Load saved checklist state
+    document.addEventListener('DOMContentLoaded', () => {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      checkboxes.forEach(box => {
+        const isChecked = localStorage.getItem('ayala_ads_' + box.id) === 'true';
+        box.checked = isChecked;
+        if (isChecked) {
+          box.closest('.check-item').classList.add('completed');
+        }
+      });
+      updateProgress();
+    });
+
+    function toggleCheckbox(itemElement) {
+      const checkbox = itemElement.querySelector('input[type="checkbox"]');
+      // If user clicked the checkbox itself, event already toggled it
+      if (event.target !== checkbox) {
+        checkbox.checked = !checkbox.checked;
+      }
+      
+      if (checkbox.checked) {
+        itemElement.classList.add('completed');
+      } else {
+        itemElement.classList.remove('completed');
+      }
+
+      localStorage.setItem('ayala_ads_' + checkbox.id, checkbox.checked);
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+      const total = checkboxes.length;
+      let completed = 0;
+      checkboxes.forEach(box => {
+        if (box.checked) completed++;
+      });
+
+      const percentage = Math.round((completed / total) * 100);
+      document.getElementById('progress-fill').style.width = percentage + '%';
+      document.getElementById('progress-text').innerText = `${completed} מתוך ${total} שלבים הושלמו (${percentage}%)`;
+    }
+
+    function resetProgress() {
+      if (confirm('האם את בטוחה שברצונך לאפס את כל הסימונים במדריך?')) {
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(box => {
+          box.checked = false;
+          box.closest('.check-item').classList.remove('completed');
+          localStorage.removeItem('ayala_ads_' + box.id);
+        });
+        updateProgress();
+      }
+    }
+
+    function copyPrompt(elementId) {
+      const text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(() => {
+          toast.classList.remove('show');
+        }, 3500);
+      }).catch(err => {
+        alert('שגיאה בהעתקה, אנא סמני את הטקסט והעתיקי ידנית.');
+      });
+    }
+  </script>
+</body>
+</html>

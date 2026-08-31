@@ -26,6 +26,23 @@ async function runSql(queryText: string, params: any[] = []): Promise<any[]> {
   }
 }
 
+function formatColumnValue(tableName: string, colName: string, val: any): any {
+  if (val === undefined || val === null) return null;
+  // JSONB columns that need JSON stringification
+  if (
+    (tableName === 'orders' && colName === 'items') ||
+    (tableName === 'app_settings' && colName === 'value') ||
+    (!Array.isArray(val) && typeof val === 'object')
+  ) {
+    return JSON.stringify(val);
+  }
+  // Native Postgres Array columns (e.g. TEXT[] like allowed_modifications, tags)
+  if (Array.isArray(val)) {
+    return val;
+  }
+  return val;
+}
+
 class QueryBuilder implements PromiseLike<any> {
   private tableName: string;
   private action: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'UPSERT' = 'SELECT';
@@ -123,7 +140,7 @@ class QueryBuilder implements PromiseLike<any> {
         const keys = Object.keys(item);
         const cols = keys.map((k) => `"${k}"`).join(', ');
         const placeholders = keys.map((_, idx) => `$${idx + 1}`).join(', ');
-        const values = keys.map((k) => (typeof item[k] === 'object' && item[k] !== null ? JSON.stringify(item[k]) : item[k]));
+        const values = keys.map((k) => formatColumnValue(this.tableName, k, item[k]));
 
         const query = `INSERT INTO "${this.tableName}" (${cols}) VALUES (${placeholders}) RETURNING *`;
         const rows = await runSql(query, values);
@@ -134,8 +151,8 @@ class QueryBuilder implements PromiseLike<any> {
         const keys = Object.keys(this.payload);
         const params: any[] = [];
         const sets = keys.map((k) => {
-          const val = this.payload[k];
-          params.push(typeof val === 'object' && val !== null ? JSON.stringify(val) : val);
+          const val = formatColumnValue(this.tableName, k, this.payload[k]);
+          params.push(val);
           return `"${k}" = $${params.length}`;
         });
 
