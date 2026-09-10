@@ -236,10 +236,12 @@ export const db = {
     })
   }),
   removeChannel: (_channel: any) => {},
-  storage: {
-    from: (bucket: string) => {
-      let lastUploadedUrl = '';
-      return {
+  storage: (() => {
+    const uploadedUrlCache = new Map<string, string>();
+    let lastUploadedUrlGlobal = '';
+
+    return {
+      from: (bucket: string) => ({
         upload: async (fileName: string, file: any, options?: any) => {
           try {
             const cloudName = (import.meta as any).env?.VITE_CLOUDINARY_CLOUD_NAME || 'md6mhfhd';
@@ -279,8 +281,11 @@ export const db = {
 
             const json = await resp.json();
             if (json.secure_url) {
-              lastUploadedUrl = json.secure_url;
-              return { data: { path: json.secure_url }, error: null };
+              lastUploadedUrlGlobal = json.secure_url;
+              uploadedUrlCache.set(fileName, json.secure_url);
+              const baseName = fileName.split('/').pop() || fileName;
+              uploadedUrlCache.set(baseName, json.secure_url);
+              return { data: { path: json.secure_url, publicUrl: json.secure_url }, error: null };
             }
             return { data: null, error: new Error(json.error?.message || 'Upload to Cloudinary failed') };
           } catch (err: any) {
@@ -289,17 +294,24 @@ export const db = {
           }
         },
         getPublicUrl: (path: string) => {
-          if (lastUploadedUrl) {
-            return { data: { publicUrl: lastUploadedUrl } };
-          }
           if (path && (path.startsWith('http://') || path.startsWith('https://'))) {
             return { data: { publicUrl: path } };
           }
-          return { data: { publicUrl: path } };
+          if (path && uploadedUrlCache.has(path)) {
+            return { data: { publicUrl: uploadedUrlCache.get(path)! } };
+          }
+          const baseName = path ? path.split('/').pop() : '';
+          if (baseName && uploadedUrlCache.has(baseName)) {
+            return { data: { publicUrl: uploadedUrlCache.get(baseName)! } };
+          }
+          if (lastUploadedUrlGlobal) {
+            return { data: { publicUrl: lastUploadedUrlGlobal } };
+          }
+          return { data: { publicUrl: '' } };
         }
-      };
-    }
-  }
+      })
+    };
+  })()
 };
 
 // Storage export

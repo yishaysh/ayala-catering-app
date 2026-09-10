@@ -1129,7 +1129,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             const arrayBuffer = await file.arrayBuffer();
             const fileData = new Uint8Array(arrayBuffer);
 
-            const { error: uploadError } = await db.storage
+            const { data: uploadRes, error: uploadError } = await db.storage
                 .from('menu-images')
                 .upload(cleanFileName, fileData, {
                     cacheControl: '3600',
@@ -1139,11 +1139,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
             if (uploadError) throw uploadError;
 
-            const { data } = db.storage
+            const publicUrl = uploadRes?.publicUrl || uploadRes?.path || db.storage
                 .from('menu-images')
-                .getPublicUrl(cleanFileName);
+                .getPublicUrl(cleanFileName).data.publicUrl;
 
-            await updateKosherCertUrl(data.publicUrl);
+            if (!publicUrl || (!publicUrl.startsWith('http://') && !publicUrl.startsWith('https://'))) {
+                throw new Error('כתובת התעודה שהתקבלה מהענן אינה תקינה');
+            }
+
+            await updateKosherCertUrl(publicUrl);
             setFeedback({
                 isOpen: true,
                 type: 'info',
@@ -1174,7 +1178,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             const arrayBuffer = await file.arrayBuffer();
             const fileData = new Uint8Array(arrayBuffer);
 
-            const { error: uploadError } = await db.storage
+            const { data: uploadRes, error: uploadError } = await db.storage
                 .from('menu-images')
                 .upload(cleanFileName, fileData, {
                     cacheControl: '3600',
@@ -1184,11 +1188,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
             if (uploadError) throw uploadError;
 
-            const { data } = db.storage
+            const publicUrl = uploadRes?.publicUrl || uploadRes?.path || db.storage
                 .from('menu-images')
-                .getPublicUrl(cleanFileName);
+                .getPublicUrl(cleanFileName).data.publicUrl;
 
-            setNewGalleryItem(prev => ({ ...prev, url: data.publicUrl }));
+            if (!publicUrl || (!publicUrl.startsWith('http://') && !publicUrl.startsWith('https://'))) {
+                throw new Error('כתובת התמונה שהתקבלה מהענן אינה תקינה');
+            }
+
+            setNewGalleryItem(prev => ({ ...prev, url: publicUrl }));
         } catch (error: any) {
             console.error('Error uploading gallery image:', error);
             setFeedback({
@@ -1232,7 +1240,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             const arrayBuffer = await file.arrayBuffer();
             const fileData = new Uint8Array(arrayBuffer);
 
-            const { error: uploadError } = await db.storage
+            const { data: uploadRes, error: uploadError } = await db.storage
                 .from('menu-images')
                 .upload(cleanFileName, fileData, {
                     cacheControl: '3600',
@@ -1242,11 +1250,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
             if (uploadError) throw uploadError;
 
-            const { data } = db.storage
+            const publicUrl = uploadRes?.publicUrl || uploadRes?.path || db.storage
                 .from('menu-images')
-                .getPublicUrl(cleanFileName);
+                .getPublicUrl(cleanFileName).data.publicUrl;
 
-            setNewGalleryItem(prev => ({ ...prev, url: data.publicUrl }));
+            if (!publicUrl || (!publicUrl.startsWith('http://') && !publicUrl.startsWith('https://'))) {
+                throw new Error('כתובת הסרטון שהתקבלה מהענן אינה תקינה');
+            }
+
+            setNewGalleryItem(prev => ({ ...prev, url: publicUrl }));
         } catch (error: any) {
             console.error('Error uploading gallery video:', error);
             setFeedback({
@@ -1285,20 +1297,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     };
 
     const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, isEdit: boolean) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            setFeedback({
+                isOpen: true,
+                type: 'warning',
+                title: language === 'he' ? 'קובץ גדול מדי' : 'File Too Large',
+                message: language === 'he' ? 'אנא בחר תמונה קטנה מ-5MB.' : 'Please choose an image smaller than 5MB.'
+            });
+            return;
+        }
+
+        const prevUrl = isEdit ? editImageUrl : newItem.image_url;
+        // Instant local preview for smooth, immediate visual feedback
+        const previewObjectUrl = URL.createObjectURL(file);
+        if (isEdit) {
+            setEditImageUrl(previewObjectUrl);
+        } else {
+            setNewItem(prev => ({ ...prev, image_url: previewObjectUrl }));
+        }
+
         try {
-            const file = event.target.files?.[0];
-            if (!file) return;
-
-            if (file.size > 5 * 1024 * 1024) {
-                setFeedback({
-                    isOpen: true,
-                    type: 'warning',
-                    title: language === 'he' ? 'קובץ גדול מדי' : 'File Too Large',
-                    message: language === 'he' ? 'אנא בחר תמונה קטנה מ-5MB.' : 'Please choose an image smaller than 5MB.'
-                });
-                return;
-            }
-
             setUploading(true);
 
             let mimeType = file.type;
@@ -1319,7 +1340,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             const arrayBuffer = await file.arrayBuffer();
             const fileData = new Uint8Array(arrayBuffer);
 
-            const { error: uploadError } = await db.storage
+            const { data: uploadRes, error: uploadError } = await db.storage
                 .from('menu-images')
                 .upload(cleanFileName, fileData, {
                     cacheControl: '3600',
@@ -1331,18 +1352,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 throw uploadError;
             }
 
-            const { data } = db.storage
+            const publicUrl = uploadRes?.publicUrl || uploadRes?.path || db.storage
                 .from('menu-images')
-                .getPublicUrl(cleanFileName);
+                .getPublicUrl(cleanFileName).data.publicUrl;
+
+            if (!publicUrl || (!publicUrl.startsWith('http://') && !publicUrl.startsWith('https://'))) {
+                throw new Error('כתובת התמונה שהתקבלה מהענן אינה תקינה');
+            }
 
             if (isEdit) {
-                setEditImageUrl(data.publicUrl);
+                setEditImageUrl(publicUrl);
             } else {
-                setNewItem(prev => ({ ...prev, image_url: data.publicUrl }));
+                setNewItem(prev => ({ ...prev, image_url: publicUrl }));
             }
 
         } catch (error: any) {
             console.error('Error uploading image:', error);
+            // Revert preview on failure
+            if (isEdit) {
+                setEditImageUrl(prevUrl || '');
+            } else {
+                setNewItem(prev => ({ ...prev, image_url: prevUrl || '' }));
+            }
             setFeedback({
                 isOpen: true,
                 type: 'error',
@@ -1723,8 +1754,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                             <tr key={item.id} className="border-b border-themeText/10 hover:bg-themeBg/40">
                                                 <td className="p-4 font-bold text-themeText/95">{localItem.name}</td>
                                                 <td className="p-4">
-                                                    {item.image_url ? (
-                                                        <img src={item.image_url} alt="mini" className="w-10 h-10 object-cover rounded-md border border-themeText/15" />
+                                                    {item.image_url && (item.image_url.startsWith('http') || item.image_url.startsWith('data:') || item.image_url.startsWith('blob:')) ? (
+                                                        <img 
+                                                            src={item.image_url} 
+                                                            alt="mini" 
+                                                            className="w-10 h-10 object-cover rounded-md border border-themeText/15" 
+                                                            onError={(e) => {
+                                                                (e.target as HTMLImageElement).style.display = 'none';
+                                                            }}
+                                                        />
                                                     ) : (
                                                         <div className="w-10 h-10 bg-themeBg/40 rounded-md border border-themeText/15 flex items-center justify-center text-themeText/30">
                                                             <ImageIcon size={16} />
@@ -2468,8 +2506,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                 <label className="block text-sm font-bold text-themeText/80 mb-2">{t.image}</label>
                                 <div className="flex items-center gap-4">
                                     <div className="relative w-20 h-20 bg-themeBg/50 rounded-lg overflow-hidden border border-themeText/15 shrink-0">
-                                        {newItem.image_url ? (
-                                            <img src={newItem.image_url} alt="preview" className="w-full h-full object-cover" />
+                                        {newItem.image_url && (newItem.image_url.startsWith('http') || newItem.image_url.startsWith('data:') || newItem.image_url.startsWith('blob:')) ? (
+                                            <img 
+                                                src={newItem.image_url} 
+                                                alt="preview" 
+                                                className="w-full h-full object-cover" 
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                            />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-themeText/30">
                                                 <ImageIcon size={24} />
@@ -2621,8 +2666,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                 <label className="block text-sm font-bold text-themeText/80 mb-2">{t.image}</label>
                                 <div className="flex items-center gap-4">
                                     <div className="relative w-20 h-20 bg-themeBg/50 rounded-lg overflow-hidden border border-themeText/15 shrink-0">
-                                        {editImageUrl ? (
-                                            <img src={editImageUrl} alt="preview" className="w-full h-full object-cover" />
+                                        {editImageUrl && (editImageUrl.startsWith('http') || editImageUrl.startsWith('data:') || editImageUrl.startsWith('blob:')) ? (
+                                            <img 
+                                                src={editImageUrl} 
+                                                alt="preview" 
+                                                className="w-full h-full object-cover" 
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                            />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-themeText/30">
                                                 <ImageIcon size={24} />

@@ -23,6 +23,14 @@ const CATEGORY_ORDER: Category[] = [
 
 const DEFAULT_PLACEHOLDER = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=80";
 
+const getValidImageUrl = (url?: string): string => {
+  if (!url) return DEFAULT_PLACEHOLDER;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  return DEFAULT_PLACEHOLDER;
+};
+
 export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
   const { addToCart, adultCount, childCount, language, calculationSettings, cart, appConfig } = useStore();
   const t = translations[language];
@@ -106,7 +114,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
               {catItems.map((item) => {
                 const suggestedQty = totalGuests > 0 ? getSuggestedQuantity(item, adultCount, childCount, calculationSettings, cart) : 1;
                 const localItem = getLocalizedItem(item, language);
-                const previewUrl = item.image_url || DEFAULT_PLACEHOLDER;
+                const previewUrl = getValidImageUrl(item.image_url);
 
                 return (
                   <div 
@@ -207,7 +215,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
                 <X size={32} />
             </button>
             <img 
-                src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
+                src={getValidImageUrl(itemToAdd.image_url)}
                 alt="zoomed"
                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-zoom-in"
                 onClick={(e) => e.stopPropagation()} 
@@ -224,7 +232,7 @@ export const MenuGrid: React.FC<MenuGridProps> = ({ items }) => {
              <div className="relative bg-themeBg w-full md:max-w-lg max-h-[85vh] rounded-2xl md:rounded-3xl flex flex-col shadow-2xl animate-zoom-in overflow-hidden border border-themeText/10">
                 <div className="relative h-28 md:h-48 bg-themeBg/40 shrink-0 group">
                     <img 
-                        src={itemToAdd.image_url || DEFAULT_PLACEHOLDER}
+                        src={getValidImageUrl(itemToAdd.image_url)}
                         alt={getLocalizedItem(itemToAdd, language).name}
                         className="w-full h-full object-cover cursor-pointer"
                         onClick={() => setIsZoomed(true)}
