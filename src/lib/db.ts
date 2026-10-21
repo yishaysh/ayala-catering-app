@@ -136,13 +136,21 @@ class QueryBuilder implements PromiseLike<any> {
 
       if (this.action === 'INSERT') {
         if (!this.payload || this.payload.length === 0) return { data: [], error: null };
-        const item = this.payload[0];
-        const keys = Object.keys(item);
+        const items = Array.isArray(this.payload) ? this.payload : [this.payload];
+        const keys = Array.from(new Set(items.flatMap((item: any) => Object.keys(item))));
         const cols = keys.map((k) => `"${k}"`).join(', ');
-        const placeholders = keys.map((_, idx) => `$${idx + 1}`).join(', ');
-        const values = keys.map((k) => formatColumnValue(this.tableName, k, item[k]));
+        const values: any[] = [];
+        const rowPlaceholders: string[] = [];
 
-        const query = `INSERT INTO "${this.tableName}" (${cols}) VALUES (${placeholders}) RETURNING *`;
+        items.forEach((item: any) => {
+          const itemPlaceholders = keys.map((k) => {
+            values.push(formatColumnValue(this.tableName, k, item[k] !== undefined ? item[k] : null));
+            return '$' + values.length;
+          });
+          rowPlaceholders.push(`(${itemPlaceholders.join(', ')})`);
+        });
+
+        const query = `INSERT INTO "${this.tableName}" (${cols}) VALUES ${rowPlaceholders.join(', ')} RETURNING *`;
         const rows = await runSql(query, values);
         return { data: rows || [], error: null };
       }

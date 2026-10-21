@@ -5,8 +5,9 @@ import { CartDrawer } from './components/CartDrawer';
 import { Category } from './types';
 import { ShoppingBag, Phone, Globe, Lock, X, Loader2, Award, Menu, MapPin, ArrowUp } from 'lucide-react';
 import { useStore, translations } from './store';
-import { AdminDashboard } from './components/AdminDashboard';
+const AdminDashboard = React.lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 import { AIConcierge } from './components/AIConcierge';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { useBackButton } from './hooks/useBackButton';
 import { ThemeStyles } from './components/ThemeStyles';
 import { EventGallery } from './components/EventGallery';
@@ -185,11 +186,18 @@ export default function App() {
       return (
           <>
               <ThemeStyles />
-              <AdminDashboard 
-                  onExit={() => setShowFullDashboard(false)} 
-                  initialTab={0}
-                  targetOrderId={adminTargetOrderId}
-              />
+              <React.Suspense fallback={
+                  <div className="min-h-screen flex flex-col items-center justify-center bg-themeBg text-themePrimary gap-3">
+                      <Loader2 className="w-10 h-10 animate-spin" />
+                      <p className="text-sm font-medium">טוען ממשק ניהול...</p>
+                  </div>
+              }>
+                  <AdminDashboard 
+                      onExit={() => setShowFullDashboard(false)} 
+                      initialTab={0}
+                      targetOrderId={adminTargetOrderId}
+                  />
+              </React.Suspense>
           </>
       );
   }
@@ -318,7 +326,11 @@ export default function App() {
         </div>
         
         {featureFlags?.showCalculator && <HostHelper />}
-        {featureFlags?.showAI && <AIConcierge />}
+        {featureFlags?.showAI && (
+          <ErrorBoundary fallbackMessage="שירות השף הדיגיטלי אינו זמין כעת">
+            <AIConcierge />
+          </ErrorBoundary>
+        )}
 
         <div className="sticky top-[72px] z-40 bg-themeBg/95 backdrop-blur-md py-4 mb-8 border-b border-themeText/10 -mx-4 px-4 overflow-x-auto shadow-sm h-[60px]">
             <nav className="flex gap-2 min-w-max mx-auto md:justify-center">

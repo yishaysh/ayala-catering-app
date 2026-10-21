@@ -77,33 +77,55 @@ export const AIConcierge: React.FC = () => {
             OUTPUT: JSON {items: [{id, quantity}], explanation: string}.
         `;
 
-        while (attempt < MAX_RETRIES && !success) {
-            try {
-                attempt++;
-                const response = await ai.models.generateContent({
-                    model: 'gemini-3-flash-preview',
-                    contents: systemInstruction,
-                    config: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: Type.OBJECT,
-                            properties: {
-                                items: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, quantity: { type: Type.NUMBER } }, required: ["id", "quantity"] } },
-                                explanation: { type: Type.STRING }
-                            },
-                            required: ["items", "explanation"]
-                        },
-                    },
-                });
+        const PRIMARY_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        let lastError: any = null;
 
-                if (response.text) {
-                    setRecommendation(JSON.parse(response.text));
-                    success = true;
+        for (const modelName of PRIMARY_MODELS) {
+            if (success) break;
+            for (let attempt = 1; attempt <= 2; attempt++) {
+                try {
+                    const response = await ai.models.generateContent({
+                        model: modelName,
+                        contents: systemInstruction,
+                        config: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    items: {
+                                        type: Type.ARRAY,
+                                        items: {
+                                            type: Type.OBJECT,
+                                            properties: {
+                                                id: { type: Type.STRING },
+                                                quantity: { type: Type.NUMBER }
+                                            },
+                                            required: ["id", "quantity"]
+                                        }
+                                    },
+                                    explanation: { type: Type.STRING }
+                                },
+                                required: ["items", "explanation"]
+                            },
+                        },
+                    });
+
+                    if (response.text) {
+                        setRecommendation(JSON.parse(response.text));
+                        success = true;
+                        break;
+                    }
+                } catch (err: any) {
+                    lastError = err;
+                    console.warn(`[AIConcierge] Model ${modelName} attempt ${attempt} failed:`, err?.message || err);
+                    if (attempt < 2) await delay(800);
                 }
-            } catch (err: any) {
-                if (attempt < MAX_RETRIES) await delay(1000);
-                else setError(language === 'he' ? "נתקלנו בבעיה זמנית בתקשורת." : "Temporary connection issue.");
             }
+        }
+
+        if (!success) {
+            console.error('[AIConcierge] All model fallback attempts failed:', lastError);
+            setError(language === 'he' ? "נתקלנו בבעיה זמנית בתקשורת עם השף הדיגיטלי. אנא נסה שנית בעוד רגע." : "Temporary connection issue with Digital Chef. Please try again in a moment.");
         }
         setIsGenerating(false);
     };
@@ -145,7 +167,7 @@ export const AIConcierge: React.FC = () => {
             <div className="absolute top-0 right-0 w-64 h-64 bg-themePrimary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             <div className="flex items-center gap-3 mb-6 relative z-10">
                 <div className="p-2 bg-themePrimary/20 rounded-lg text-themePrimary"><Sparkles size={24} /></div>
-                <div><h3 className="text-xl font-serif font-bold text-themeText">{t.aiTitle}</h3><p className="text-xs text-themeText/60">Powered by Gemini 3.0</p></div>
+                <div><h3 className="text-xl font-serif font-bold text-themeText">{t.aiTitle}</h3><p className="text-xs text-themeText/60">Powered by Google Gemini 2.5</p></div>
             </div>
             {needsKey ? (
                 <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">VITE_GEMINI_API_KEY Missing</div>
