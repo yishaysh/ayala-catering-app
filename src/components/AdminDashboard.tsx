@@ -579,7 +579,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     ` : ''}
                     
                     <div class="terms">
-                        <p>${isHe ? 'תודה שבחרתם באיילה פשוט טעים! • הצעת המחיר בתוקף ל-30 ימים • טלפון: 054-7474764 • אימייל: info@ayala-catering.co.il' : 'Thank you for choosing Ayala Simply Delicious! • Quote valid for 30 days • Phone: 054-7474764 • Email: info@ayala-catering.co.il'}</p>
+                        <p>${isHe ? 'תודה שבחרתם באיילה פשוט טעים! • הצעת המחיר בתוקף ל-30 ימים • תנאי תשלום: 1/3 מקדמה לאישור ההזמנה, היתרה ביום האירוע • טלפון: 054-7474764 • אימייל: info@ayala-catering.co.il' : 'Thank you for choosing Ayala Simply Delicious! • Quote valid for 30 days • Payment: 1/3 deposit to confirm order, balance due on event day • Phone: 054-7474764 • Email: info@ayala-catering.co.il'}</p>
                     </div>
                 </div>
 

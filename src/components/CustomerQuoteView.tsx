@@ -289,9 +289,9 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({ quoteId })
           {/* Terms / Bottom */}
           <div className="mt-12 border-t border-themeText/5 pt-6 text-center text-xs text-themeText/50 leading-relaxed max-w-md mx-auto">
             {isHe ? (
-              <p>הצעת מחיר זו בתוקף ל-30 יום מיום הפקתה.<br />תנאי תשלום: 50% מקדמה לאישור ההזמנה, היתרה ביום האירוע.</p>
+              <p>הצעת מחיר זו בתוקף ל-30 יום מיום הפקתה.<br />תנאי תשלום: 1/3 מקדמה לאישור ההזמנה, היתרה ביום האירוע.</p>
             ) : (
-              <p>This proposal is valid for 30 days from the date of issue.<br />Payment: 50% deposit to confirm order, balance due on event day.</p>
+              <p>This proposal is valid for 30 days from the date of issue.<br />Payment: 1/3 deposit to confirm order, balance due on event day.</p>
             )}
           </div>
         </div>
