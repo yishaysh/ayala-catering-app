@@ -72,7 +72,7 @@ const EVENT_TYPES: EventType[] = ['basic', 'premium', 'plus'];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialTab = 0, targetOrderId }) => {
     const {
-        menuItems, updateMenuItem, addMenuItem, deleteMenuItem,
+        menuItems, hydrateAdminMenu, updateMenuItem, addMenuItem, deleteMenuItem,
         calculationSettings, updateCalculationSettings,
         advancedSettings, updateAdvancedSettings,
         featureFlags, updateFeatureFlags,
@@ -949,14 +949,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         }
     }, [language]);
 
-    // Ensure the view starts at the top when entering admin mode
+    // Ensure the view starts at the top and unmasked admin prices are hydrated when entering admin mode
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'instant' });
+        void hydrateAdminMenu();
         loadCoupons();
         loadOrders();
         loadAdminReviews();
         loadAdminSettings();
-    }, [loadCoupons, loadOrders, loadAdminReviews, loadAdminSettings]);
+    }, [hydrateAdminMenu, loadCoupons, loadOrders, loadAdminReviews, loadAdminSettings]);
 
     const cleanPhoneForWhatsapp = (phone: string) => {
         let cleaned = phone.replace(/\D/g, '');

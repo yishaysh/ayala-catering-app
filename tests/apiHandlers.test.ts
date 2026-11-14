@@ -732,4 +732,60 @@ describe('P1 AI menu fail-fast & P3 Review moderation flow', () => {
       }
     }
   });
+
+  it('masks menu prices for public visitors in catalog mode while preserving real prices for authenticated admins', async () => {
+    const db = createMockDb();
+    // Simulate Neon NUMERIC(10,2) string serialization
+    db.menuItems[0].price = '120.00';
+    db.menuItems[1].price = '180.50';
+    const deps: HandlerDeps = { queryFn: db.queryFn, env: createTestEnv() };
+
+    const publicBoot = createMockRes();
+    await handlePublicBootstrap(createMockReq({ method: 'GET' }), publicBoot.res, deps);
+    expect(publicBoot.res.statusCode).toBe(200);
+    const publicItems = publicBoot.getJson<{ menuItems: Array<{ id: string; price: number }> }>().menuItems;
+    expect(publicItems.map((i) => ({ id: i.id, price: i.price }))).toEqual([
+      { id: 'dish-1', price: 0 },
+      { id: 'dish-unavailable', price: 0 },
+    ]);
+
+    const login = createMockRes();
+    await handleAdminAuth(
+      createMockReq({ method: 'POST', body: { password: 'StrongTestPassword!123' } }),
+      login.res,
+      deps
+    );
+    expect(login.res.statusCode).toBe(200);
+    const adminCookie = login.getCookiesToSend();
+
+    const adminCatalog = createMockRes();
+    await handleAdminCatalog(
+      createMockReq({
+        method: 'GET',
+        url: '/api/admin/catalog?resource=menu',
+        headers: { cookie: adminCookie },
+      }),
+      adminCatalog.res,
+      deps
+    );
+    expect(adminCatalog.res.statusCode).toBe(200);
+    const adminItems = adminCatalog.getJson<{ menuItems: Array<{ id: string; price: number }> }>().menuItems;
+    expect(adminItems.map((i) => ({ id: i.id, price: i.price }))).toEqual([
+      { id: 'dish-1', price: 120 },
+      { id: 'dish-unavailable', price: 180.5 },
+    ]);
+
+    const adminBoot = createMockRes();
+    await handlePublicBootstrap(
+      createMockReq({ method: 'GET', headers: { cookie: adminCookie } }),
+      adminBoot.res,
+      deps
+    );
+    expect(adminBoot.res.statusCode).toBe(200);
+    const adminBootItems = adminBoot.getJson<{ menuItems: Array<{ id: string; price: number }> }>().menuItems;
+    expect(adminBootItems.map((i) => ({ id: i.id, price: i.price }))).toEqual([
+      { id: 'dish-1', price: 120 },
+      { id: 'dish-unavailable', price: 180.5 },
+    ]);
+  });
 });

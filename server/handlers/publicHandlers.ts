@@ -20,6 +20,7 @@ import { generateOpaqueToken, generateReferenceCode, sha256Hex } from '../crypto
 import { sanitizeDbError, type SqlQueryFn } from '../db.js';
 import type { ServerEnv } from '../env.js';
 import {
+  authenticateAdminRequest,
   getClientIp,
   getQueryParams,
   readJsonBody,
@@ -39,7 +40,7 @@ export interface HandlerDeps {
   now?: () => Date;
 }
 
-function mapMenuRow(row: Record<string, unknown>, hidePrices: boolean): MenuItem {
+export function mapMenuRow(row: Record<string, unknown>, hidePrices: boolean = false): MenuItem {
   return {
     id: String(row.id),
     category: row.category as MenuItem['category'],
@@ -79,7 +80,8 @@ export async function handlePublicBootstrap(
   if (!requireMethod(req, res, ['GET'])) return;
   try {
     const settings = await loadHydratedSettings(deps.queryFn, deps.env);
-    const hidePrices = !settings.config.ecommerce_mode;
+    const isAdminSession = Boolean(authenticateAdminRequest(req, deps.env));
+    const hidePrices = !settings.config.ecommerce_mode && !isAdminSession;
 
     const menuRows = await deps.queryFn<Record<string, unknown>>(
       'SELECT * FROM menu_items ORDER BY category ASC, name ASC'

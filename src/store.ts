@@ -611,6 +611,7 @@ interface AppState {
   aboutUs: AboutUsConfig;
 
   hydratePublicBootstrap: () => Promise<void>;
+  hydrateAdminMenu: () => Promise<void>;
   fetchMenuItems: () => Promise<void>;
   fetchSettings: () => Promise<void>;
   setAdultCount: (count: number) => void;
@@ -769,6 +770,22 @@ export const useStore = create<AppState>()(
             isLoading: false,
             bootstrapError: err instanceof Error ? err.message : 'Failed to load catalog',
           });
+        }
+      },
+
+      hydrateAdminMenu: async () => {
+        try {
+          const res = await api.fetchAdminMenu();
+          if (Array.isArray(res.menuItems) && res.menuItems.length > 0) {
+            set({
+              menuItems: res.menuItems.map((item) => ({
+                ...item,
+                price: Number(item.price || 0),
+              })),
+            });
+          }
+        } catch (err) {
+          console.error('Error hydrating admin menu:', err);
         }
       },
 

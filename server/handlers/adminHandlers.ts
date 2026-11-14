@@ -19,7 +19,7 @@ import { dispatchQuoteNotification } from '../notify.js';
 import { checkRateLimit } from '../rateLimit.js';
 import { validateKosherMetadataInput } from '../../shared/validation.js';
 import type { Order } from '../../shared/types.js';
-import type { HandlerDeps } from './publicHandlers.js';
+import { mapMenuRow, type HandlerDeps } from './publicHandlers.js';
 import { loadHydratedSettings } from './settingsHelpers.js';
 
 function requireAdminOrReject(
@@ -365,8 +365,12 @@ export async function handleAdminCatalog(
 
     // Default resource: 'menu'
     if (method === 'GET') {
-      const items = await deps.queryFn('SELECT * FROM menu_items ORDER BY category ASC, name ASC');
-      return sendJson(res, 200, { menuItems: items });
+      const rows = await deps.queryFn<Record<string, unknown>>(
+        'SELECT * FROM menu_items ORDER BY category ASC, name ASC'
+      );
+      return sendJson(res, 200, {
+        menuItems: rows.map((row) => mapMenuRow(row, false)),
+      });
     }
 
     const body = await readJsonBody<Record<string, unknown>>(req, 128 * 1024);
@@ -416,7 +420,10 @@ export async function handleAdminCatalog(
           body.units_per_tray != null && body.units_per_tray !== '' ? Number(body.units_per_tray) : null,
         ]
       );
-      return sendJson(res, 201, { ok: true, item: rows[0] });
+      return sendJson(res, 201, {
+        ok: true,
+        item: rows[0] ? mapMenuRow(rows[0] as Record<string, unknown>, false) : null,
+      });
     }
 
     if (method === 'PUT' || method === 'PATCH') {
@@ -460,7 +467,10 @@ export async function handleAdminCatalog(
         `UPDATE menu_items SET ${sets.join(', ')} WHERE id = $${i} RETURNING *`,
         vals
       );
-      return sendJson(res, 200, { ok: true, item: updated[0] });
+      return sendJson(res, 200, {
+        ok: true,
+        item: updated[0] ? mapMenuRow(updated[0] as Record<string, unknown>, false) : null,
+      });
     }
   } catch (err) {
     const safe = sanitizeDbError(err);

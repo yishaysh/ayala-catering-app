@@ -67,6 +67,7 @@ export default function App() {
     setLanguage,
     menuItems,
     hydratePublicBootstrap,
+    hydrateAdminMenu,
     isLoading,
     featureFlags,
     kosherMetadata,
@@ -114,9 +115,15 @@ export default function App() {
     void hydratePublicBootstrap();
     void api
       .checkAdminSession()
-      .then((res) => setIsAdmin(Boolean(res.authenticated)))
+      .then((res) => {
+        const authenticated = Boolean(res.authenticated);
+        setIsAdmin(authenticated);
+        if (authenticated) {
+          void hydrateAdminMenu();
+        }
+      })
       .catch(() => setIsAdmin(false));
-  }, [hydratePublicBootstrap]);
+  }, [hydratePublicBootstrap, hydrateAdminMenu]);
 
   useEffect(() => {
     document.documentElement.dir = isHe ? 'rtl' : 'ltr';
@@ -180,6 +187,7 @@ export default function App() {
     try {
       await api.loginAdmin(adminPassword);
       setIsAdmin(true);
+      await hydrateAdminMenu();
       setIsLoginOpen(false);
       setAdminPassword('');
     } catch (err) {
@@ -201,6 +209,7 @@ export default function App() {
     }
     setIsAdmin(false);
     setShowFullDashboard(false);
+    void hydratePublicBootstrap();
   };
 
   const scrollToCategory = (cat: Category) => {
