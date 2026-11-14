@@ -35,6 +35,11 @@ export const AccessibleModal: React.FC<AccessibleModalProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useBackButton(isOpen, onClose);
 
@@ -50,6 +55,18 @@ export const AccessibleModal: React.FC<AccessibleModalProps> = ({
     const focusFirst = () => {
       const root = containerRef.current;
       if (!root) return;
+      if (root.contains(document.activeElement) && document.activeElement !== root) {
+        return;
+      }
+      const preferredTarget =
+        root.querySelector<HTMLElement>('[autofocus], [data-autofocus="true"]') ||
+        root.querySelector<HTMLElement>(
+          'input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled])'
+        );
+      if (preferredTarget) {
+        preferredTarget.focus();
+        return;
+      }
       const focusables = Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
       if (focusables.length > 0) {
         focusables[0].focus();
@@ -63,7 +80,7 @@ export const AccessibleModal: React.FC<AccessibleModalProps> = ({
       if (e.key === 'Escape') {
         e.preventDefault();
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -101,7 +118,7 @@ export const AccessibleModal: React.FC<AccessibleModalProps> = ({
         previousFocusRef.current.focus();
       }
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen || typeof document === 'undefined') return null;
 

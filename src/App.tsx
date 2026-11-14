@@ -1032,6 +1032,7 @@ export default function App() {
             <input
               id="admin-password-input"
               type="password"
+              autoFocus
               autoComplete="current-password"
               value={adminPassword}
               onChange={(e) => {

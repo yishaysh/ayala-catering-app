@@ -175,6 +175,16 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const nominatimAbortRef = useRef<AbortController | null>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  const feedbackOpenRef = useRef(feedback.isOpen);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    feedbackOpenRef.current = feedback.isOpen;
+  }, [feedback.isOpen]);
 
   useBackButton(isOpen, onClose);
 
@@ -205,6 +215,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     const timer = window.setTimeout(() => {
       const root = drawerRef.current;
       if (!root) return;
+      if (root.contains(document.activeElement) && document.activeElement !== root) {
+        return;
+      }
       const focusables = root.querySelectorAll<HTMLElement>(
         'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
       );
@@ -213,10 +226,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     }, 20);
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (feedback.isOpen) return;
+      if (feedbackOpenRef.current) return;
       if (e.key === 'Escape') {
         e.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -250,7 +263,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         previousFocusRef.current.focus();
       }
     };
-  }, [isOpen, onClose, feedback.isOpen]);
+  }, [isOpen]);
 
   // Pricing totals (shown only in ecommerce mode)
   const subtotal = cartTotal();
