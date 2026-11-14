@@ -8,10 +8,14 @@ import { sendJson, type ApiRequestLike, type ApiResponseLike } from './http.js';
 let cachedUrl = '';
 let cachedQueryFn: SqlQueryFn | null = null;
 
+const missingDbQueryFn: SqlQueryFn = async () => {
+  throw new Error('DATABASE_URL_MISSING');
+};
+
 export function getRuntimeDeps(overrideEnv?: Record<string, string | undefined>): HandlerDeps {
   const env: ServerEnv = getServerEnv(overrideEnv);
   if (!env.databaseUrl) {
-    throw new Error('DATABASE_URL_MISSING');
+    return { queryFn: missingDbQueryFn, env };
   }
   if (!cachedQueryFn || cachedUrl !== env.databaseUrl) {
     cachedQueryFn = createNeonQueryFn(env.databaseUrl);

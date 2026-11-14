@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SqlQueryFn } from '../server/db.js';
-import type { ServerEnv } from '../server/env.js';
+import { getServerEnv, type ServerEnv } from '../server/env.js';
+import { getRuntimeDeps, withRuntimeHandler } from '../server/runtime.js';
 import {
   handleAdminAuth,
   handleAdminCatalog,
@@ -686,5 +687,49 @@ describe('P1 AI menu fail-fast & P3 Review moderation flow', () => {
     const boot2 = createMockRes();
     await handlePublicBootstrap(createMockReq({ method: 'GET' }), boot2.res, deps);
     expect(boot2.getJson<{ reviews: Array<{ id: string }> }>().reviews.map((r) => r.id)).toEqual([reviewId]);
+  });
+
+  it('resolves existing Vercel env fallbacks in production and handles GET /api/admin/auth without 500 when DB is missing', async () => {
+    const prodFallback = getServerEnv({
+      VERCEL: '1',
+      VITE_NEON_DATABASE_URL: 'postgres://vercel-neon',
+      VITE_GEMINI_API_KEY: 'g-key',
+    });
+    expect(prodFallback.isProduction).toBe(true);
+    expect(prodFallback.databaseUrl).toBe('postgres://vercel-neon');
+    expect(prodFallback.geminiApiKey).toBe('g-key');
+
+    const canonicalFirst = getServerEnv({
+      VERCEL: '1',
+      DATABASE_URL: 'postgres://canonical-db',
+      VITE_NEON_DATABASE_URL: 'postgres://vercel-neon',
+    });
+    expect(canonicalFirst.databaseUrl).toBe('postgres://canonical-db');
+
+    const authNoDbRes = createMockRes();
+    await handleAdminAuth(createMockReq({ method: 'GET' }), authNoDbRes.res, getRuntimeDeps({}));
+    expect(authNoDbRes.res.statusCode).toBe(200);
+    expect(authNoDbRes.getJson()).toEqual({ authenticated: false, expiresAt: null });
+
+    const prevKeys = {
+      DATABASE_URL: process.env.DATABASE_URL,
+      POSTGRES_URL: process.env.POSTGRES_URL,
+      NEON_DATABASE_URL: process.env.NEON_DATABASE_URL,
+      VITE_NEON_DATABASE_URL: process.env.VITE_NEON_DATABASE_URL,
+    };
+    delete process.env.DATABASE_URL;
+    delete process.env.POSTGRES_URL;
+    delete process.env.NEON_DATABASE_URL;
+    delete process.env.VITE_NEON_DATABASE_URL;
+    try {
+      const runtimeAuthRes = createMockRes();
+      await withRuntimeHandler(handleAdminAuth)(createMockReq({ method: 'GET' }), runtimeAuthRes.res);
+      expect(runtimeAuthRes.res.statusCode).toBe(200);
+      expect(runtimeAuthRes.getJson()).toEqual({ authenticated: false, expiresAt: null });
+    } finally {
+      for (const [k, v] of Object.entries(prevKeys)) {
+        if (v !== undefined) process.env[k] = v;
+      }
+    }
   });
 });

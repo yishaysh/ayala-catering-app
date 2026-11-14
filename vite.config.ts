@@ -13,6 +13,7 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
+    envPrefix: 'AYALA_PUBLIC_',
     plugins: [react(), ayalaApiVitePlugin()],
     build: {
       sourcemap: false,

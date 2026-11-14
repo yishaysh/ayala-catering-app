@@ -26,15 +26,23 @@ export interface ServerEnv {
 export function getServerEnv(source: Record<string, string | undefined> = process.env): ServerEnv {
   const isProduction = source.NODE_ENV === 'production' || source.VERCEL === '1';
 
-  // Database URL must come from server-only DATABASE_URL (prefer never falling back to VITE_* in prod).
+  // Allow server-only resolution of canonical env names first, falling back to legacy Vercel variable names
+  // while vite.config.ts restricts browser env injection via envPrefix: 'AYALA_PUBLIC_'.
   const databaseUrl = (
     source.DATABASE_URL ||
-    (!isProduction ? source.VITE_NEON_DATABASE_URL : '') ||
+    source.POSTGRES_URL ||
+    source.NEON_DATABASE_URL ||
+    source.VITE_NEON_DATABASE_URL ||
     ''
   ).trim();
 
-  const geminiApiKey = (source.GEMINI_API_KEY || '').trim();
-  const geminiModel = (source.GEMINI_MODEL || '').trim();
+  const geminiApiKey = (
+    source.GEMINI_API_KEY ||
+    source.GOOGLE_GENAI_API_KEY ||
+    source.VITE_GEMINI_API_KEY ||
+    ''
+  ).trim();
+  const geminiModel = (source.GEMINI_MODEL || source.VITE_GEMINI_MODEL || '').trim();
 
   const siteUrlRaw = (source.SITE_URL || CANONICAL_SITE_URL).trim();
   const siteUrl = siteUrlRaw.endsWith('/') ? siteUrlRaw : `${siteUrlRaw}/`;
@@ -46,9 +54,9 @@ export function getServerEnv(source: Record<string, string | undefined> = proces
     sessionSecret: (source.SESSION_SECRET || '').trim(),
     geminiApiKey,
     geminiModel,
-    cloudinaryCloudName: (source.CLOUDINARY_CLOUD_NAME || '').trim(),
-    cloudinaryApiKey: (source.CLOUDINARY_API_KEY || '').trim(),
-    cloudinaryApiSecret: (source.CLOUDINARY_API_SECRET || '').trim(),
+    cloudinaryCloudName: (source.CLOUDINARY_CLOUD_NAME || source.VITE_CLOUDINARY_CLOUD_NAME || '').trim(),
+    cloudinaryApiKey: (source.CLOUDINARY_API_KEY || source.VITE_CLOUDINARY_API_KEY || '').trim(),
+    cloudinaryApiSecret: (source.CLOUDINARY_API_SECRET || source.VITE_CLOUDINARY_API_SECRET || '').trim(),
     notificationEmail: (source.NOTIFICATION_EMAIL || '').trim(),
     contactEmail: (source.CONTACT_EMAIL || '').trim(),
     resendApiKey: (source.RESEND_API_KEY || '').trim(),
