@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { SqlQueryFn } from '../server/db.js';
 import { getServerEnv, type ServerEnv } from '../server/env.js';
 import { getRuntimeDeps, withRuntimeHandler } from '../server/runtime.js';
@@ -640,6 +640,116 @@ describe('P1 AI menu fail-fast & P3 Review moderation flow', () => {
     expect(proposal.items.map((i) => i.menuItem.id)).toEqual(['dish-1']);
     expect(proposal.requiresDietaryConfirmation).toBe(true);
   });
+
+  it('sends slim dish fields (name, category, price), retries 429/503 with exponential backoff up to 3 attempts, and logs full upstream errors before 502 fallback', async () => {
+    const db = createMockDb();
+    const requestBodies: Array<Record<string, unknown>> = [];
+    const callTimestamps: number[] = [];
+
+    // Case 1: 429 -> 503 -> 200 succeeds on attempt 3 and resolves dishes returned by name
+    const transientFetch: typeof fetch = async (_url, init) => {
+      callTimestamps.push(Date.now());
+      requestBodies.push(JSON.parse(String(init?.body || '{}')) as Record<string, unknown>);
+      const attempt = callTimestamps.length;
+      if (attempt === 1) {
+        return new Response('Rate limit exceeded', { status: 429 });
+      }
+      if (attempt === 2) {
+        return new Response('Service temporarily unavailable', { status: 503 });
+      }
+      return new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      items: [{ name: 'סלט חגיגי', quantity: 2, note: 'פתיח מרענן' }],
+                      explanation: 'הצעה מותאמת לאירוע שלך.',
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    };
+
+    const retryOkRes = createMockRes();
+    await handlePublicAiMenu(
+      createMockReq({ method: 'POST', body: { prompt: 'בראנץ׳ חלבי ל-20 איש', adults: 20 } }),
+      retryOkRes.res,
+      { queryFn: db.queryFn, env: createTestEnv(), fetchImpl: transientFetch }
+    );
+    expect(callTimestamps.length).toBe(3);
+    expect(retryOkRes.res.statusCode).toBe(200);
+    const okPayload = retryOkRes.getJson<{
+      proposal: { items: Array<{ menuItem: { id: string; name: string } }> };
+    }>();
+    expect(okPayload.proposal.items.map((i) => i.menuItem.id)).toEqual(['dish-1']);
+
+    // Verify exponential backoff timing (500ms between attempt 1->2, 1000ms between attempt 2->3)
+    const gap1 = callTimestamps[1] - callTimestamps[0];
+    const gap2 = callTimestamps[2] - callTimestamps[1];
+    expect(gap1).toBeGreaterThanOrEqual(400);
+    expect(gap2).toBeGreaterThanOrEqual(850);
+    expect(gap2).toBeGreaterThan(gap1);
+
+    // Verify prompt catalog contains ONLY name, category, and price (no full description/metadata)
+    const sentContents = requestBodies[0].contents as Array<{ parts: Array<{ text: string }> }>;
+    const parsedUserMsg = JSON.parse(sentContents[0].parts[0].text) as {
+      catalog: Array<Record<string, unknown>>;
+    };
+    expect(parsedUserMsg.catalog).toEqual([
+      { name: 'סלט חגיגי', category: 'Salads', price: 120 },
+    ]);
+
+    // Case 2: Persistent 503 caps at 3 attempts, logs full upstream body (>300 chars), and returns Hebrew/English 502 fallback
+    const longErrorBody = `UPSTREAM_DETAIL_${'X'.repeat(350)}_END`;
+    let persistentCalls = 0;
+    const persistent503Fetch: typeof fetch = async () => {
+      persistentCalls += 1;
+      return new Response(longErrorBody, { status: 503 });
+    };
+
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      const failRes = createMockRes();
+      await handlePublicAiMenu(
+        createMockReq({
+          method: 'POST',
+          ip: '198.51.100.77',
+          body: { prompt: 'הרמת כוסית במשרד ל-30 איש', adults: 30 },
+        }),
+        failRes.res,
+        { queryFn: db.queryFn, env: createTestEnv(), fetchImpl: persistent503Fetch }
+      );
+
+      expect(persistentCalls).toBe(3);
+      expect(failRes.res.statusCode).toBe(502);
+      const failJson = failRes.getJson<{
+        code: string;
+        upstreamStatus: number;
+        fallbackToManual: boolean;
+        errorHe: string;
+        errorEn: string;
+      }>();
+      expect(failJson.code).toBe('AI_UPSTREAM_ERROR');
+      expect(failJson.upstreamStatus).toBe(503);
+      expect(failJson.fallbackToManual).toBe(true);
+      expect(failJson.errorHe.length).toBeGreaterThan(10);
+      expect(failJson.errorEn.length).toBeGreaterThan(10);
+
+      expect(errSpy).toHaveBeenCalledTimes(1);
+      expect(String(errSpy.mock.calls[0][0])).toContain('status=503');
+      expect(String(errSpy.mock.calls[0][1])).toBe(longErrorBody);
+    } finally {
+      errSpy.mockRestore();
+    }
+  }, 10000);
 
   it('stores public reviews as pending until approved by authenticated admin', async () => {
     const db = createMockDb();

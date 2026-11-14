@@ -706,17 +706,22 @@ export async function handlePublicAiMenu(
     const menuRows = await deps.queryFn<Record<string, unknown>>(
       'SELECT * FROM menu_items WHERE availability_status = TRUE ORDER BY category ASC'
     );
-    const availableItems = menuRows.map((r) => mapMenuRow(r, true));
+    const hidePrices = !settings.config.ecommerce_mode;
+    const availableItems = menuRows.map((r) => mapMenuRow(r, hidePrices));
     const itemById = new Map(availableItems.map((m) => [m.id, m]));
+    const itemByName = new Map<string, MenuItem>();
+    for (const m of availableItems) {
+      itemByName.set(m.name.trim(), m);
+      itemByName.set(m.name.trim().toLowerCase(), m);
+      if (m.name_en) {
+        itemByName.set(m.name_en.trim().toLowerCase(), m);
+      }
+    }
 
-    const catalogSummary = availableItems.map((item) => ({
-      id: item.id,
-      name: item.name,
-      category: item.category,
-      unit_type: item.unit_type,
-      serves_min: item.serves_min,
-      serves_max: item.serves_max,
-      dietary_tags: item.dietary_tags || item.tags,
+    const catalogSummary = menuRows.map((r) => ({
+      name: String(r.name || '').trim(),
+      category: String(r.category || ''),
+      price: Number(r.price || 0),
     }));
 
     const adults = Math.max(0, Math.min(2000, Number.isInteger(body.adults) ? Number(body.adults) : 20));
@@ -724,9 +729,9 @@ export async function handlePublicAiMenu(
 
     const systemPrompt = [
       'You are the digital catering menu assistant for Ayala - Simply Delicious (kosher dairy boutique catering).',
-      'Recommend dishes ONLY using exact "id" values from the provided catalog JSON.',
-      'NEVER invent dish IDs, prices, allergen safety guarantees, or kashrut claims.',
-      'Output valid JSON ONLY matching: {"items":[{"id":"<uuid>","quantity":<int 1..50>,"note":"<short reason>"}],"explanation":"<friendly Hebrew/English explanation matching user language>"}',
+      'Recommend dishes ONLY using exact "name" values from the provided catalog JSON.',
+      'NEVER invent dish names, prices, allergen safety guarantees, or kashrut claims.',
+      'Output valid JSON ONLY matching: {"items":[{"name":"<exact dish name>","quantity":<int 1..50>,"note":"<short reason>"}],"explanation":"<friendly Hebrew/English explanation matching user language>"}',
       settings.calculation_settings.aiCustomInstructions
         ? `Owner instructions: ${settings.calculation_settings.aiCustomInstructions}`
         : '',
@@ -768,7 +773,7 @@ export async function handlePublicAiMenu(
           signal: controller.signal,
         });
         if (!resp.ok) {
-          return { status: resp.status, text: (await resp.text()).slice(0, 300) };
+          return { status: resp.status, text: await resp.text() };
         }
         return { status: 200, json: await resp.json() };
       } finally {
@@ -776,22 +781,41 @@ export async function handlePublicAiMenu(
       }
     };
 
-    const isRetryableStatus = (s: number) => s === 429 || s === 500 || s === 503;
+    const MAX_ATTEMPTS = 3;
+    const BASE_DELAY_MS = 500;
+    const isRetryableStatus = (s: number) => s === 429 || s === 503;
 
-    let result: { status: number; json?: unknown; text?: string };
-    try {
-      result = await callModelOnce();
-      if (isRetryableStatus(result.status)) {
-        await new Promise((r) => setTimeout(r, 800));
+    let result: { status: number; json?: unknown; text?: string } = {
+      status: 504,
+      text: 'AI request timed out',
+    };
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
         result = await callModelOnce();
+      } catch (err) {
+        result = {
+          status: 504,
+          text: err instanceof Error ? err.message : 'AI request timed out',
+        };
       }
-    } catch {
-      // One bounded retry on transient network/abort timeout
-      await new Promise((r) => setTimeout(r, 800));
-      result = await callModelOnce().catch(() => ({ status: 504, text: 'AI request timed out' }));
+
+      if (result.status === 200 && result.json) {
+        break;
+      }
+
+      if (!isRetryableStatus(result.status) || attempt === MAX_ATTEMPTS) {
+        break;
+      }
+
+      await new Promise((r) => setTimeout(r, BASE_DELAY_MS * Math.pow(2, attempt - 1)));
     }
 
     if (result.status !== 200 || !result.json) {
+      console.error(
+        `[/api/public/ai-menu] Upstream Gemini error (status=${result.status}):`,
+        result.text ?? ''
+      );
       // Permanent 400/401/403/404 are NEVER retried and are mapped honestly
       const isConfigErr = [400, 401, 403, 404].includes(result.status);
       return sendJson(res, isConfigErr ? 503 : 502, {
@@ -809,21 +833,40 @@ export async function handlePublicAiMenu(
 
     const candidates = (result.json as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> }).candidates;
     const rawText = candidates?.[0]?.content?.parts?.[0]?.text || '{}';
-    const parsed = JSON.parse(rawText) as {
-      items?: Array<{ id?: unknown; quantity?: unknown; note?: unknown }>;
+    let parsed: {
+      items?: Array<{ id?: unknown; name?: unknown; quantity?: unknown; note?: unknown }>;
       explanation?: unknown;
     };
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      console.error(
+        `[/api/public/ai-menu] Upstream Gemini malformed JSON body:`,
+        rawText
+      );
+      return sendJson(res, 502, {
+        code: 'AI_UPSTREAM_ERROR',
+        upstreamStatus: result.status,
+        fallbackToManual: true,
+        errorHe: 'לא הצלחנו לקבל הצעה כרגע מהשף הדיגיטלי. ניתן להרכיב בקשה דרך התפריט או המחשבון.',
+        errorEn: 'Unable to reach AI planner right now. You can select dishes manually from the menu.',
+      });
+    }
 
     const validatedItems: Array<{ menuItem: MenuItem; quantity: number; note?: string }> = [];
     const seenIds = new Set<string>();
     for (const row of Array.isArray(parsed.items) ? parsed.items : []) {
       const id = typeof row?.id === 'string' ? row.id.trim() : '';
-      if (!id || seenIds.has(id)) continue;
-      const realItem = itemById.get(id);
-      if (!realItem) continue;
+      const rawName = typeof row?.name === 'string' ? row.name.trim() : '';
+      const realItem =
+        (id ? itemById.get(id) : undefined) ??
+        (rawName
+          ? itemByName.get(rawName) ?? itemByName.get(rawName.toLowerCase())
+          : undefined);
+      if (!realItem || seenIds.has(realItem.id)) continue;
       const qtyRaw = Number(row.quantity);
       const qty = Number.isFinite(qtyRaw) ? Math.max(1, Math.min(50, Math.round(qtyRaw))) : 1;
-      seenIds.add(id);
+      seenIds.add(realItem.id);
       validatedItems.push({
         menuItem: realItem,
         quantity: qty,
