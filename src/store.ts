@@ -1,8 +1,29 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, MenuItem, CalculationSettings, EventType, AdvancedCalculationSettings, FeatureFlags, CustomerDetails, Coupon, AppSettings, ThemeConfig, GalleryItem, Review, AboutUsConfig } from './types';
-import { db } from './lib/db';
+import {
+  CartItem,
+  MenuItem,
+  CalculationSettings,
+  EventType,
+  AdvancedCalculationSettings,
+  FeatureFlags,
+  CustomerDetails,
+  Coupon,
+  AppSettings,
+  ThemeConfig,
+  GalleryItem,
+  Review,
+  AboutUsConfig,
+  KosherCertMetadata,
+  PublicContactSummary,
+  EventPackage,
+  PracticalInfoConfig,
+} from './types';
+import { api } from './lib/api';
+import { CANONICAL_SITE_URL, DEFAULT_CONTACT_CONFIG } from '../shared/config';
+import { evaluateKosherStatus, type KosherStatusEvaluation } from '../shared/media';
+import { calculateDeliveryFeeAmount } from '../shared/pricing';
 
 type Language = 'he' | 'en';
 
@@ -386,7 +407,7 @@ export const translations: Record<Language, Translations> = {
     added: "Added",
     outOfStock: "Out of Stock",
     premium: "Premium",
-    serves: "Serves",
+    serves: "Serves ",
     people: "people",
     adults: "Adults (12+)",
     children: "Children (4-11)",
@@ -579,9 +600,17 @@ interface AppState {
   theme: ThemeConfig;
   gallery: GalleryItem[];
   kosherCertUrl: string;
+  kosherMetadata: KosherCertMetadata;
+  kosherEvaluation: KosherStatusEvaluation;
+  publicContact: PublicContactSummary;
+  packages: EventPackage[];
+  blockedDates: string[];
+  maxDeliveryDistanceKm: number | null;
+  bootstrapError: string | null;
   reviews: Review[];
   aboutUs: AboutUsConfig;
 
+  hydratePublicBootstrap: () => Promise<void>;
   fetchMenuItems: () => Promise<void>;
   fetchSettings: () => Promise<void>;
   setAdultCount: (count: number) => void;
@@ -590,7 +619,7 @@ interface AppState {
   setEventType: (type: EventType) => void;
   setLanguage: (lang: Language) => void;
   addToCart: (item: MenuItem, quantity?: number, notes?: string, modifications?: string[]) => void;
-  bulkAddToCart: (items: { item: MenuItem, quantity: number }[]) => void;
+  bulkAddToCart: (items: { item: MenuItem; quantity: number; notes?: string }[], replace?: boolean) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   updateMenuItem: (id: string, updates: Partial<MenuItem>) => Promise<void>;
@@ -604,6 +633,9 @@ interface AppState {
   updateAboutUs: (aboutUs: Partial<AboutUsConfig>) => Promise<void>;
   updateGallery: (gallery: GalleryItem[]) => Promise<void>;
   updateKosherCertUrl: (url: string) => Promise<void>;
+  updateKosherMetadata: (meta: KosherCertMetadata) => Promise<void>;
+  updatePracticalInfo: (info: PracticalInfoConfig) => Promise<void>;
+  updatePackages: (packages: EventPackage[]) => Promise<void>;
   clearCart: () => void;
   cartTotal: () => number;
   validateCoupon: (code: string) => Promise<boolean>;
@@ -614,7 +646,8 @@ interface AppState {
   incrementCouponUsage: (code: string) => Promise<void>;
   getDeliveryFee: (distance: number, subtotal: number) => number;
   fetchReviews: () => Promise<void>;
-  addReview: (review: Omit<Review, 'id' | 'created_at'>) => Promise<void>;
+  addReview: (review: Omit<Review, 'id' | 'created_at'>) => Promise<{ status: string; message: string }>;
+  moderateReview: (id: string, status: 'approved' | 'rejected' | 'pending') => Promise<void>;
   deleteReview: (id: string) => Promise<void>;
   aiPrompt: string;
   setAiPrompt: (prompt: string) => void;
@@ -683,89 +716,90 @@ export const useStore = create<AppState>()(
       theme: defaultTheme,
       gallery: [],
       kosherCertUrl: '',
+      kosherMetadata: { documentUrl: '', issuer: '', validUntil: null, verifiedAt: null },
+      kosherEvaluation: evaluateKosherStatus(null),
+      publicContact: {
+        phoneDisplay: DEFAULT_CONTACT_CONFIG.phoneDisplay,
+        phoneTel: DEFAULT_CONTACT_CONFIG.phoneTel,
+        whatsappDigits: DEFAULT_CONTACT_CONFIG.whatsappDigits,
+        canonicalUrl: CANONICAL_SITE_URL,
+        pickupAreaHe: DEFAULT_CONTACT_CONFIG.pickupAreaHe,
+        pickupAreaEn: DEFAULT_CONTACT_CONFIG.pickupAreaEn,
+        pickupPublicNoteHe: DEFAULT_CONTACT_CONFIG.pickupPublicNoteHe,
+        pickupPublicNoteEn: DEFAULT_CONTACT_CONFIG.pickupPublicNoteEn,
+        serviceAreaHe: DEFAULT_CONTACT_CONFIG.serviceAreaHe,
+        serviceAreaEn: DEFAULT_CONTACT_CONFIG.serviceAreaEn,
+      },
+      packages: [],
+      blockedDates: [],
+      maxDeliveryDistanceKm: null,
+      bootstrapError: null,
       reviews: [],
 
+      hydratePublicBootstrap: async () => {
+        set({ isLoading: true, bootstrapError: null });
+        try {
+          const data = await api.fetchPublicBootstrap();
+          const s = data.settings;
+          set((state) => ({
+            menuItems: data.menuItems,
+            reviews: data.reviews,
+            appConfig: s.config ? { ...state.appConfig, ...s.config } : state.appConfig,
+            theme: s.theme ? ({ ...defaultTheme, ...s.theme } as ThemeConfig) : state.theme,
+            featureFlags: s.features || state.featureFlags,
+            aboutUs: s.about || state.aboutUs,
+            calculationSettings: s.calculation_settings
+              ? { ...state.calculationSettings, ...s.calculation_settings }
+              : state.calculationSettings,
+            advancedSettings: s.advanced_settings
+              ? { ...state.advancedSettings, ...s.advanced_settings }
+              : state.advancedSettings,
+            kosherMetadata: s.kosher || { documentUrl: '', issuer: '', validUntil: null, verifiedAt: null },
+            kosherCertUrl: s.kosher?.documentUrl || '',
+            kosherEvaluation: s.kosherEvaluation || evaluateKosherStatus(s.kosher),
+            gallery: Array.isArray(s.gallery) ? s.gallery : state.gallery,
+            publicContact: s.public_contact || state.publicContact,
+            packages: Array.isArray(s.packages) ? s.packages : [],
+            blockedDates: Array.isArray(s.blockedDates) ? s.blockedDates : [],
+            maxDeliveryDistanceKm: s.maxDeliveryDistanceKm ?? null,
+            isLoading: false,
+          }));
+        } catch (err) {
+          set({
+            isLoading: false,
+            bootstrapError: err instanceof Error ? err.message : 'Failed to load catalog',
+          });
+        }
+      },
+
       fetchMenuItems: async () => {
-          set({ isLoading: true });
-          const { data } = await db.from('menu_items').select('*').order('category', { ascending: true });
-          if (data) set({ menuItems: data as MenuItem[] });
-          set({ isLoading: false });
+        await get().hydratePublicBootstrap();
       },
 
       fetchSettings: async () => {
-        // Fetch Features
-        const { data: featuresData } = await db.from('app_settings').select('*').eq('key', 'features');
-        if (featuresData && featuresData.length > 0 && featuresData[0].value) {
-            set({ featureFlags: featuresData[0].value as FeatureFlags });
-        }
-
-        // Fetch Calculation Settings
-        const { data: calcData } = await db.from('app_settings').select('*').eq('key', 'calculation_settings');
-        if (calcData && calcData.length > 0 && calcData[0].value) {
-            set({ calculationSettings: { ...get().calculationSettings, ...calcData[0].value } });
-        }
-
-        // Fetch Advanced Settings
-        const { data: advData } = await db.from('app_settings').select('*').eq('key', 'advanced_settings');
-        if (advData && advData.length > 0 && advData[0].value) {
-            set({ advancedSettings: { ...get().advancedSettings, ...advData[0].value } });
-        }
-
-        // Fetch Config
-        const { data: configData } = await db.from('app_settings').select('*').eq('key', 'config');
-        if (configData && configData.length > 0 && configData[0].value) {
-            // Merge with defaults to ensure new fields exist
-            const defaults = {
-                min_order_price: 500,
-                lead_time_hours: 48,
-                delivery_fee: 50,
-                is_shop_open: true,
-                delivery_base_fee: 60,
-                delivery_price_per_km: 4,
-                delivery_min_radius_included: 15,
-                ecommerce_mode: false
-            };
-            set({ appConfig: { ...defaults, ...configData[0].value } });
-        }
-
-        // Fetch Theme
-        const { data: themeData } = await db.from('app_settings').select('*').eq('key', 'theme');
-        if (themeData && themeData.length > 0 && themeData[0].value) {
-            set({ theme: { ...defaultTheme, ...themeData[0].value } });
-        }
-
-        // Fetch Gallery
-        const { data: galleryData } = await db.from('app_settings').select('*').eq('key', 'gallery');
-        if (galleryData && galleryData.length > 0 && galleryData[0].value) {
-            set({ gallery: galleryData[0].value as GalleryItem[] });
-        }
-
-        // Fetch Kosher Cert
-        const { data: kosherData } = await db.from('app_settings').select('*').eq('key', 'kosher');
-        if (kosherData && kosherData.length > 0 && kosherData[0].value) {
-            set({ kosherCertUrl: kosherData[0].value as string });
-        }
-
-        // Fetch About Us
-        const { data: aboutData } = await db.from('app_settings').select('*').eq('key', 'about');
-        if (aboutData && aboutData.length > 0 && aboutData[0].value) {
-            set({ aboutUs: aboutData[0].value as AboutUsConfig });
-        } else {
-            set({ aboutUs: defaultAboutUs });
+        // Hydrated cleanly via hydratePublicBootstrap to avoid redundant fetches
+        if (get().menuItems.length === 0) {
+          await get().hydratePublicBootstrap();
         }
       },
 
       setLanguage: (lang) => set({ language: lang }),
       
-      setAdultCount: (count) => set((state) => ({ 
-          adultCount: count, 
-          guestCount: count + state.childCount 
-      })),
+      setAdultCount: (count) => set((state) => {
+          const safe = Number.isFinite(count) ? Math.max(0, Math.min(5000, Math.trunc(count))) : 0;
+          return {
+            adultCount: safe,
+            guestCount: safe + state.childCount
+          };
+      }),
       
-      setChildCount: (count) => set((state) => ({ 
-          childCount: count, 
-          guestCount: state.adultCount + count 
-      })),
+      setChildCount: (count) => set((state) => {
+          const safe = Number.isFinite(count) ? Math.max(0, Math.min(5000, Math.trunc(count))) : 0;
+          return {
+            childCount: safe,
+            guestCount: state.adultCount + safe
+          };
+      }),
 
       setCustomerDetails: (details) => set((state) => ({
           customerDetails: { ...state.customerDetails, ...details }
@@ -788,214 +822,190 @@ export const useStore = create<AppState>()(
         }
       },
 
-      bulkAddToCart: (items) => {
-          const newItems = items.map(({ item, quantity }) => ({
-              ...item,
-              quantity,
-              notes: '',
-              selected_modifications: []
-          }));
-          set({ cart: [...get().cart, ...newItems] });
+      bulkAddToCart: (items, replace = false) => {
+          const baseCart = replace ? [] : [...get().cart];
+          for (const { item, quantity, notes } of items) {
+            const safeQty = Math.max(1, Math.min(500, Math.round(quantity)));
+            const idx = baseCart.findIndex(
+              (c) => c.id === item.id && (c.notes || '') === (notes || '') && (!c.selected_modifications || c.selected_modifications.length === 0)
+            );
+            if (idx > -1) {
+              baseCart[idx] = { ...baseCart[idx], quantity: Math.min(500, baseCart[idx].quantity + safeQty) };
+            } else {
+              baseCart.push({
+                ...item,
+                quantity: safeQty,
+                notes: notes || '',
+                selected_modifications: []
+              });
+            }
+          }
+          set({ cart: baseCart });
       },
 
       removeFromCart: (itemId) => set({ cart: get().cart.filter((i) => i.id !== itemId) }),
 
       updateQuantity: (itemId, quantity) => {
         if (quantity <= 0) { get().removeFromCart(itemId); return; }
-        set({ cart: get().cart.map((i) => (i.id === itemId ? { ...i, quantity } : i)) });
+        const safeQty = Math.min(500, Math.trunc(quantity));
+        set({ cart: get().cart.map((i) => (i.id === itemId ? { ...i, quantity: safeQty } : i)) });
       },
 
       updateMenuItem: async (id, updates) => {
-          set({ menuItems: get().menuItems.map(item => item.id === id ? { ...item, ...updates } : item) });
-          await db.from('menu_items').update(updates).eq('id', id);
+          const res = await api.updateMenuItem({ id, ...updates });
+          set({ menuItems: get().menuItems.map(item => item.id === id ? (res.item || { ...item, ...updates }) : item) });
       },
 
       addMenuItem: async (item) => {
-          const { data } = await db.from('menu_items').insert([item]).select();
-          if (data) set({ menuItems: [...get().menuItems, data[0] as MenuItem] });
+          const res = await api.createMenuItem(item);
+          if (res.item) set({ menuItems: [...get().menuItems, res.item] });
       },
 
       deleteMenuItem: async (id) => {
+          await api.deleteMenuItem(id);
           set({ menuItems: get().menuItems.filter(item => item.id !== id) });
-          await db.from('menu_items').delete().eq('id', id);
       },
 
       updateCalculationSettings: async (settings) => {
         const newSettings = { ...get().calculationSettings, ...settings };
         set({ calculationSettings: newSettings });
-        await db.from('app_settings').upsert({ key: 'calculation_settings', value: newSettings });
+        await api.saveAdminSetting('calculation_settings', newSettings);
       },
       updateAdvancedSettings: async (settings) => {
         const newSettings = { ...get().advancedSettings, ...settings };
         set({ advancedSettings: newSettings });
-        await db.from('app_settings').upsert({ key: 'advanced_settings', value: newSettings });
+        await api.saveAdminSetting('advanced_settings', newSettings);
       },
       updateFeatureFlags: async (flags) => {
         const newFlags = { ...get().featureFlags, ...flags };
         set({ featureFlags: newFlags });
-        await db.from('app_settings').upsert({ key: 'features', value: newFlags });
+        await api.saveAdminSetting('features', newFlags);
       },
       updateAppConfig: async (config) => {
         const newConfig = { ...get().appConfig, ...config };
         set({ appConfig: newConfig });
-        await db.from('app_settings').upsert({ key: 'config', value: newConfig });
+        await api.saveAdminSetting('config', newConfig);
       },
       clearCart: () => set({ cart: [], activeCoupon: null }),
       cartTotal: () => get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
 
       validateCoupon: async (code) => {
           try {
-              const { data, error } = await db.from('coupons')
-                  .select('*')
-                  .eq('code', code)
-                  .eq('is_active', true);
-
-              if (error || !data || data.length === 0) {
-                  return false;
-              }
-
-              // Check Usage Limit - FIXED TYPE CHECK
-              const coupon = data[0] as Coupon;
-              if (typeof coupon.usage_limit === 'number' && (coupon.usage_count || 0) >= coupon.usage_limit) {
-                  return false;
-              }
-
-              set({ activeCoupon: coupon });
+              const res = await api.validateCoupon(code);
+              if (!res.valid || !res.coupon) return false;
+              set({ activeCoupon: res.coupon as Coupon });
               return true;
-          } catch (e) {
+          } catch {
               return false;
           }
       },
       removeCoupon: () => set({ activeCoupon: null }),
       
       createCoupon: async (coupon) => {
-          await db.from('coupons').insert([coupon]);
+          await api.saveAdminCoupon(coupon);
       },
 
       deleteCoupon: async (code) => {
-          await db.from('coupons').delete().eq('code', code);
+          await api.deleteAdminCoupon(code);
       },
 
       getCoupons: async () => {
-          const { data } = await db.from('coupons').select('*');
-          return (data as Coupon[]) || [];
+          const res = await api.fetchAdminCoupons();
+          return res.coupons || [];
       },
 
-      incrementCouponUsage: async (code) => {
-         await db.rpc('increment_coupon_usage', { coupon_code: code });
+      incrementCouponUsage: async (_code) => {
+          // Handled atomically server-side inside /api/public/quote
       },
 
       getDeliveryFee: (distance: number, subtotal: number) => {
-          const { appConfig, calculationSettings } = get();
-          
-          // Check for Free Delivery Threshold
-          if (subtotal >= calculationSettings.minOrderFreeDelivery) {
-              return 0;
-          }
-          
-          // No distance calculated
-          if (distance <= 0) return 0;
-
-          // Base calculation
-          let fee = appConfig.delivery_base_fee;
-
-          // If distance exceeds included radius, add per km charge
-          if (distance > appConfig.delivery_min_radius_included) {
-              const extraKm = distance - appConfig.delivery_min_radius_included;
-              fee += extraKm * appConfig.delivery_price_per_km;
-          }
-
-          // Round to nearest 5
-          return Math.ceil(fee / 5) * 5;
+          return calculateDeliveryFeeAmount(distance, subtotal, get().appConfig, get().calculationSettings);
       },
 
       updateTheme: async (theme) => {
         const newTheme = { ...get().theme, ...theme };
         set({ theme: newTheme });
-        await db.from('app_settings').upsert({ key: 'theme', value: newTheme });
+        await api.saveAdminSetting('theme', newTheme);
       },
 
       updateAboutUs: async (aboutUsUpdates) => {
         const newAboutUs = { ...get().aboutUs, ...aboutUsUpdates };
         set({ aboutUs: newAboutUs });
-        await db.from('app_settings').upsert({ key: 'about', value: newAboutUs });
+        await api.saveAdminSetting('about', newAboutUs);
       },
 
       updateGallery: async (gallery) => {
         set({ gallery });
-        await db.from('app_settings').upsert({ key: 'gallery', value: gallery });
+        await api.saveAdminSetting('gallery', gallery);
       },
 
       updateKosherCertUrl: async (url) => {
-        set({ kosherCertUrl: url });
-        await db.from('app_settings').upsert({ key: 'kosher', value: url });
+        const nextMeta: KosherCertMetadata = {
+          ...get().kosherMetadata,
+          documentUrl: url,
+        };
+        set({
+          kosherCertUrl: url,
+          kosherMetadata: nextMeta,
+          kosherEvaluation: evaluateKosherStatus(nextMeta),
+        });
+        if (url) {
+          await api.saveAdminSetting('kosher', nextMeta);
+        }
+      },
+
+      updateKosherMetadata: async (meta) => {
+        const res = await api.saveAdminSetting('kosher', meta);
+        set({
+          kosherMetadata: res.settings.kosher,
+          kosherCertUrl: res.settings.kosher.documentUrl,
+          kosherEvaluation: res.settings.kosherEvaluation,
+        });
+      },
+
+      updatePracticalInfo: async (info) => {
+        const res = await api.saveAdminSetting('practical_info', info);
+        set({
+          publicContact: res.settings.public_contact,
+          blockedDates: res.settings.blockedDates || [],
+          maxDeliveryDistanceKm: res.settings.maxDeliveryDistanceKm ?? null,
+        });
+      },
+
+      updatePackages: async (packages) => {
+        const res = await api.saveAdminSetting('packages', packages);
+        set({ packages: res.settings.packages || packages });
       },
 
       fetchReviews: async () => {
-          try {
-              const { data, error } = await db.from('reviews')
-                  .select('*')
-                  .order('created_at', { ascending: false });
-              
-              if (!error && data) {
-                  set({ reviews: data as Review[] });
-                  return;
-              }
-              
-              const { data: settingData } = await db.from('app_settings')
-                  .select('*')
-                  .eq('key', 'reviews');
-                  
-              if (settingData && settingData.length > 0 && settingData[0].value) {
-                  set({ reviews: settingData[0].value as Review[] });
-              } else {
-                  set({ reviews: [] });
-              }
-          } catch (e) {
-              console.error("Error fetching reviews:", e);
+          if (get().reviews.length === 0) {
+            await get().hydratePublicBootstrap();
           }
       },
 
       addReview: async (review) => {
-          const newReview: Review = {
-              id: Math.random().toString(36).substring(2, 15) + '_' + Date.now(),
-              customer_name: review.customer_name,
-              rating: review.rating,
-              comment: review.comment,
-              created_at: new Date().toISOString()
+          const res = await api.submitReview({
+            customer_name: review.customer_name,
+            rating: review.rating,
+            comment: review.comment,
+          });
+          const lang = get().language;
+          return {
+            status: res.status,
+            message: lang === 'he' ? res.messageHe : res.messageEn,
           };
-          
-          try {
-              const { error } = await db.from('reviews').insert([newReview]);
-              if (!error) {
-                  set((state) => ({ reviews: [newReview, ...state.reviews] }));
-                  return;
-              }
-              
-              const currentReviews = get().reviews;
-              const updated = [newReview, ...currentReviews];
-              set({ reviews: updated });
-              await db.from('app_settings').upsert({ key: 'reviews', value: updated });
-          } catch (e) {
-              console.error("Error adding review:", e);
-          }
+      },
+
+      moderateReview: async (id, status) => {
+          await api.moderateAdminReview(id, status);
+          set((state) => ({
+            reviews: state.reviews.map((r) => (r.id === id ? { ...r, status } : r)),
+          }));
       },
 
       deleteReview: async (id) => {
-          try {
-              const { error } = await db.from('reviews').delete().eq('id', id);
-              if (!error) {
-                  set((state) => ({ reviews: state.reviews.filter(r => r.id !== id) }));
-                  return;
-              }
-              
-              const currentReviews = get().reviews;
-              const updated = currentReviews.filter(r => r.id !== id);
-              set({ reviews: updated });
-              await db.from('app_settings').upsert({ key: 'reviews', value: updated });
-          } catch (e) {
-              console.error("Error deleting review:", e);
-          }
+          await api.deleteAdminReview(id);
+          set((state) => ({ reviews: state.reviews.filter((r) => r.id !== id) }));
       },
 
       setAiPrompt: (prompt) => set({ aiPrompt: prompt })
@@ -1016,11 +1026,19 @@ export const useStore = create<AppState>()(
           activeCoupon: state.activeCoupon,
           appConfig: state.appConfig,
           theme: state.theme,
-          gallery: state.gallery,
-          kosherCertUrl: state.kosherCertUrl,
-          aboutUs: state.aboutUs,
           aiPrompt: state.aiPrompt
-      }), 
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        const safeAdult = Number.isFinite(state.adultCount) ? Math.max(0, Math.trunc(state.adultCount)) : 0;
+        const safeChild = Number.isFinite(state.childCount) ? Math.max(0, Math.trunc(state.childCount)) : 0;
+        state.adultCount = safeAdult;
+        state.childCount = safeChild;
+        state.guestCount = safeAdult + safeChild;
+        if (state.customerDetails && (!Number.isFinite(state.customerDetails.distanceKm) || state.customerDetails.distanceKm < 0)) {
+          state.customerDetails.distanceKm = 0;
+        }
+      },
     }
   )
 );

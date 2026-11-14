@@ -22,7 +22,7 @@ export const useBackButton = (isOpen: boolean, onClose: () => void) => {
         const stateId = Math.random().toString(36).substring(7);
         window.history.pushState({ modalOpen: stateId }, '', window.location.href);
 
-        const handlePopState = (event: PopStateEvent) => {
+        const handlePopState = (_event: PopStateEvent) => {
             // The back button was pressed
             onCloseRef.current();
         };

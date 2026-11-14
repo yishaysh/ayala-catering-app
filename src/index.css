@@ -138,3 +138,33 @@ input[type=range]::-moz-range-track {
   transition-duration: 0s !important;
 }
 
+/* Keyboard focus visibility */
+:focus-visible {
+  outline: 2px solid #b4941f;
+  outline-offset: 2px;
+}
+
+/* Print optimization for clean RTL quote summaries without UI chrome */
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #1c1917 !important;
+  }
+
+  .no-print,
+  header,
+  footer,
+  nav {
+    display: none !important;
+  }
+
+  .print-avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+

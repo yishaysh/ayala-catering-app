@@ -1,97 +1,96 @@
-
 import React from 'react';
-import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Info } from 'lucide-react';
+import { useStore } from '../store';
+import { AccessibleModal } from './AccessibleModal';
 
 export type FeedbackType = 'success' | 'error' | 'info' | 'warning';
 
 interface FeedbackModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onConfirm?: () => void;
-    title: string;
-    message: string;
-    type?: FeedbackType;
-    confirmText?: string;
-    cancelText?: string;
-    isConfirm?: boolean; // If true, shows two buttons (Confirm/Cancel). If false, shows only "OK" (Alert)
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm?: () => void;
+  title: string;
+  message: string;
+  type?: FeedbackType;
+  confirmText?: string;
+  cancelText?: string;
+  isConfirm?: boolean;
 }
 
 export const FeedbackModal: React.FC<FeedbackModalProps> = ({
-    isOpen,
-    onClose,
-    onConfirm,
-    title,
-    message,
-    type = 'info',
-    confirmText = 'אישור',
-    cancelText = 'ביטול',
-    isConfirm = false
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+  type = 'info',
+  confirmText,
+  cancelText,
+  isConfirm = false,
 }) => {
-    if (!isOpen) return null;
+  const { language } = useStore();
+  const isHe = language === 'he';
 
-    // Icon Mapping
-    const iconMap = {
-        success: <CheckCircle2 className="text-green-500" size={32} />,
-        error: <AlertCircle className="text-red-500" size={32} />,
-        warning: <AlertCircle className="text-themePrimary" size={32} />,
-        info: <Info className="text-themePrimary" size={32} />
-    };
+  const resolvedConfirm = confirmText || (isHe ? 'אישור' : 'Confirm');
+  const resolvedCancel = cancelText || (isHe ? 'ביטול' : 'Cancel');
 
-    // Color Styles for Primary Button
-    const buttonStyles = {
-        success: 'bg-green-600 hover:bg-green-700 text-white',
-        error: 'bg-red-600 hover:bg-red-700 text-white',
-        warning: 'bg-themePrimary text-themeHeaderBg hover:opacity-90',
-        info: 'bg-themePrimary text-themeHeaderBg hover:opacity-90'
-    };
+  const iconMap = {
+    success: <CheckCircle2 className="text-emerald-700" size={32} />,
+    error: <AlertCircle className="text-red-700" size={32} />,
+    warning: <AlertCircle className="text-amber-700" size={32} />,
+    info: <Info className="text-themePrimary" size={32} />,
+  };
 
-    return (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 font-sans" dir="rtl">
-            {/* Backdrop */}
-            <div 
-                className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
-                onClick={onClose}
-            ></div>
+  const buttonStyles = {
+    success: 'bg-green-700 hover:bg-green-800 text-white',
+    error: 'bg-red-700 hover:bg-red-800 text-white',
+    warning: 'bg-themeHeaderBg text-themeHeaderTxt hover:opacity-95',
+    info: 'bg-themeHeaderBg text-themeHeaderTxt hover:opacity-95',
+  };
 
-            {/* Modal Card */}
-            <div className="relative bg-themeCardBg text-themeText w-full max-w-sm rounded-2xl shadow-2xl p-6 border border-themeText/10 animate-zoom-in flex flex-col items-center text-center">
-                
-                <button 
-                    onClick={onClose} 
-                    className="absolute top-4 left-4 text-themeText/60 hover:text-themeText transition-colors"
-                >
-                    <X size={20} />
-                </button>
+  return (
+    <AccessibleModal
+      isOpen={isOpen}
+      onClose={onClose}
+      titleId="feedback-modal-title"
+      ariaLabel={title}
+      closeLabel={isHe ? 'סגור' : 'Close'}
+      dir={isHe ? 'rtl' : 'ltr'}
+      overlayClassName="bg-black/65 backdrop-blur-sm p-4 z-[1100]"
+      contentClassName="relative bg-themeCardBg text-themeText w-full max-w-sm rounded-2xl shadow-2xl p-6 border border-themeText/15 flex flex-col items-center text-center"
+    >
+      <div className="mb-4 bg-themeBg p-3 rounded-full border border-themeText/10">
+        {iconMap[type]}
+      </div>
 
-                <div className="mb-4 bg-themeBg/50 p-3 rounded-full border border-themeText/10">
-                    {iconMap[type]}
-                </div>
+      <h3 id="feedback-modal-title" className="text-xl font-serif font-bold text-themeText mb-2">
+        {title}
+      </h3>
+      <p className="text-themeText/80 text-sm mb-6 leading-relaxed px-2 whitespace-pre-line">
+        {message}
+      </p>
 
-                <h3 className="text-xl font-serif font-bold text-themeText mb-2">{title}</h3>
-                <p className="text-themeText/65 text-sm mb-8 leading-relaxed px-4 whitespace-pre-line">
-                    {message}
-                </p>
-
-                <div className="flex gap-3 w-full">
-                    {isConfirm && (
-                        <button
-                            onClick={onClose}
-                            className="flex-1 py-3 rounded-xl font-bold bg-themeBg text-themeText/70 border border-themeText/10 hover:opacity-90 transition-colors"
-                        >
-                            {cancelText}
-                        </button>
-                    )}
-                    <button
-                        onClick={() => {
-                            if (onConfirm) onConfirm();
-                            else onClose();
-                        }}
-                        className={`flex-1 py-3 rounded-xl font-bold transition-all shadow-md active:scale-95 ${buttonStyles[type]}`}
-                    >
-                        {confirmText}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
+      <div className="flex gap-3 w-full">
+        {isConfirm && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-3 rounded-xl font-bold bg-themeBg text-themeText border border-themeText/20 hover:bg-themeText/5 transition-colors"
+          >
+            {resolvedCancel}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => {
+            if (onConfirm) onConfirm();
+            else onClose();
+          }}
+          className={`flex-1 py-3 rounded-xl font-bold transition shadow-md active:scale-95 ${buttonStyles[type]}`}
+        >
+          {resolvedConfirm}
+        </button>
+      </div>
+    </AccessibleModal>
+  );
 };

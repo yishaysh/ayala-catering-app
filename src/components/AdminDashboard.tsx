@@ -1,12 +1,53 @@
 
-import React, { useState, useEffect } from 'react';
-import { MenuItem, Category, UnitType, EventType, Coupon, ThemeConfig, GalleryItem, Order, Review } from '../types';
-import { useStore, translations, getLocalizedItem } from '../store';
-import { Pencil, Save, X, LogOut, Plus, Minus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Video, Award, ShoppingBag, Calendar, Eye, MessageSquare, Check, CheckCheck, FileText } from 'lucide-react';
-import { db } from '../lib/db';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+    MenuItem,
+    Category,
+    UnitType,
+    EventType,
+    Coupon,
+    GalleryItem,
+    Order,
+    Review,
+    PracticalInfoConfig,
+    EventPackage,
+    CartItem,
+    ThemeConfig,
+} from '../types';
+import { useStore, translations, getLocalizedItem, type Translations } from '../store';
+import { Pencil, Save, X, LogOut, Plus, Minus, Calculator, Settings, ChevronDown, ChevronUp, ToggleRight, ToggleLeft, Upload, Image as ImageIcon, Loader2, Tag, Trash2, Users, Truck, Palette, Award, ShoppingBag, Calendar, MessageSquare, Check, CheckCheck, FileText, AlertTriangle, Copy, RefreshCw, BarChart3, Clock, Package } from 'lucide-react';
+import { api } from '../lib/api';
+import { auditMenuCatalog, evaluateKosherStatus, type KosherStatusEvaluation } from '../../shared/media';
+import { DEFAULT_CONTACT_CONFIG, DIETARY_TAG_OPTIONS } from '../../shared/config';
 import { useBackButton } from '../hooks/useBackButton';
+import { AccessibleModal } from './AccessibleModal';
 import { FeedbackModal, FeedbackType } from './FeedbackModal';
 import { ConfirmationModal } from './ConfirmationModal';
+import { sanitizeHexColor } from './ThemeStyles';
+
+const formatKosherStatusLabel = (evalRes: KosherStatusEvaluation, lang: 'he' | 'en'): string => {
+    if (evalRes.status === 'expired') {
+        return lang === 'he' ? `תוקף התעודה פג (${evalRes.metadata.validUntil})` : `Certificate expired (${evalRes.metadata.validUntil})`;
+    }
+    if (evalRes.status === 'expiring_soon') {
+        return lang === 'he' ? `בתוקף (פג בעוד ${evalRes.daysRemaining ?? 0} ימים)` : `Expiring soon (${evalRes.daysRemaining ?? 0} days left)`;
+    }
+    if (evalRes.status === 'valid') {
+        return lang === 'he' ? `בתוקף עד ${evalRes.metadata.validUntil}` : `Valid until ${evalRes.metadata.validUntil}`;
+    }
+    return lang === 'he' ? 'לא מאומת / חסר תאריך תוקף' : 'Unverified / expiry date missing';
+};
+
+const escapeHtml = (value: unknown): string =>
+    String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+const getErrorMessage = (err: unknown, fallback: string): string =>
+    err instanceof Error && err.message ? err.message : fallback;
 
 interface AdminDashboardProps {
     onExit: () => void;
@@ -37,21 +78,66 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         featureFlags, updateFeatureFlags,
         language, getCoupons, createCoupon, deleteCoupon,
         appConfig, updateAppConfig,
-        theme, updateTheme, gallery, updateGallery, kosherCertUrl, updateKosherCertUrl,
-        reviews, fetchReviews, deleteReview,
+        theme, updateTheme, gallery, updateGallery,
+        kosherCertUrl, kosherMetadata, kosherEvaluation, updateKosherMetadata,
+        publicContact, packages, updatePracticalInfo, updatePackages,
+        moderateReview, deleteReview,
         aboutUs, updateAboutUs
     } = useStore();
 
-    // Ensure the view starts at the top when entering admin mode
-    useEffect(() => {
-        window.scrollTo({ top: 0, behavior: 'instant' });
-        loadCoupons();
-        loadOrders();
-        fetchReviews();
+    const [adminReviews, setAdminReviews] = useState<Review[]>([]);
+    const [telemetrySummary, setTelemetrySummary] = useState<Array<{ event_name: string; count: number }>>([]);
+    const [kosherDraftIssuer, setKosherDraftIssuer] = useState('');
+    const [kosherDraftValidUntil, setKosherDraftValidUntil] = useState('');
+    const [practicalDraft, setPracticalDraft] = useState<PracticalInfoConfig>({
+        phoneDisplay: DEFAULT_CONTACT_CONFIG.phoneDisplay,
+        whatsappDigits: DEFAULT_CONTACT_CONFIG.whatsappDigits,
+        notificationEmail: '',
+        contactEmail: '',
+        pickupAreaHe: DEFAULT_CONTACT_CONFIG.pickupAreaHe,
+        pickupAreaEn: DEFAULT_CONTACT_CONFIG.pickupAreaEn,
+        pickupPublicNoteHe: DEFAULT_CONTACT_CONFIG.pickupPublicNoteHe,
+        pickupPublicNoteEn: DEFAULT_CONTACT_CONFIG.pickupPublicNoteEn,
+        serviceAreaHe: DEFAULT_CONTACT_CONFIG.serviceAreaHe,
+        serviceAreaEn: DEFAULT_CONTACT_CONFIG.serviceAreaEn,
+        blockedDates: [],
+        maxDeliveryDistanceKm: null,
+        businessHoursHe: '',
+        businessHoursEn: '',
+    });
+    const [blockedDatesInput, setBlockedDatesInput] = useState('');
+    const [packagesDraft, setPackagesDraft] = useState<EventPackage[]>([]);
+
+    const loadAdminReviews = useCallback(async () => {
+        try {
+            const res = await api.fetchAdminReviews();
+            setAdminReviews(res.reviews || []);
+        } catch (err) {
+            console.error('Error loading admin reviews:', err);
+        }
+    }, []);
+
+    const loadAdminSettings = useCallback(async () => {
+        try {
+            const res = await api.fetchAdminSettings();
+            if (res.settings?.practical_info) {
+                setPracticalDraft(res.settings.practical_info);
+                setBlockedDatesInput((res.settings.practical_info.blockedDates || []).join(', '));
+            }
+            if (Array.isArray(res.settings?.packages)) {
+                setPackagesDraft(res.settings.packages);
+            }
+            if (res.settings?.kosher) {
+                setKosherDraftIssuer(res.settings.kosher.issuer || '');
+                setKosherDraftValidUntil(res.settings.kosher.validUntil || '');
+            }
+        } catch (err) {
+            console.error('Error loading admin settings:', err);
+        }
     }, []);
 
     const t = translations[language]?.admin || translations['he'].admin;
-    const rootT = translations[language] as any || translations['he'] as any;
+    const rootT: Translations = translations[language] || translations['he'];
 
     const [searchTerm, setSearchTerm] = useState('');
     const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
@@ -70,7 +156,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
     // States for Quote PDF Generation Dialog
     const [quoteOrder, setQuoteOrder] = useState<Order | null>(null);
-    const [quoteItems, setQuoteItems] = useState<any[]>([]);
+    const [quoteItems, setQuoteItems] = useState<CartItem[]>([]);
     const [quoteDiscountPercent, setQuoteDiscountPercent] = useState<number>(0);
     const [quoteWantsSetup, setQuoteWantsSetup] = useState<boolean>(false);
     const [quoteDeliveryFee, setQuoteDeliveryFee] = useState<number>(0);
@@ -80,6 +166,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     const [quoteSuccessData, setQuoteSuccessData] = useState<{
         isOpen: boolean;
         orderId: string;
+        quoteUrl: string;
         customerName: string;
         customerPhone: string;
     } | null>(null);
@@ -89,11 +176,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         setIsAddDishOpen(false);
         setAddDishSearch('');
         setQuoteNotes(order.notes || order.admin_notes || '');
-        const items = JSON.parse(JSON.stringify(order.items || []));
-        // Populate standard menu prices if item price is 0
-        items.forEach((item: any) => {
-            item.price = Number(item.price || 0);
-            item.quantity = Number(item.quantity || 1);
+        const items: CartItem[] = (order.items || []).map((raw) => {
+            const item: CartItem = {
+                ...raw,
+                selected_modifications: raw.selected_modifications ? [...raw.selected_modifications] : [],
+                price: Number(raw.price || 0),
+                quantity: Number(raw.quantity || 1),
+            };
             if (!item.price || item.price === 0) {
                 // Try to find the item in menuItems to get its original price as default
                 const menuI = menuItems.find(m => m.id === item.id || m.name === item.name);
@@ -101,8 +190,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     item.price = Number(menuI.price || 0);
                 }
             }
+            return item;
         });
-        const calcSubtotal = items.reduce((sum: number, i: any) => sum + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
+        const calcSubtotal = items.reduce((sum: number, i) => sum + (Number(i.price || 0) * Number(i.quantity || 1)), 0);
         const calcSetup = order.wants_setup ? 1000 : 0;
         const calcDisc = Number(order.discount_amount || 0);
         const rawTotalPrice = Number(order.total_price || 0);
@@ -141,15 +231,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         if (existingIdx >= 0) {
             handleUpdateDishQuantity(existingIdx, 1);
         } else {
-            const newItem = {
-                id: dish.id,
-                name: dish.name,
-                name_en: dish.name_en,
+            const newItem: CartItem = {
+                ...dish,
                 price: Number(dish.price || 0),
                 quantity: 1,
-                unit_type: dish.unit_type,
-                is_tray: dish.is_tray,
-                units_per_tray: dish.units_per_tray,
                 selected_modifications: [],
                 notes: ''
             };
@@ -168,60 +253,94 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         const deliveryFeeNum = Number(quoteDeliveryFee || 0);
         const totalFinal = Math.max(0, totalSubtotal - totalDiscount + deliveryFeeNum + totalSetup);
 
-        // Update in database
-        const updateData: any = {
-            items: quoteItems,
-            subtotal: totalSubtotal,
-            discount_amount: totalDiscount,
-            delivery_fee: deliveryFeeNum,
-            total_price: totalFinal,
-            status: 'approved', // Automatically mark approved upon quote creation
-            wants_setup: quoteWantsSetup,
-            notes: quoteNotes
-        };
+        // Update in database via protected Admin API and mint a scoped customer token URL
+        const sanitizedItems: CartItem[] = quoteItems.map((item) => ({
+            ...item,
+            id: item.id,
+            name: item.name,
+            name_en: item.name_en,
+            price: Number(item.price || 0),
+            quantity: Math.max(1, Number(item.quantity || 1)),
+            unit_type: item.unit_type,
+            is_tray: Boolean(item.is_tray),
+            units_per_tray: item.units_per_tray ?? null,
+            selected_modifications: Array.isArray(item.selected_modifications) ? item.selected_modifications : [],
+            notes: item.notes || '',
+        }));
 
-        let { error } = await db.from('orders')
-            .update(updateData)
-            .eq('id', quoteOrder.id);
-
-        if (error) {
-            console.warn("Retrying quote update with schema fallback...", error);
-            const { notes, delivery_fee, ...fallbackPayload } = updateData;
-            await db.from('orders').update(fallbackPayload).eq('id', quoteOrder.id);
+        let savedOrder: Order | null = null;
+        let mintedQuoteUrl = '';
+        try {
+            const res = await api.updateAdminOrder({
+                id: quoteOrder.id!,
+                items: sanitizedItems,
+                subtotal: totalSubtotal,
+                discount_amount: totalDiscount,
+                delivery_fee: deliveryFeeNum,
+                total_price: totalFinal,
+                status: 'approved',
+                wants_setup: quoteWantsSetup,
+                notes: quoteNotes,
+                mint_share_token: true,
+            });
+            savedOrder = res.order;
+            mintedQuoteUrl = res.quote_url || '';
+        } catch (err: unknown) {
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: language === 'he' ? 'שגיאה בשמירת הצעת המחיר' : 'Failed Saving Quote',
+                message: getErrorMessage(err, language === 'he' ? 'לא ניתן לשמור את ההצעה כעת.' : 'Could not save quote.'),
+            });
+            return;
         }
 
         // Update local state immediately
-        setOrders(prev => prev.map(o => o.id === quoteOrder.id ? { ...o, ...updateData } : o));
+        setOrders(prev => prev.map(o => o.id === quoteOrder.id ? (savedOrder || { ...o, status: 'approved', subtotal: totalSubtotal, discount_amount: totalDiscount, delivery_fee: deliveryFeeNum, total_price: totalFinal, wants_setup: quoteWantsSetup, notes: quoteNotes, items: sanitizedItems }) : o));
 
-        // Generate and open print window
+        // Generate and open print window (self-contained, sanitized, zero third-party script CDNs)
         const printWindow = window.open('', '_blank');
         if (printWindow) {
             const isHe = language === 'he';
             const dateStr = new Date(quoteOrder.created_at || quoteOrder.event_date).toLocaleDateString('he-IL');
-            const quoteNo = quoteOrder.id?.slice(0, 8).toUpperCase();
+            const quoteNo = escapeHtml(quoteOrder.reference_code || quoteOrder.id?.slice(0, 8).toUpperCase());
             const cleanPhone = quoteOrder.customer_phone ? quoteOrder.customer_phone.replace(/[-+\s]/g, '') : '';
             const formattedPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.slice(1) : cleanPhone;
             
             const titleText = isHe ? 'הצעת מחיר לקייטרינג חלבי' : 'Dairy Catering Quote';
             const businessName = isHe ? 'איילה – פשוט טעים' : 'Ayala – Simply Delicious';
+            const safeCustomerName = escapeHtml(quoteOrder.customer_name || '');
+            const safeCustomerPhone = escapeHtml(quoteOrder.customer_phone || '');
+            const safeEventType = escapeHtml(quoteOrder.event_type || (isHe ? 'לא נבחר' : 'None'));
+            const safeQuoteNotes = escapeHtml(quoteNotes);
+            const contactEmailPart = publicContact.contactEmail
+                ? (isHe ? ` • אימייל: ${escapeHtml(publicContact.contactEmail)}` : ` • Email: ${escapeHtml(publicContact.contactEmail)}`)
+                : '';
+            const shareMessageText = isHe
+                ? `היי ${quoteOrder.customer_name}, הנה הצעת המחיר המעוצבת שהכנתי עבורך לאירוע 📄✨${mintedQuoteUrl ? `:\n${mintedQuoteUrl}` : ''}`
+                : `Hi ${quoteOrder.customer_name}, here is your quote${mintedQuoteUrl ? `:\n${mintedQuoteUrl}` : ''}`;
             
+            const safeTextColor = sanitizeHexColor(theme?.text_color, '#292524');
+            const safeBgColor = sanitizeHexColor(theme?.bg_color, '#ffffff');
+            const safePrimaryColor = sanitizeHexColor(theme?.primary_color, '#7c2d12');
+            const safeCardBgColor = sanitizeHexColor(theme?.card_bg_color, '#fafaf9');
+
             let html = `
             <!DOCTYPE html>
             <html lang="${isHe ? 'he' : 'en'}" dir="${isHe ? 'rtl' : 'ltr'}">
             <head>
                 <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>${titleText} #${quoteNo}</title>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap');
                     
                     body {
                         font-family: 'Assistant', sans-serif;
-                        color: ${theme?.text_color || '#292524'};
+                        color: ${safeTextColor};
                         margin: 0;
                         padding: 30px;
-                        background-color: ${theme?.bg_color || '#ffffff'};
+                        background-color: ${safeBgColor};
                         line-height: 1.5;
                         position: relative;
                     }
@@ -315,7 +434,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         display: flex;
                         justify-content: space-between;
                         align-items: center;
-                        border-bottom: 2px solid ${theme?.primary_color || '#7c2d12'}20;
+                        border-bottom: 2px solid ${safePrimaryColor}20;
                         padding-bottom: 20px;
                         margin-bottom: 30px;
                     }
@@ -341,13 +460,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         font-family: 'Playfair Display', serif;
                         font-size: 28px;
                         font-weight: 700;
-                        color: ${theme?.primary_color || '#7c2d12'};
+                        color: ${safePrimaryColor};
                         margin: 0 0 5px 0;
                     }
                     
                     .business-subtitle {
                         font-size: 13px;
-                        color: ${theme?.text_color || '#78716c'}a0;
+                        color: ${safeTextColor}a0;
                         margin: 0;
                     }
                     
@@ -362,14 +481,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     .quote-title {
                         font-size: 24px;
                         font-weight: 800;
-                        color: ${theme?.text_color || '#1c1917'};
+                        color: ${safeTextColor};
                         margin: 0 0 10px 0;
                         letter-spacing: -0.5px;
                     }
                     
                     .quote-meta-item {
                         font-size: 13px;
-                        color: ${theme?.text_color || '#44403c'}c0;
+                        color: ${safeTextColor}c0;
                         margin: 3px 0;
                     }
                     
@@ -378,8 +497,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         grid-template-cols: 1fr 1fr;
                         gap: 20px;
                         margin-bottom: 40px;
-                        background-color: ${theme?.card_bg_color || '#fafaf9'};
-                        border: 1px solid ${theme?.text_color || '#f5f5f4'}10;
+                        background-color: ${safeCardBgColor};
+                        border: 1px solid ${safeTextColor}10;
                         border-radius: 12px;
                         padding: 20px;
                     }
@@ -387,7 +506,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     .details-col h3 {
                         font-size: 12px;
                         font-weight: 700;
-                        color: ${theme?.text_color || '#a8a29e'}70;
+                        color: ${safeTextColor}70;
                         text-transform: uppercase;
                         letter-spacing: 1px;
                         margin: 0 0 8px 0;
@@ -396,7 +515,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     .details-col p {
                         font-size: 15px;
                         font-weight: 600;
-                        color: ${theme?.text_color || '#292524'};
+                        color: ${safeTextColor};
                         margin: 4px 0;
                     }
                     
@@ -407,13 +526,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     }
                     
                     th {
-                        background-color: ${theme?.primary_color || '#7c2d12'};
-                        color: ${theme?.card_bg_color || '#ffffff'};
+                        background-color: ${safePrimaryColor};
+                        color: ${safeCardBgColor};
                         font-weight: 700;
                         font-size: 13px;
                         text-align: right;
                         padding: 12px 16px;
-                        border-bottom: 2px solid ${theme?.primary_color || '#7c2d12'};
+                        border-bottom: 2px solid ${safePrimaryColor};
                     }
                     
                     body[dir="ltr"] th {
@@ -422,23 +541,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     
                     td {
                         padding: 14px 16px;
-                        border-bottom: 1px solid ${theme?.text_color || '#f5f5f4'}10;
+                        border-bottom: 1px solid ${safeTextColor}10;
                         font-size: 14px;
-                        color: ${theme?.text_color || '#44403c'}d0;
+                        color: ${safeTextColor}d0;
                     }
                     
                     tr:nth-child(even) td {
-                        background-color: ${theme?.card_bg_color || '#fafaf9'}50;
+                        background-color: ${safeCardBgColor}50;
                     }
                     
                     .item-name {
                         font-weight: 700;
-                        color: ${theme?.text_color || '#1c1917'};
+                        color: ${safeTextColor};
                     }
                     
                     .item-details {
                         font-size: 11px;
-                        color: ${theme?.text_color || '#78716c'}80;
+                        color: ${safeTextColor}80;
                         margin-top: 3px;
                     }
                     
@@ -449,10 +568,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     
                     .terms {
                         margin-top: 50px;
-                        border-top: 1px solid ${theme?.text_color || '#e7e5e4'}20;
+                        border-top: 1px solid ${safeTextColor}20;
                         padding-top: 20px;
                         font-size: 12px;
-                        color: ${theme?.text_color || '#78716c'}80;
+                        color: ${safeTextColor}80;
                         text-align: center;
                     }
                     
@@ -488,13 +607,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     <div class="details-grid">
                         <div class="details-col">
                             <h3>${isHe ? 'פרטי הלקוח' : 'Customer Details'}</h3>
-                            <p><strong>${isHe ? 'שם:' : 'Name:'}</strong> ${quoteOrder.customer_name || ''}</p>
-                            <p><strong>${isHe ? 'טלפון:' : 'Phone:'}</strong> ${quoteOrder.customer_phone || ''}</p>
+                            <p><strong>${isHe ? 'שם:' : 'Name:'}</strong> ${safeCustomerName}</p>
+                            <p><strong>${isHe ? 'טלפון:' : 'Phone:'}</strong> ${safeCustomerPhone}</p>
                         </div>
                         <div class="details-col">
                             <h3>${isHe ? 'פרטי האירוע' : 'Event Details'}</h3>
-                            <p><strong>${isHe ? 'סוג אירוע:' : 'Event Type:'}</strong> ${quoteOrder.event_type || (isHe ? 'לא נבחר' : 'None')}</p>
-                            <p><strong>${isHe ? 'תאריך אירוע:' : 'Event Date:'}</strong> ${dateStr}</p>
+                            <p><strong>${isHe ? 'סוג אירוע:' : 'Event Type:'}</strong> ${safeEventType}</p>
+                            <p><strong>${isHe ? 'תאריך אירוע:' : 'Event Date:'}</strong> ${escapeHtml(dateStr)}</p>
                         </div>
                     </div>
                     
@@ -508,17 +627,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         <tbody>
                 `;
                 
-                quoteItems.forEach((item: any) => {
-                    const itemName = isHe ? item.name : (item.name_en || item.name);
+                quoteItems.forEach((item) => {
+                    const itemName = escapeHtml(isHe ? item.name : (item.name_en || item.name));
+                    const modsHtml = item.selected_modifications && item.selected_modifications.length > 0
+                        ? `<div class="item-details">↳ ${escapeHtml(item.selected_modifications.join(', '))}</div>`
+                        : '';
+                    const itemNotesHtml = item.notes ? `<div class="item-details">↳ "${escapeHtml(item.notes)}"</div>` : '';
                     
                     html += `
                         <tr>
                             <td style="text-align: ${isHe ? 'right' : 'left'}">
                                 <div class="item-name">${itemName}</div>
-                                ${item.selected_modifications && item.selected_modifications.length > 0 ? `<div class="item-details">↳ ${item.selected_modifications.join(', ')}</div>` : ''}
-                                ${item.notes ? `<div class="item-details">↳ "${item.notes}"</div>` : ''}
+                                ${modsHtml}
+                                ${itemNotesHtml}
                             </td>
-                            <td style="text-align: ${isHe ? 'left' : 'right'}; font-weight: 600;">${item.quantity}</td>
+                            <td style="text-align: ${isHe ? 'left' : 'right'}; font-weight: 600;">${Number(item.quantity || 1)}</td>
                         </tr>
                     `;
                 });
@@ -528,7 +651,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     </table>
                     
                     <div class="summary-wrapper">
-                        <div style="background-color: ${theme?.primary_color || '#7c2d12'}08; border: 1.5px solid ${theme?.primary_color || '#7c2d12'}30; border-radius: 14px; padding: 20px 24px; min-width: 300px; text-align: ${isHe ? 'right' : 'left'}; font-family: 'Assistant', sans-serif;">
+                        <div style="background-color: ${safePrimaryColor}08; border: 1.5px solid ${safePrimaryColor}30; border-radius: 14px; padding: 20px 24px; min-width: 300px; text-align: ${isHe ? 'right' : 'left'}; font-family: 'Assistant', sans-serif;">
                             ${totalDiscount > 0 ? `
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #78716c;">
                                     <span>${isHe ? 'סכום לפני הנחה:' : 'Original Amount:'}</span>
@@ -558,11 +681,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                 </div>
                             ` : ''}
 
-                            <div style="border-top: 1.5px solid ${theme?.primary_color || '#7c2d12'}30; margin-top: 10px; padding-top: 10px;">
-                                <div style="font-size: 12px; font-weight: 700; color: ${theme?.text_color || '#78716c'}a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
+                            <div style="border-top: 1.5px solid ${safePrimaryColor}30; margin-top: 10px; padding-top: 10px;">
+                                <div style="font-size: 12px; font-weight: 700; color: ${safeTextColor}a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">
                                     ${isHe ? 'שורה תחתונה / סה"כ לתשלום:' : 'Bottom Line / Total Price:'}
                                 </div>
-                                <div style="font-size: 28px; font-weight: 800; color: ${theme?.primary_color || '#7c2d12'}; font-family: 'Playfair Display', serif;">
+                                <div style="font-size: 28px; font-weight: 800; color: ${safePrimaryColor}; font-family: 'Playfair Display', serif;">
                                     ₪${Number(totalFinal || 0).toFixed(2)}
                                 </div>
                             </div>
@@ -570,33 +693,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     </div>
 
                     ${quoteNotes ? `
-                        <div style="margin-top: 25px; padding: 14px 18px; background-color: ${theme?.primary_color || '#7c2d12'}08; border-right: 4px solid ${theme?.primary_color || '#7c2d12'}; border-radius: 10px; font-size: 13px; color: ${theme?.text_color || '#292524'}; text-align: ${isHe ? 'right' : 'left'};">
-                            <strong style="color: ${theme?.primary_color || '#7c2d12'}; font-size: 13px; display: block; margin-bottom: 5px;">
+                        <div style="margin-top: 25px; padding: 14px 18px; background-color: ${safePrimaryColor}08; border-right: 4px solid ${safePrimaryColor}; border-radius: 10px; font-size: 13px; color: ${safeTextColor}; text-align: ${isHe ? 'right' : 'left'};">
+                            <strong style="color: ${safePrimaryColor}; font-size: 13px; display: block; margin-bottom: 5px;">
                                 📌 ${isHe ? 'הערות ודגשים להצעה:' : 'Notes & Special Instructions:'}
                             </strong>
-                            <div style="white-space: pre-wrap; line-height: 1.5; font-size: 13px;">${quoteNotes}</div>
+                            <div style="white-space: pre-wrap; line-height: 1.5; font-size: 13px;">${safeQuoteNotes}</div>
                         </div>
                     ` : ''}
                     
                     <div class="terms">
-                        <p>${isHe ? 'תודה שבחרתם באיילה פשוט טעים! • הצעת המחיר בתוקף ל-30 ימים • תנאי תשלום: 1/3 מקדמה לאישור ההזמנה, היתרה ביום האירוע • טלפון: 054-7474764 • אימייל: info@ayala-catering.co.il' : 'Thank you for choosing Ayala Simply Delicious! • Quote valid for 30 days • Payment: 1/3 deposit to confirm order, balance due on event day • Phone: 054-7474764 • Email: info@ayala-catering.co.il'}</p>
+                        <p>${isHe ? `תודה שבחרתם באיילה פשוט טעים! • הצעת המחיר בתוקף ל-30 ימים • תנאי תשלום: 1/3 מקדמה לאישור ההזמנה, היתרה ביום האירוע • טלפון: ${escapeHtml(publicContact.phoneDisplay)}${contactEmailPart}` : `Thank you for choosing Ayala Simply Delicious! • Quote valid for 30 days • Payment: 1/3 deposit to confirm order, balance due on event day • Phone: ${escapeHtml(publicContact.phoneDisplay)}${contactEmailPart}`}</p>
                     </div>
                 </div>
 
                 <!-- Floating Bottom Action Bar (Icon-Only) -->
                 <div class="floating-action-bar no-print">
-                    <button id="btn-download-pdf" class="floating-btn-icon btn-pdf" title="${isHe ? 'הורדת קובץ PDF' : 'Download PDF'}">
+                    <button id="btn-download-pdf" class="floating-btn-icon btn-pdf" title="${isHe ? 'שמירה / הדפסה ל-PDF' : 'Save / Print PDF'}">
                         <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
                     </button>
-                    <a href="https://wa.me/${formattedPhone}?text=${encodeURIComponent(isHe ? `היי ${quoteOrder.customer_name}, הנה הצעת המחיר המעוצבת שהכנתי עבורך לאירוע 📄✨:\n${window.location.origin}/?quote=${quoteOrder.id}` : `Hi ${quoteOrder.customer_name}, here is your quote:\n${window.location.origin}/?quote=${quoteOrder.id}`)}" target="_blank" rel="noopener noreferrer" class="floating-btn-icon btn-whatsapp" title="${isHe ? 'שליחה בוואטסאפ ללקוח' : 'Send WhatsApp'}">
+                    <a href="https://wa.me/${formattedPhone}?text=${encodeURIComponent(shareMessageText)}" target="_blank" rel="noopener noreferrer" class="floating-btn-icon btn-whatsapp" title="${isHe ? 'שליחה בוואטסאפ ללקוח' : 'Send WhatsApp'}">
                         <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.326.002 9.66-4.322 9.663-9.654.002-2.585-1.005-5.01-2.835-6.84C16.25 2.28 13.824 1.272 11.24 1.27c-5.328 0-9.664 4.321-9.667 9.656-.001 1.544.412 3.052 1.196 4.385l-.974 3.556 3.649-.957z"/></svg>
                     </a>
                     <button id="btn-print" class="floating-btn-icon btn-secondary" title="${isHe ? 'הדפסת הצעת מחיר' : 'Print Quote'}">
                         <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                     </button>
-                    <button id="btn-copy-link" class="floating-btn-icon btn-secondary" title="${isHe ? 'העתקת קישור להצעה' : 'Copy Quote Link'}">
+                    ${mintedQuoteUrl ? `<button id="btn-copy-link" class="floating-btn-icon btn-secondary" title="${isHe ? 'העתקת קישור להצעה' : 'Copy Quote Link'}">
                         <svg class="btn-icon-svg" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-                    </button>
+                    </button>` : ''}
                 </div>
 
                 <script>
@@ -605,39 +728,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     });
 
                     document.getElementById('btn-download-pdf').addEventListener('click', function() {
-                        const element = document.getElementById('pdf-content-area');
-                        const opt = {
-                            margin: [10, 10, 10, 10],
-                            filename: 'הצעת_מחיר_איילה_#${quoteNo}.pdf',
-                            image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { scale: 2, useCORS: true },
-                            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                        };
-                        if (window.html2pdf) {
-                            window.html2pdf().set(opt).from(element).save();
-                        } else {
-                            window.print();
-                        }
+                        window.print();
                     });
 
-                    document.getElementById('btn-copy-link').addEventListener('click', function() {
-                        const quoteUrl = '${window.location.origin}/?quote=${quoteOrder.id}';
-                        if (navigator.clipboard) {
-                            navigator.clipboard.writeText(quoteUrl);
-                        } else {
-                            const el = document.createElement('textarea');
-                            el.value = quoteUrl;
-                            document.body.appendChild(el);
-                            el.select();
-                            document.execCommand('copy');
-                            document.body.removeChild(el);
-                        }
-                        const txt = document.getElementById('copy-btn-text');
-                        if (txt) {
-                            txt.innerText = '${isHe ? '✓ הועתק!' : '✓ Copied!'}';
-                            setTimeout(() => { txt.innerText = '${isHe ? 'העתקת קישור' : 'Copy Link'}'; }, 2500);
-                        }
-                    });
+                    var copyBtn = document.getElementById('btn-copy-link');
+                    if (copyBtn) {
+                        copyBtn.addEventListener('click', function() {
+                            var quoteUrl = ${JSON.stringify(mintedQuoteUrl).replace(/</g, '\\u003c')};
+                            if (!quoteUrl) return;
+                            if (navigator.clipboard) {
+                                navigator.clipboard.writeText(quoteUrl);
+                            } else {
+                                var el = document.createElement('textarea');
+                                el.value = quoteUrl;
+                                document.body.appendChild(el);
+                                el.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(el);
+                            }
+                        });
+                    }
                 </script>
             </body>
             </html>
@@ -657,6 +767,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         setQuoteSuccessData({
             isOpen: true,
             orderId,
+            quoteUrl: mintedQuoteUrl,
             customerName,
             customerPhone
         });
@@ -670,21 +781,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             isDestructive: true,
             onConfirm: async () => {
                 try {
-                    const { error } = await db.from('orders')
-                        .delete()
-                        .eq('id', orderId);
-                    
-                    if (error) {
-                        console.error("Error deleting order:", error);
-                        alert(language === 'he' 
-                            ? 'שגיאה במחיקת ההזמנה. אנא ודא שקיים RLS Policy למחיקה ב-db.' 
-                            : 'Error deleting order. Please make sure a DELETE RLS policy exists in db.');
-                        return;
-                    }
-                    
+                    await api.deleteAdminOrder(orderId);
                     setOrders(prev => prev.filter(o => o.id !== orderId));
-                } catch (e) {
+                } catch (e: unknown) {
                     console.error("Error deleting order:", e);
+                    setFeedback({
+                        isOpen: true,
+                        type: 'error',
+                        title: language === 'he' ? 'שגיאה' : 'Error',
+                        message: getErrorMessage(e, language === 'he' ? 'שגיאה במחיקת ההזמנה.' : 'Error deleting order.')
+                    });
                 } finally {
                     closeConfirmation();
                 }
@@ -801,10 +907,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         code: '', discount_type: 'percentage', discount_value: 10, is_active: true, usage_limit: null
     });
 
-    const loadCoupons = async () => {
+    const loadCoupons = useCallback(async () => {
         const data = await getCoupons();
         setCoupons(data);
-    };
+    }, [getCoupons]);
 
     const handleCreateCoupon = async () => {
         if (!newCoupon.code || !newCoupon.discount_value) return;
@@ -824,52 +930,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
     const closeConfirmation = () => setConfirmation(prev => ({ ...prev, isOpen: false }));
 
-    const loadOrders = async () => {
+    const loadOrders = useCallback(async () => {
         setLoadingOrders(true);
         try {
-            const { data, error } = await db.from('orders')
-                .select('*')
-                .order('created_at', { ascending: false });
-            if (data) {
-                const processed = (data as Order[]).map(order => {
-                    if ((!order.total_price || order.total_price === 0) && order.items && order.items.length > 0) {
-                        const calcSubtotal = order.items.reduce((sum: number, item: any) => {
-                            let p = item.price || 0;
-                            if (!p || p === 0) {
-                                const menuI = menuItems.find(m => m.id === item.id || m.name === item.name);
-                                if (menuI) p = menuI.price;
-                            }
-                            return sum + (p * (item.quantity || 1));
-                        }, 0);
-                        const disc = order.discount_amount || 0;
-                        const deliv = order.delivery_fee || 0;
-                        const setup = order.wants_setup ? 1000 : 0;
-                        const calculatedTotal = Math.max(0, calcSubtotal - disc + deliv + setup);
-                        
-                        // Auto-repair order in DB asynchronously if total_price was 0
-                        if (calculatedTotal > 0 && order.id) {
-                            db.from('orders').update({
-                                total_price: calculatedTotal,
-                                subtotal: order.subtotal || calcSubtotal
-                            }).eq('id', order.id).then(() => {});
-                        }
-
-                        return {
-                            ...order,
-                            subtotal: order.subtotal || calcSubtotal,
-                            total_price: calculatedTotal
-                        };
-                    }
-                    return order;
-                });
-                setOrders(processed);
-            }
-        } catch (e) {
+            const { orders: fetchedOrders, telemetrySummary: summary } = await api.fetchAdminOrders();
+            setOrders(fetchedOrders || []);
+            setTelemetrySummary(summary || []);
+        } catch (e: unknown) {
             console.error("Error loading orders:", e);
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: language === 'he' ? 'שגיאת טעינת הזמנות' : 'Failed Loading Orders',
+                message: getErrorMessage(e, language === 'he' ? 'נדרשת התחברות מנהל תקינה.' : 'Valid admin session required.'),
+            });
         } finally {
             setLoadingOrders(false);
         }
-    };
+    }, [language]);
+
+    // Ensure the view starts at the top when entering admin mode
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        loadCoupons();
+        loadOrders();
+        loadAdminReviews();
+        loadAdminSettings();
+    }, [loadCoupons, loadOrders, loadAdminReviews, loadAdminSettings]);
 
     const cleanPhoneForWhatsapp = (phone: string) => {
         let cleaned = phone.replace(/\D/g, '');
@@ -888,7 +975,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             let updatedSubtotal = order?.subtotal || 0;
 
             if (newStatus === 'approved' && (!updatedPrice || updatedPrice === 0) && order?.items) {
-                updatedSubtotal = order.items.reduce((sum: number, item: any) => {
+                updatedSubtotal = order.items.reduce((sum: number, item: CartItem) => {
                     let p = item.price || 0;
                     if (!p || p === 0) {
                         const menuI = menuItems.find(m => m.id === item.id || m.name === item.name);
@@ -900,36 +987,111 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 const deliv = order.delivery_fee || 0;
                 const setup = order.wants_setup ? 1000 : 0;
                 updatedPrice = Math.max(0, updatedSubtotal - disc + deliv + setup);
-                await db.from('orders').update({ total_price: updatedPrice, subtotal: updatedSubtotal }).eq('id', orderId);
             }
 
-            const { error } = await db.from('orders')
-                .update({ status: newStatus })
-                .eq('id', orderId);
-            if (!error) {
-                setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as any, total_price: updatedPrice || o.total_price, subtotal: updatedSubtotal || o.subtotal } : o));
-                
-                if (order && (newStatus === 'approved' || newStatus === 'cancelled')) {
-                    const partialId = orderId.slice(0, 8);
-                    const cleanPhone = cleanPhoneForWhatsapp(order.customer_phone || '');
-                    
-                    let text = "";
-                    if (newStatus === 'approved') {
-                        text = language === 'he'
-                            ? `היי ${order.customer_name}, שמחה לבשר לך שהזמנתך מס' #${partialId} בקייטרינג של איילה אושרה! 🍽️\nסכום סופי לתשלום: ₪${updatedPrice}.\nנתראה במועד האירוע! ✨`
-                            : `Hi ${order.customer_name}, I'm happy to inform you that your order #${partialId} with Ayala Catering has been approved! 🍽️\nTotal: ₪${updatedPrice}.\nSee you at the event! ✨`;
-                    } else {
-                        text = language === 'he'
-                            ? `היי ${order.customer_name}, הזמנתך מס' #${partialId} בקייטרינג של איילה בוטלה. במידה ויש שאלות, ניתן ליצור קשר.`
-                            : `Hi ${order.customer_name}, your order #${partialId} with Ayala Catering has been cancelled. If you have any questions, feel free to contact us.`;
-                    }
-                    
-                    const encoded = encodeURIComponent(text);
-                    window.open(`https://wa.me/${cleanPhone}?text=${encoded}`, '_blank');
+            const res = await api.updateAdminOrder({
+                id: orderId,
+                status: newStatus as Order['status'],
+                ...(updatedSubtotal > 0 ? { total_price: updatedPrice, subtotal: updatedSubtotal } : {}),
+            });
+            setOrders(prev => prev.map(o => o.id === orderId ? (res.order || { ...o, status: newStatus as Order['status'], total_price: updatedPrice || o.total_price, subtotal: updatedSubtotal || o.subtotal }) : o));
+
+            if (order && (newStatus === 'approved' || newStatus === 'cancelled') && order.customer_phone) {
+                const partialId = order.reference_code || orderId.slice(0, 8);
+                const cleanPhone = cleanPhoneForWhatsapp(order.customer_phone);
+                if (cleanPhone) {
+                    const text = newStatus === 'approved'
+                        ? (language === 'he'
+                            ? `היי ${order.customer_name}, שמחה לבשר לך שבקשה מס' #${partialId} בקייטרינג של איילה אושרה! 🍽️`
+                            : `Hi ${order.customer_name}, happy to let you know your request #${partialId} with Ayala Catering is confirmed! 🍽️`)
+                        : (language === 'he'
+                            ? `היי ${order.customer_name}, בקשה מס' #${partialId} בקייטרינג של איילה בוטלה. במידה ויש שאלות, ניתן ליצור קשר.`
+                            : `Hi ${order.customer_name}, your request #${partialId} with Ayala Catering has been cancelled. Feel free to contact us.`);
+                    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
                 }
             }
-        } catch (e) {
+        } catch (e: unknown) {
             console.error("Error updating order status:", e);
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: language === 'he' ? 'שגיאה בעדכון' : 'Update Error',
+                message: getErrorMessage(e, 'Error updating order'),
+            });
+        }
+    };
+
+    const handleMarkHandoffConfirmed = async (orderId: string) => {
+        try {
+            const res = await api.updateAdminOrder({ id: orderId, handoff_status: 'confirmed_by_owner' });
+            setOrders(prev => prev.map(o => o.id === orderId ? (res.order || { ...o, handoff_status: 'confirmed_by_owner' }) : o));
+        } catch (err: unknown) {
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: language === 'he' ? 'שגיאה' : 'Error',
+                message: getErrorMessage(err, 'Could not update handoff status'),
+            });
+        }
+    };
+
+    const handleResendNotification = async (orderId: string) => {
+        try {
+            const res = await api.resendOrderNotification(orderId);
+            await loadOrders();
+            setFeedback({
+                isOpen: true,
+                type: res.ok ? 'success' : 'warning',
+                title: res.ok ? (language === 'he' ? 'התראה נשלחה' : 'Notification Sent') : (language === 'he' ? 'סטטוס התראה' : 'Notification Status'),
+                message: res.ok
+                    ? (language === 'he' ? 'התראת המייל נשלחה מחדש בהצלחה.' : 'Notification email resent successfully.')
+                    : (res.notification?.error || (language === 'he' ? 'שליחת המייל נכשלה או שכתובת יעד/מפתח שרת אינם מוגדרים.' : 'Email send failed or notification provider is not configured.')),
+            });
+        } catch (err: unknown) {
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: language === 'he' ? 'שגיאה' : 'Error',
+                message: getErrorMessage(err, 'Resend failed'),
+            });
+        }
+    };
+
+    const handleCopyScopedLink = async (orderId: string) => {
+        try {
+            const res = await api.updateAdminOrder({ id: orderId, mint_share_token: true });
+            if (res.quote_url) {
+                await navigator.clipboard?.writeText(res.quote_url);
+                setFeedback({
+                    isOpen: true,
+                    type: 'success',
+                    title: language === 'he' ? 'קישור הועתק' : 'Link Copied',
+                    message: language === 'he'
+                        ? 'נוצר קישור מאובטח ומוגבל בזמן עבור הלקוח והועתק ללוח.'
+                        : 'A scoped expiring customer quote link was generated and copied to clipboard.',
+                });
+            }
+        } catch (err: unknown) {
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: language === 'he' ? 'שגיאה' : 'Error',
+                message: getErrorMessage(err, 'Could not generate quote link'),
+            });
+        }
+    };
+
+    const handleModerateReview = async (id: string, status: 'approved' | 'rejected') => {
+        try {
+            await moderateReview(id, status);
+            setAdminReviews(prev => prev.map(r => r.id === id ? { ...r, status } : r));
+        } catch (err: unknown) {
+            setFeedback({
+                isOpen: true,
+                type: 'error',
+                title: language === 'he' ? 'שגיאה' : 'Error',
+                message: getErrorMessage(err, 'Failed moderating review'),
+            });
         }
     };
 
@@ -941,6 +1103,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             isDestructive: true,
             onConfirm: async () => {
                 await deleteReview(id);
+                setAdminReviews(prev => prev.filter(r => r.id !== id));
             }
         });
     };
@@ -979,9 +1142,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     const [editMods, setEditMods] = useState('');
     const [editImageUrl, setEditImageUrl] = useState('');
     const [editName, setEditName] = useState('');
+    const [editNameEn, setEditNameEn] = useState('');
     const [editIsTray, setEditIsTray] = useState(false);
     const [editUnitsPerTray, setEditUnitsPerTray] = useState<number | null>(null);
     const [editDescription, setEditDescription] = useState('');
+    const [editDescriptionEn, setEditDescriptionEn] = useState('');
+    const [editDietaryTags, setEditDietaryTags] = useState<string[]>([]);
     const [editCategory, setEditCategory] = useState<Category>('Salads');
     const [editUnitType, setEditUnitType] = useState<UnitType>('tray');
     const [editServesMin, setEditServesMin] = useState(10);
@@ -997,9 +1163,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
     // New Item State
     const [newItem, setNewItem] = useState<Partial<MenuItem>>({
-        name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], image_url: '', is_tray: false, units_per_tray: null
+        name: '', name_en: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', description_en: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], dietary_tags: [], image_url: '', is_tray: false, units_per_tray: null
     });
     const [addMods, setAddMods] = useState('');
+
+    const catalogAudit = useMemo(() => auditMenuCatalog(menuItems || []), [menuItems]);
 
     const filteredItems = (menuItems || []).filter(i =>
         (i.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -1013,9 +1181,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         setEditIsPremium(item.is_premium);
         setEditImageUrl(item.image_url || '');
         setEditName(item.name);
+        setEditNameEn(item.name_en || '');
         setEditIsTray(item.is_tray || false);
         setEditUnitsPerTray(item.units_per_tray ?? null);
         setEditDescription(item.description || '');
+        setEditDescriptionEn(item.description_en || '');
+        setEditDietaryTags(Array.isArray(item.dietary_tags) ? item.dietary_tags : []);
         setEditCategory(item.category);
         setEditUnitType(item.unit_type);
         setEditServesMin(item.serves_min);
@@ -1123,44 +1294,28 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             const file = event.target.files?.[0];
             if (!file) return;
             setUploading(true);
-            const randomName = `kosher_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
-            const ext = file.name.split('.').pop() || 'jpg';
-            const cleanFileName = `${randomName}.${ext}`;
-            const arrayBuffer = await file.arrayBuffer();
-            const fileData = new Uint8Array(arrayBuffer);
+            const resourceType = file.type === 'application/pdf' ? 'raw' : 'image';
+            const publicUrl = await api.uploadMediaSigned(file, resourceType, `kosher_${Date.now()}`);
 
-            const { data: uploadRes, error: uploadError } = await db.storage
-                .from('menu-images')
-                .upload(cleanFileName, fileData, {
-                    cacheControl: '3600',
-                    upsert: false,
-                    contentType: file.type
-                });
-
-            if (uploadError) throw uploadError;
-
-            const publicUrl = uploadRes?.publicUrl || uploadRes?.path || db.storage
-                .from('menu-images')
-                .getPublicUrl(cleanFileName).data.publicUrl;
-
-            if (!publicUrl || (!publicUrl.startsWith('http://') && !publicUrl.startsWith('https://'))) {
-                throw new Error('כתובת התעודה שהתקבלה מהענן אינה תקינה');
-            }
-
-            await updateKosherCertUrl(publicUrl);
+            await updateKosherMetadata({
+                documentUrl: publicUrl,
+                issuer: kosherDraftIssuer.trim() || kosherMetadata.issuer || '',
+                validUntil: kosherDraftValidUntil || kosherMetadata.validUntil || null,
+                verifiedAt: new Date().toISOString(),
+            });
             setFeedback({
                 isOpen: true,
                 type: 'info',
                 title: language === 'he' ? 'העלאה הושלמה' : 'Upload Complete',
                 message: language === 'he' ? 'תעודת הכשרות עודכנה בהצלחה.' : 'Kosher certificate updated successfully.'
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error uploading kosher cert:', error);
             setFeedback({
                 isOpen: true,
                 type: 'error',
-                title: 'שגיאה',
-                message: error.message
+                title: language === 'he' ? 'שגיאה' : 'Error',
+                message: getErrorMessage(error, 'Upload failed')
             });
         } finally {
             setUploading(false);
@@ -1172,38 +1327,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             const file = event.target.files?.[0];
             if (!file) return;
             setUploading(true);
-            const randomName = `gallery_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
-            const ext = file.name.split('.').pop() || 'jpg';
-            const cleanFileName = `${randomName}.${ext}`;
-            const arrayBuffer = await file.arrayBuffer();
-            const fileData = new Uint8Array(arrayBuffer);
-
-            const { data: uploadRes, error: uploadError } = await db.storage
-                .from('menu-images')
-                .upload(cleanFileName, fileData, {
-                    cacheControl: '3600',
-                    upsert: false,
-                    contentType: file.type
-                });
-
-            if (uploadError) throw uploadError;
-
-            const publicUrl = uploadRes?.publicUrl || uploadRes?.path || db.storage
-                .from('menu-images')
-                .getPublicUrl(cleanFileName).data.publicUrl;
-
-            if (!publicUrl || (!publicUrl.startsWith('http://') && !publicUrl.startsWith('https://'))) {
-                throw new Error('כתובת התמונה שהתקבלה מהענן אינה תקינה');
-            }
-
+            const publicUrl = await api.uploadMediaSigned(file, 'image', `gallery_${Date.now()}`);
             setNewGalleryItem(prev => ({ ...prev, url: publicUrl }));
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error uploading gallery image:', error);
             setFeedback({
                 isOpen: true,
                 type: 'error',
-                title: 'שגיאה',
-                message: error.message
+                title: language === 'he' ? 'שגיאה' : 'Error',
+                message: getErrorMessage(error, 'Upload failed')
             });
         } finally {
             setUploading(false);
@@ -1211,7 +1343,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     };
 
     const getYoutubeId = (url: string) => {
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+        const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
         const match = url.match(regExp);
         return (match && match[2].length === 11) ? match[2] : null;
     };
@@ -1234,38 +1366,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             }
 
             setUploading(true);
-            const randomName = `gallery_vid_${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
-            const ext = file.name.split('.').pop() || 'mp4';
-            const cleanFileName = `${randomName}.${ext}`;
-            const arrayBuffer = await file.arrayBuffer();
-            const fileData = new Uint8Array(arrayBuffer);
-
-            const { data: uploadRes, error: uploadError } = await db.storage
-                .from('menu-images')
-                .upload(cleanFileName, fileData, {
-                    cacheControl: '3600',
-                    upsert: false,
-                    contentType: file.type
-                });
-
-            if (uploadError) throw uploadError;
-
-            const publicUrl = uploadRes?.publicUrl || uploadRes?.path || db.storage
-                .from('menu-images')
-                .getPublicUrl(cleanFileName).data.publicUrl;
-
-            if (!publicUrl || (!publicUrl.startsWith('http://') && !publicUrl.startsWith('https://'))) {
-                throw new Error('כתובת הסרטון שהתקבלה מהענן אינה תקינה');
-            }
-
+            const publicUrl = await api.uploadMediaSigned(file, 'video', `gallery_vid_${Date.now()}`);
             setNewGalleryItem(prev => ({ ...prev, url: publicUrl }));
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error uploading gallery video:', error);
             setFeedback({
                 isOpen: true,
                 type: 'error',
-                title: 'שגיאה',
-                message: error.message
+                title: language === 'he' ? 'שגיאה' : 'Error',
+                message: getErrorMessage(error, 'Upload failed')
             });
         } finally {
             setUploading(false);
@@ -1321,44 +1430,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
         try {
             setUploading(true);
-
-            let mimeType = file.type;
-            let ext = 'jpg';
-
-            if (mimeType === 'image/png') {
-                ext = 'png';
-            } else if (mimeType === 'image/webp') {
-                ext = 'webp';
-            } else {
-                mimeType = 'image/jpeg';
-                ext = 'jpg';
-            }
-
-            const randomName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
-            const cleanFileName = `${randomName}.${ext}`;
-
-            const arrayBuffer = await file.arrayBuffer();
-            const fileData = new Uint8Array(arrayBuffer);
-
-            const { data: uploadRes, error: uploadError } = await db.storage
-                .from('menu-images')
-                .upload(cleanFileName, fileData, {
-                    cacheControl: '3600',
-                    upsert: false,
-                    contentType: mimeType
-                });
-
-            if (uploadError) {
-                throw uploadError;
-            }
-
-            const publicUrl = uploadRes?.publicUrl || uploadRes?.path || db.storage
-                .from('menu-images')
-                .getPublicUrl(cleanFileName).data.publicUrl;
-
-            if (!publicUrl || (!publicUrl.startsWith('http://') && !publicUrl.startsWith('https://'))) {
-                throw new Error('כתובת התמונה שהתקבלה מהענן אינה תקינה');
-            }
+            const publicUrl = await api.uploadMediaSigned(file, 'image', `dish_${Date.now()}`);
 
             if (isEdit) {
                 setEditImageUrl(publicUrl);
@@ -1366,7 +1438,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 setNewItem(prev => ({ ...prev, image_url: publicUrl }));
             }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error uploading image:', error);
             // Revert preview on failure
             if (isEdit) {
@@ -1378,7 +1450,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 isOpen: true,
                 type: 'error',
                 title: 'שגיאת העלאה',
-                message: `Error uploading image: ${error.message}`
+                message: `Error uploading image: ${getErrorMessage(error, 'Upload failed')}`
             });
         } finally {
             setUploading(false);
@@ -1395,9 +1467,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             is_premium: editIsPremium,
             image_url: editImageUrl,
             name: editName,
+            name_en: editNameEn.trim() || undefined,
             is_tray: editIsTray,
             units_per_tray: editIsTray ? editUnitsPerTray : null,
             description: editDescription,
+            description_en: editDescriptionEn.trim() || undefined,
+            dietary_tags: editDietaryTags,
             category: editCategory,
             unit_type: editUnitType,
             serves_min: editServesMin,
@@ -1427,12 +1502,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         if (!newItem.name || !newItem.price) return;
         const modsArray = addMods.split(',').map(s => s.trim()).filter(s => s.length > 0);
         const itemToSave: Omit<MenuItem, 'id'> = {
-            name: newItem.name || '', category: (newItem.category as Category) || 'Salads', price: Number(newItem.price), unit_type: (newItem.unit_type as UnitType) || 'tray', description: newItem.description || '', serves_min: Number(newItem.serves_min) || 1, serves_max: Number(newItem.serves_max) || 1, is_premium: newItem.is_premium || false, availability_status: true, tags: [], allowed_modifications: modsArray, allowed_modifications_en: modsArray, image_url: newItem.image_url, is_tray: newItem.is_tray || false, units_per_tray: newItem.is_tray ? (newItem.units_per_tray ?? null) : null
+            name: newItem.name || '',
+            name_en: newItem.name_en?.trim() || undefined,
+            category: (newItem.category as Category) || 'Salads',
+            price: Number(newItem.price),
+            unit_type: (newItem.unit_type as UnitType) || 'tray',
+            description: newItem.description || '',
+            description_en: newItem.description_en?.trim() || undefined,
+            serves_min: Number(newItem.serves_min) || 1,
+            serves_max: Number(newItem.serves_max) || 1,
+            is_premium: newItem.is_premium || false,
+            availability_status: true,
+            tags: [],
+            dietary_tags: newItem.dietary_tags || [],
+            allowed_modifications: modsArray,
+            allowed_modifications_en: modsArray,
+            image_url: newItem.image_url,
+            is_tray: newItem.is_tray || false,
+            units_per_tray: newItem.is_tray ? (newItem.units_per_tray ?? null) : null
         };
         await addMenuItem(itemToSave);
         setIsAddModalOpen(false);
         setNewItem({
-            name: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], image_url: '', is_tray: false, units_per_tray: null
+            name: '', name_en: '', category: 'Salads', price: 0, unit_type: 'tray', description: '', description_en: '', is_premium: false, serves_min: 10, serves_max: 10, availability_status: true, tags: [], dietary_tags: [], image_url: '', is_tray: false, units_per_tray: null
         });
         setAddMods('');
     };
@@ -1572,7 +1664,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                     <div className="space-y-4">
                                         {filteredAndSorted.map(order => {
                                             const dateStr = order.created_at ? new Date(order.created_at).toLocaleString(language === 'he' ? 'he-IL' : 'en-US') : '';
-                                            const partialId = order.id ? order.id.slice(0, 8) : 'NEW';
                                             const isExpanded = !!expandedOrders[order.id!];
                                             
                                             const statusColors: Record<string, string> = {
@@ -1589,36 +1680,85 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                                 cancelled: language === 'he' ? 'מבוטל' : 'Cancelled'
                                             };
 
+                                            const partialId = order.reference_code || (order.id ? order.id.slice(0, 8) : 'NEW');
+                                            const eventDateDisplay = order.event_date ? new Date(order.event_date).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US') : '-';
+                                            const isDelivery = order.delivery_method === 'delivery';
                                             return (
                                                 <div key={order.id} className="bg-themeCardBg p-5 rounded-xl border border-themeText/10 shadow-sm space-y-4 hover:border-themePrimary/20 transition-all text-themeText">
                                                     <div className={`flex flex-col md:flex-row justify-between items-start md:items-center gap-3 pb-3 ${isExpanded ? 'border-b border-themeText/10' : ''}`}>
                                                         <div>
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-2 flex-wrap">
                                                                 <span className="text-sm font-bold text-themeText">#{partialId}</span>
-                                                                <span className="text-xs text-themeText/60 flex items-center gap-1"><Calendar size={12} /> {dateStr}</span>
+                                                                <span className="text-xs text-themeText/65 flex items-center gap-1"><Calendar size={12} /> {dateStr}</span>
+                                                                {order.notification_status && (
+                                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                                                        order.notification_status === 'sent'
+                                                                            ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
+                                                                            : order.notification_status === 'failed'
+                                                                                ? 'bg-red-500/10 text-red-700 border-red-500/25'
+                                                                                : 'bg-amber-500/10 text-amber-700 border-amber-500/25'
+                                                                    }`}>
+                                                                        {language === 'he' ? `התראת מייל: ${order.notification_status}` : `Email: ${order.notification_status}`}
+                                                                    </span>
+                                                                )}
+                                                                {order.handoff_status && (
+                                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-themeBg text-themeText/75 border border-themeText/15">
+                                                                        {language === 'he' ? `וואטסאפ/מעקב: ${order.handoff_status}` : `Handoff: ${order.handoff_status}`}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             <div className="text-xs font-bold text-themeText/80 mt-1 flex items-center flex-wrap gap-2">
-                                                                <span>👤 {order.customer_name}</span>
+                                                                <span>{order.customer_name}</span>
                                                                 <span>|</span>
-                                                                <span>
-                                                                    📞 <a href={`tel:${order.customer_phone}`} className="hover:text-themePrimary transition-colors underline" title={language === 'he' ? 'חייג ללקוח' : 'Call Customer'}>{order.customer_phone}</a>
+                                                                <span dir="ltr">
+                                                                    <a href={`tel:${order.customer_phone}`} className="hover:text-themePrimary transition-colors underline" title={language === 'he' ? 'חייג ללקוח' : 'Call Customer'}>{order.customer_phone}</a>
                                                                 </span>
                                                                 {order.customer_phone && (
                                                                     <a 
                                                                         href={`https://wa.me/${cleanPhoneForWhatsapp(order.customer_phone)}`} 
                                                                         target="_blank" 
                                                                         rel="noopener noreferrer"
-                                                                        className="inline-flex items-center gap-1 bg-green-600/10 text-green-600 hover:bg-green-600/20 px-2 py-0.5 rounded text-[10px] transition-colors"
+                                                                        className="inline-flex items-center gap-1 bg-green-600/10 text-green-700 hover:bg-green-600/20 px-2 py-0.5 rounded text-[10px] transition-colors"
                                                                         title={language === 'he' ? 'שלח הודעת וואטסאפ' : 'Send WhatsApp Message'}
                                                                     >
-                                                                        WhatsApp 💬
+                                                                        WhatsApp
                                                                     </a>
                                                                 )}
                                                                 <span>|</span>
-                                                                <span className="bg-themePrimary/15 text-themePrimary px-2 py-0.5 rounded font-bold text-[10px]">
-                                                                    🎉 {language === 'he' ? 'סוג אירוע' : 'Event Type'}: {order.event_type || (order.customer_name?.match(/\((אירוע [^)]+)\)$/)?.[1]) || (language === 'he' ? 'לא נבחר' : 'None')}
+                                                                <span className="bg-themePrimary/15 text-themeText px-2 py-0.5 rounded font-bold text-[10px]">
+                                                                    {language === 'he' ? 'סוג אירוע' : 'Event Type'}: {order.event_type || (language === 'he' ? 'לא נבחר' : 'None')}
                                                                 </span>
                                                             </div>
+                                                            {/* v2 Full Event & Fulfillment Summary */}
+                                                            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-themeText/75">
+                                                                <span>
+                                                                    <strong>{language === 'he' ? 'מועד האירוע:' : 'Event:'}</strong> {eventDateDisplay}{order.event_time ? ` (${order.event_time})` : ''}
+                                                                </span>
+                                                                <span>
+                                                                    <strong>{language === 'he' ? 'אורחים:' : 'Guests:'}</strong> {order.adult_count ?? 0} {language === 'he' ? 'מבוגרים' : 'adults'}, {order.child_count ?? 0} {language === 'he' ? 'ילדים' : 'children'}
+                                                                </span>
+                                                                <span>
+                                                                    <strong>{language === 'he' ? 'קבלת הזמנה:' : 'Fulfillment:'}</strong>{' '}
+                                                                    {isDelivery
+                                                                        ? `${language === 'he' ? 'משלוח' : 'Delivery'}${order.delivery_address ? ` — ${order.delivery_address}` : ''}${order.distance_km != null ? ` (${order.distance_km} km)` : ''}`
+                                                                        : (language === 'he' ? 'איסוף עצמי' : 'Self-Pickup')}
+                                                                </span>
+                                                            </div>
+                                                            {order.allergy_notes && (
+                                                                <p className="mt-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-lg">
+                                                                    {language === 'he' ? 'רגישויות/אלרגיות:' : 'Allergies:'} {order.allergy_notes}
+                                                                </p>
+                                                            )}
+                                                            {order.notes && (
+                                                                <p className="mt-1 text-xs text-themeText/75">
+                                                                    <strong>{language === 'he' ? 'הערות:' : 'Notes:'}</strong> {order.notes}
+                                                                </p>
+                                                            )}
+                                                            {order.notification_error && (
+                                                                <p className="mt-1 text-[11px] text-red-700 font-medium">
+                                                                    {language === 'he' ? 'שגיאת התראה:' : 'Alert error:'} {order.notification_error}
+                                                                </p>
+                                                            )}
                                                         </div>
                                                         <div className="flex items-center gap-2 md:gap-3">
                                                             <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusColors[order.status] || 'bg-themeBg text-themeText/80 border-themeText/10'}`}>
@@ -1637,7 +1777,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
                                                     {isExpanded && (
                                                         <div className="space-y-2 border-t border-themeText/5 pt-3 animate-fade-in">
-                                                            {((order.items as any) || []).map((item: any, idx: number) => (
+                                                            {(order.items || []).map((item: CartItem, idx: number) => (
                                                                 <div key={idx} className="text-xs text-themeText/70 flex justify-between">
                                                                     <div>
                                                                         <span className="font-bold text-themeText/90">{item.quantity}x</span> {language === 'he' ? item.name : (item.name_en || item.name)}
@@ -1659,13 +1799,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                                     )}
 
                                                     <div className={`flex flex-wrap gap-2 pt-2 justify-end ${isExpanded ? 'border-t border-themeText/10' : ''}`}>
+                                                        {/* Copy Scoped Link Button */}
+                                                        <button
+                                                            onClick={() => handleCopyScopedLink(order.id!)}
+                                                            className="p-2 bg-themeBg text-themeText border border-themeText/15 rounded-xl hover:border-themePrimary transition-all duration-200 flex items-center gap-1 text-xs font-bold"
+                                                            title={language === 'he' ? 'יצירה והעתקה של קישור מאובטח ללקוח' : 'Mint & copy scoped customer quote link'}
+                                                        >
+                                                            <Copy size={15} />
+                                                            <span>{language === 'he' ? 'קישור מאובטח' : 'Customer Link'}</span>
+                                                        </button>
+
+                                                        {(order.notification_status === 'failed' || order.notification_status === 'unconfigured') && (
+                                                            <button
+                                                                onClick={() => handleResendNotification(order.id!)}
+                                                                className="p-2 bg-amber-500/10 text-amber-800 border border-amber-500/25 rounded-xl hover:bg-amber-500/20 transition-all duration-200 flex items-center gap-1 text-xs font-bold"
+                                                            >
+                                                                <RefreshCw size={15} />
+                                                                <span>{language === 'he' ? 'שלח התראה מחדש' : 'Resend Alert'}</span>
+                                                            </button>
+                                                        )}
+
+                                                        {order.handoff_status !== 'confirmed_by_owner' && (
+                                                            <button
+                                                                onClick={() => handleMarkHandoffConfirmed(order.id!)}
+                                                                className="p-2 bg-emerald-500/10 text-emerald-700 border border-emerald-500/25 rounded-xl hover:bg-emerald-500/20 transition-all duration-200 flex items-center gap-1 text-xs font-bold"
+                                                            >
+                                                                <Check size={15} />
+                                                                <span>{language === 'he' ? 'אומת מול לקוח' : 'Mark Confirmed'}</span>
+                                                            </button>
+                                                        )}
+
                                                         {/* Generate Quote PDF Button */}
                                                         <button
                                                             onClick={() => openQuoteDialog(order)}
-                                                            className="p-2 bg-purple-500/10 text-purple-500 border border-purple-500/20 rounded-xl hover:bg-purple-500/20 transition-all duration-200 flex items-center justify-center gap-1.5 text-xs font-bold font-sans"
-                                                            title={language === 'he' ? 'הפקת הצעת מחיר PDF' : 'Generate Quote PDF'}
+                                                            className="p-2 bg-purple-500/10 text-purple-600 border border-purple-500/20 rounded-xl hover:bg-purple-500/20 transition-all duration-200 flex items-center justify-center gap-1.5 text-xs font-bold font-sans"
+                                                            title={language === 'he' ? 'הפקת הצעת מחיר' : 'Generate Quote'}
                                                         >
-                                                            <FileText size={18} />
+                                                            <FileText size={16} />
                                                             <span>{language === 'he' ? 'הפקת הצעת מחיר' : 'Generate Quote'}</span>
                                                         </button>
 
@@ -1717,7 +1887,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 </div>
 
                 {/* Tab 2: Menu Items */}
-                <div className="w-full shrink-0 snap-start snap-always px-1">
+                <div className="w-full shrink-0 snap-start snap-always px-1 space-y-4">
+                    {catalogAudit.length > 0 && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-start space-y-2 text-amber-950">
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 font-bold text-sm">
+                                    <AlertTriangle size={16} className="text-amber-700" />
+                                    <span>
+                                        {language === 'he'
+                                            ? `בדיקת תקינות קטלוג: נמצאו ${catalogAudit.length} פריטים הדורשים השלמה (תרגום לאנגלית / תמונה / פרטי הגשה)`
+                                            : `Catalog Health Audit: ${catalogAudit.length} items need attention`}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="max-h-40 overflow-y-auto divide-y divide-amber-200/70 bg-white/80 rounded-xl border border-amber-200 px-3">
+                                {catalogAudit.slice(0, 12).map((issue) => {
+                                    const targetItem = menuItems.find((m) => m.id === issue.itemId);
+                                    return (
+                                        <div key={issue.itemId} className="py-2 flex items-center justify-between gap-3 text-xs">
+                                            <div>
+                                                <span className="font-bold">{issue.itemName}</span>
+                                                <span className="text-amber-800 mx-2">• {language === 'he' ? issue.messageHe : issue.messageEn}</span>
+                                            </div>
+                                            {targetItem && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleEditClick(targetItem)}
+                                                    className="px-2.5 py-1 rounded-lg bg-amber-700 text-white font-bold hover:bg-amber-800 shrink-0"
+                                                >
+                                                    {language === 'he' ? 'ערוך' : 'Edit'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                     <div className="bg-themeCardBg rounded-2xl shadow-sm border border-themeText/10 overflow-hidden text-start text-themeText">
                         <div className="p-4 border-b border-themeText/10 flex flex-col md:flex-row justify-between items-center gap-4 bg-themeBg/20">
                             <input 
@@ -2077,23 +2283,49 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
 
                     {/* Reviews Moderation Card */}
                     <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><MessageSquare size={16} /></div>
-                            <h3 className="text-sm font-bold text-themeText uppercase">{language === 'he' ? 'ניהול חוות דעת' : 'Manage Reviews'}</h3>
+                        <div className="flex items-center justify-between gap-2 mb-6">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><MessageSquare size={16} /></div>
+                                <h3 className="text-sm font-bold text-themeText uppercase">{language === 'he' ? 'ניהול ופיקוח חוות דעת' : 'Moderate Reviews'}</h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={loadAdminReviews}
+                                className="text-xs font-bold text-themeText/70 hover:text-themePrimary flex items-center gap-1"
+                            >
+                                <RefreshCw size={13} />
+                                <span>{language === 'he' ? 'רענן' : 'Refresh'}</span>
+                            </button>
                         </div>
                         
                         <div>
-                            {reviews.length > 0 ? (
+                            {adminReviews.length > 0 ? (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {reviews.map(review => {
+                                    {adminReviews.map(review => {
                                         const dateStr = review.created_at ? new Date(review.created_at).toLocaleDateString(language === 'he' ? 'he-IL' : 'en-US') : '';
+                                        const modStatus = review.status || 'approved';
                                         return (
                                             <div key={review.id} className="bg-themeBg/40 p-4 rounded-xl border border-themeText/10 shadow-sm flex flex-col justify-between hover:border-themePrimary/20 transition-all text-themeText">
                                                 <div>
                                                     <div className="flex justify-between items-start mb-2">
                                                         <div>
-                                                            <h5 className="font-bold text-themeText text-sm">{review.customer_name}</h5>
-                                                            <span className="text-[10px] text-themeText/50">{dateStr}</span>
+                                                            <div className="flex items-center gap-2">
+                                                                <h5 className="font-bold text-themeText text-sm">{review.customer_name}</h5>
+                                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                                                    modStatus === 'approved'
+                                                                        ? 'bg-emerald-500/15 text-emerald-700'
+                                                                        : modStatus === 'rejected'
+                                                                            ? 'bg-red-500/15 text-red-700'
+                                                                            : 'bg-amber-500/15 text-amber-800'
+                                                                }`}>
+                                                                    {modStatus === 'approved'
+                                                                        ? (language === 'he' ? 'מאושרת' : 'Approved')
+                                                                        : modStatus === 'rejected'
+                                                                            ? (language === 'he' ? 'נדחתה' : 'Rejected')
+                                                                            : (language === 'he' ? 'ממתינה לאישור' : 'Pending')}
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-[10px] text-themeText/60">{dateStr}</span>
                                                         </div>
                                                         <div className="flex items-center gap-0.5">
                                                             {[...Array(5)].map((_, i) => (
@@ -2110,10 +2342,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                                     </div>
                                                     <p className="text-xs text-themeText/80 italic mt-2">"{review.comment}"</p>
                                                 </div>
-                                                <div className="flex justify-end mt-4 pt-2 border-t border-themeText/10">
+                                                <div className="flex flex-wrap justify-end gap-2 mt-4 pt-2 border-t border-themeText/10">
+                                                    {modStatus !== 'approved' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleModerateReview(review.id!, 'approved')}
+                                                            className="flex items-center gap-1 text-xs bg-emerald-600 text-white font-bold px-2.5 py-1 rounded-lg hover:bg-emerald-700 transition-colors"
+                                                        >
+                                                            <Check size={13} />
+                                                            <span>{language === 'he' ? 'אשר לפרסום' : 'Approve'}</span>
+                                                        </button>
+                                                    )}
+                                                    {modStatus !== 'rejected' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleModerateReview(review.id!, 'rejected')}
+                                                            className="flex items-center gap-1 text-xs bg-amber-600 text-white font-bold px-2.5 py-1 rounded-lg hover:bg-amber-700 transition-colors"
+                                                        >
+                                                            <X size={13} />
+                                                            <span>{language === 'he' ? 'דחה' : 'Reject'}</span>
+                                                        </button>
+                                                    )}
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleDeleteReview(review.id!)}
-                                                        className="flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-bold hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors"
+                                                        className="flex items-center gap-1.5 text-xs text-red-700 hover:text-red-800 font-bold hover:bg-red-500/10 px-2.5 py-1 rounded-lg transition-colors"
                                                     >
                                                         <Trash2 size={14} />
                                                         <span>{language === 'he' ? 'מחק חוות דעת' : 'Delete'}</span>
@@ -2124,7 +2377,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                     })}
                                 </div>
                             ) : (
-                                <p className="text-sm text-themeText/40 italic py-4">{language === 'he' ? 'אין חוות דעת במערכת' : 'No reviews in system yet.'}</p>
+                                <p className="text-sm text-themeText/55 italic py-4">{language === 'he' ? 'אין חוות דעת במערכת' : 'No reviews in system yet.'}</p>
                             )}
                         </div>
                     </div>
@@ -2379,48 +2632,490 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     </div>
 
                     {/* Kosher Certificate Section Card */}
-                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Award size={16} /></div>
-                            <h3 className="text-sm font-bold text-themeText uppercase">{t.kosherCert}</h3>
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10 space-y-5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Award size={16} /></div>
+                                <h3 className="text-sm font-bold text-themeText uppercase">{t.kosherCert}</h3>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold border ${
+                                kosherEvaluation.status === 'valid'
+                                    ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/25'
+                                    : kosherEvaluation.status === 'expiring_soon'
+                                        ? 'bg-amber-500/10 text-amber-800 border-amber-500/25'
+                                        : 'bg-red-500/10 text-red-700 border-red-500/25'
+                            }`}>
+                                {formatKosherStatusLabel(kosherEvaluation, language)}
+                            </span>
                         </div>
                         
-                        <div className="flex flex-col sm:flex-row items-center gap-6">
+                        <div className="flex flex-col sm:flex-row items-start gap-6">
                             <div className="w-32 h-32 bg-themeBg/30 rounded-lg overflow-hidden border border-themeText/10 flex items-center justify-center shrink-0">
                                 {kosherCertUrl ? (
-                                    <img src={kosherCertUrl} alt="Kosher Certificate" className="w-full h-full object-contain" />
+                                    kosherCertUrl.toLowerCase().includes('.pdf') || kosherCertUrl.includes('/raw/upload/') ? (
+                                        <a href={kosherCertUrl} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-themePrimary underline text-center px-2">
+                                            PDF {language === 'he' ? 'צפה בתעודה' : 'View PDF'}
+                                        </a>
+                                    ) : (
+                                        <img src={kosherCertUrl} alt="Kosher Certificate" className="w-full h-full object-contain" />
+                                    )
                                 ) : (
-                                    <span className="text-themeText/40 text-xs italic">{language === 'he' ? 'אין תעודה' : 'No certificate'}</span>
+                                    <span className="text-themeText/50 text-xs italic">{language === 'he' ? 'אין תעודה' : 'No certificate'}</span>
                                 )}
                             </div>
-                            <div className="flex-1 w-full space-y-2">
-                                <label className={`
-                                    flex items-center justify-center gap-2 w-full max-w-xs p-3 border-2 border-dashed border-themeText/20 rounded-xl cursor-pointer hover:border-themePrimary hover:text-themePrimary transition-colors text-themeText/60 font-bold text-sm bg-themeBg/30
-                                    ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
-                                `}>
-                                    <Upload size={16} />
-                                    <span>{uploading ? '...' : t.uploadKosher}</span>
-                                    <input type="file" accept="image/*,application/pdf" onChange={handleKosherUpload} className="hidden" disabled={uploading} />
-                                </label>
-                                <p className="text-[10px] text-themeText/40">{t.imageHint}</p>
-                                {kosherCertUrl && (
-                                    <div className="flex gap-2">
+                            <div className="flex-1 w-full space-y-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-themeText/70 mb-1">
+                                            {language === 'he' ? 'גוף נותן הכשרות' : 'Kosher Certifying Body'}
+                                        </label>
                                         <input
                                             type="text"
-                                            readOnly
-                                            value={kosherCertUrl}
-                                            className="w-full max-w-md p-1.5 border border-themeText/20 rounded-lg text-xs text-themeText/60 bg-themeBg/30"
+                                            value={kosherDraftIssuer}
+                                            onChange={(e) => setKosherDraftIssuer(e.target.value)}
+                                            placeholder={language === 'he' ? 'לדוגמה: רבנות מקומית / בד"ץ' : 'e.g. Local Rabbinate'}
+                                            className="w-full p-2 border border-themeText/20 bg-themeBg/30 text-themeText rounded-lg text-xs"
                                         />
-                                        <button
-                                            onClick={() => updateKosherCertUrl('')}
-                                            className="text-xs text-red-500 hover:underline font-bold"
-                                        >
-                                            {language === 'he' ? 'הסר' : 'Remove'}
-                                        </button>
                                     </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-themeText/70 mb-1">
+                                            {language === 'he' ? 'תאריך תוקף התעודה' : 'Certificate Expiry Date'}
+                                        </label>
+                                        <input
+                                            type="date"
+                                            value={kosherDraftValidUntil}
+                                            onChange={(e) => setKosherDraftValidUntil(e.target.value)}
+                                            className="w-full p-2 border border-themeText/20 bg-themeBg/30 text-themeText rounded-lg text-xs"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <label className={`
+                                        flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-themeText/20 rounded-xl cursor-pointer hover:border-themePrimary hover:text-themePrimary transition-colors text-themeText/70 font-bold text-xs bg-themeBg/30
+                                        ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
+                                    `}>
+                                        <Upload size={15} />
+                                        <span>{uploading ? '...' : t.uploadKosher}</span>
+                                        <input type="file" accept="image/*,application/pdf" onChange={handleKosherUpload} className="hidden" disabled={uploading} />
+                                    </label>
+                                    <button
+                                        type="button"
+                                        disabled={uploading}
+                                        onClick={async () => {
+                                            setUploading(true);
+                                            try {
+                                                await updateKosherMetadata({
+                                                    documentUrl: kosherCertUrl,
+                                                    issuer: kosherDraftIssuer.trim(),
+                                                    validUntil: kosherDraftValidUntil || null,
+                                                    verifiedAt: new Date().toISOString(),
+                                                });
+                                                setFeedback({
+                                                    isOpen: true,
+                                                    type: 'success',
+                                                    title: language === 'he' ? 'נשמר' : 'Saved',
+                                                    message: language === 'he' ? 'פרטי הכשרות ותאריך התוקף עודכנו.' : 'Kosher certificate metadata updated.',
+                                                });
+                                            } catch (err: unknown) {
+                                                setFeedback({
+                                                    isOpen: true,
+                                                    type: 'error',
+                                                    title: language === 'he' ? 'שגיאה' : 'Error',
+                                                    message: getErrorMessage(err, 'Failed saving kosher metadata'),
+                                                });
+                                            } finally {
+                                                setUploading(false);
+                                            }
+                                        }}
+                                        className="px-4 py-2.5 bg-themePrimary text-themeHeaderBg rounded-xl font-bold text-xs flex items-center gap-1.5 hover:opacity-90"
+                                    >
+                                        <Save size={14} />
+                                        <span>{language === 'he' ? 'שמור פרטי כשרות' : 'Save Kosher Metadata'}</span>
+                                    </button>
+                                    {kosherCertUrl && (
+                                        <button
+                                            type="button"
+                                            onClick={() => updateKosherMetadata({ documentUrl: '', issuer: '', validUntil: null, verifiedAt: null })}
+                                            className="text-xs text-red-600 hover:underline font-bold"
+                                        >
+                                            {language === 'he' ? 'הסר תעודה' : 'Remove'}
+                                        </button>
+                                    )}
+                                </div>
+                                {kosherDraftValidUntil && (
+                                    <p className="text-[11px] text-themeText/65">
+                                        {(() => {
+                                            const preview = evaluateKosherStatus({
+                                                documentUrl: kosherCertUrl,
+                                                issuer: kosherDraftIssuer,
+                                                validUntil: kosherDraftValidUntil,
+                                            });
+                                            return language === 'he'
+                                                ? `תצוגה מקדימה לסטטוס: ${formatKosherStatusLabel(preview, 'he')}`
+                                                : `Status preview: ${formatKosherStatusLabel(preview, 'en')}`;
+                                        })()}
+                                    </p>
                                 )}
                             </div>
                         </div>
+                    </div>
+
+                    {/* Practical Info, Lead Time, Blocked Dates & Notification Email */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10 space-y-5">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Clock size={16} /></div>
+                            <h3 className="text-sm font-bold text-themeText uppercase">
+                                {language === 'he' ? 'פרטים מעשיים, התראות מייל ומועדים חסומים' : 'Practical Info, Alerts & Scheduling Rules'}
+                            </h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                            <div>
+                                <label className="block font-bold text-themeText/75 mb-1">{language === 'he' ? 'טלפון תצוגה' : 'Display Phone'}</label>
+                                <input
+                                    type="text"
+                                    value={practicalDraft.phoneDisplay}
+                                    onChange={(e) => setPracticalDraft({ ...practicalDraft, phoneDisplay: e.target.value })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                    dir="ltr"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-bold text-themeText/75 mb-1">{language === 'he' ? 'מספר וואטסאפ לעסק (למשל 972547474764)' : 'WhatsApp Number (digits)'}</label>
+                                <input
+                                    type="text"
+                                    value={practicalDraft.whatsappDigits}
+                                    onChange={(e) => setPracticalDraft({ ...practicalDraft, whatsappDigits: e.target.value })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                    dir="ltr"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-bold text-themeText/75 mb-1">{language === 'he' ? 'מייל לקבלת התראות הזמנות (פנימי)' : 'Order Alert Email (Private)'}</label>
+                                <input
+                                    type="email"
+                                    value={practicalDraft.notificationEmail || ''}
+                                    onChange={(e) => setPracticalDraft({ ...practicalDraft, notificationEmail: e.target.value })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                    dir="ltr"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-bold text-themeText/75 mb-1">{language === 'he' ? 'מייל פומבי להצגה ללקוחות (רשות)' : 'Public Contact Email (Optional)'}</label>
+                                <input
+                                    type="email"
+                                    value={practicalDraft.contactEmail || ''}
+                                    onChange={(e) => setPracticalDraft({ ...practicalDraft, contactEmail: e.target.value })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                    dir="ltr"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-bold text-themeText/75 mb-1">{language === 'he' ? 'זמן התראה מינימלי להזמנה (בשעות)' : 'Lead Time (Hours)'}</label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={720}
+                                    value={appConfig.lead_time_hours ?? 48}
+                                    onChange={(e) => updateAppConfig({ lead_time_hours: Math.max(0, Number(e.target.value) || 0) })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-bold text-themeText/75 mb-1">{language === 'he' ? 'מרחק משלוח מקסימלי (ק"מ, ריק = ללא הגבלה)' : 'Max Delivery Distance (km, blank = unlimited)'}</label>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    value={practicalDraft.maxDeliveryDistanceKm ?? ''}
+                                    onChange={(e) => setPracticalDraft({ ...practicalDraft, maxDeliveryDistanceKm: e.target.value ? Number(e.target.value) : null })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-bold text-themeText/75 mb-1">{language === 'he' ? 'אזור איסוף (עברית)' : 'Pickup Area (Hebrew)'}</label>
+                                <input
+                                    type="text"
+                                    value={practicalDraft.pickupAreaHe}
+                                    onChange={(e) => setPracticalDraft({ ...practicalDraft, pickupAreaHe: e.target.value })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-bold text-themeText/75 mb-1">{language === 'he' ? 'אזור איסוף (אנגלית)' : 'Pickup Area (English)'}</label>
+                                <input
+                                    type="text"
+                                    value={practicalDraft.pickupAreaEn}
+                                    onChange={(e) => setPracticalDraft({ ...practicalDraft, pickupAreaEn: e.target.value })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-bold text-themeText/75 mb-1">{language === 'he' ? 'אזורי משלוח (עברית)' : 'Service Area (Hebrew)'}</label>
+                                <input
+                                    type="text"
+                                    value={practicalDraft.serviceAreaHe}
+                                    onChange={(e) => setPracticalDraft({ ...practicalDraft, serviceAreaHe: e.target.value })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                />
+                            </div>
+                            <div className="sm:col-span-2 lg:col-span-3">
+                                <label className="block font-bold text-themeText/75 mb-1">
+                                    {language === 'he' ? 'תאריכים חסומים (YYYY-MM-DD מופרד בפסיקים)' : 'Blocked Dates (YYYY-MM-DD, comma separated)'}
+                                </label>
+                                <input
+                                    type="text"
+                                    value={blockedDatesInput}
+                                    onChange={(e) => setBlockedDatesInput(e.target.value)}
+                                    placeholder="2026-12-25, 2026-12-26"
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                    dir="ltr"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-bold text-themeText/75 mb-1">{language === 'he' ? 'שעות פעילות (עברית)' : 'Business Hours (Hebrew)'}</label>
+                                <input
+                                    type="text"
+                                    value={practicalDraft.businessHoursHe || ''}
+                                    onChange={(e) => setPracticalDraft({ ...practicalDraft, businessHoursHe: e.target.value })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                />
+                            </div>
+                            <div>
+                                <label className="block font-bold text-themeText/75 mb-1">{language === 'he' ? 'שעות פעילות (אנגלית)' : 'Business Hours (English)'}</label>
+                                <input
+                                    type="text"
+                                    value={practicalDraft.businessHoursEn || ''}
+                                    onChange={(e) => setPracticalDraft({ ...practicalDraft, businessHoursEn: e.target.value })}
+                                    className="w-full p-2.5 border border-themeText/20 bg-themeBg/30 rounded-lg text-themeText"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                disabled={uploading}
+                                onClick={async () => {
+                                    setUploading(true);
+                                    try {
+                                        const parsedBlocked = blockedDatesInput
+                                            .split(',')
+                                            .map((d) => d.trim())
+                                            .filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d));
+                                        await updatePracticalInfo({
+                                            ...practicalDraft,
+                                            blockedDates: parsedBlocked,
+                                        });
+                                        setFeedback({
+                                            isOpen: true,
+                                            type: 'success',
+                                            title: language === 'he' ? 'נשמר' : 'Saved',
+                                            message: language === 'he' ? 'הפרטים המעשיים והגדרות הזמינות נשמרו.' : 'Practical info and scheduling rules updated.',
+                                        });
+                                    } catch (err: unknown) {
+                                        setFeedback({
+                                            isOpen: true,
+                                            type: 'error',
+                                            title: language === 'he' ? 'שגיאה' : 'Error',
+                                            message: getErrorMessage(err, 'Failed saving practical info'),
+                                        });
+                                    } finally {
+                                        setUploading(false);
+                                    }
+                                }}
+                                className="px-5 py-2.5 bg-themePrimary text-themeHeaderBg rounded-xl font-bold text-xs flex items-center gap-1.5 hover:opacity-90"
+                            >
+                                <Save size={15} />
+                                <span>{language === 'he' ? 'שמור פרטים מעשיים' : 'Save Practical Info'}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Event Packages Editor Card */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10 space-y-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><Package size={16} /></div>
+                                <h3 className="text-sm font-bold text-themeText uppercase">{language === 'he' ? 'חבילות ואירועים לדוגמה' : 'Event Sample Packages'}</h3>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setPackagesDraft([
+                                    ...packagesDraft,
+                                    {
+                                        id: `pkg-${Date.now()}`,
+                                        name_he: language === 'he' ? 'חבילה חדשה' : 'New Package',
+                                        name_en: 'New Package',
+                                        description_he: '',
+                                        description_en: '',
+                                        recommended_guests_min: 15,
+                                        recommended_guests_max: 25,
+                                        event_type: 'basic',
+                                        items: [],
+                                        is_active: true,
+                                    },
+                                ])}
+                                className="px-3 py-1.5 rounded-lg bg-themePrimary text-themeHeaderBg font-bold text-xs flex items-center gap-1"
+                            >
+                                <Plus size={14} />
+                                <span>{language === 'he' ? 'הוסף חבילה' : 'Add Package'}</span>
+                            </button>
+                        </div>
+
+                        {packagesDraft.length === 0 ? (
+                            <p className="text-xs text-themeText/60">
+                                {language === 'he'
+                                    ? 'לא הוגדרו חבילות מותאמות — האתר מציג חבילות בסיס דינמיות ל-10, 20 ו-30 אורחים מתוך המנות הפעילות.'
+                                    : 'No custom packages saved — public site generates 10/20/30-guest templates from active dishes.'}
+                            </p>
+                        ) : (
+                            <div className="space-y-3">
+                                {packagesDraft.map((pkg, idx) => (
+                                    <div key={pkg.id} className="p-4 rounded-xl bg-themeBg/30 border border-themeText/10 space-y-3">
+                                        <div className="flex justify-between items-center gap-2">
+                                            <span className="text-xs font-bold">{pkg.name_he} ({pkg.recommended_guests_min}–{pkg.recommended_guests_max})</span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setPackagesDraft(packagesDraft.filter((_, i) => i !== idx))}
+                                                className="text-xs text-red-600 font-bold hover:underline"
+                                            >
+                                                {language === 'he' ? 'הסר' : 'Remove'}
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                            <input
+                                                type="text"
+                                                value={pkg.name_he}
+                                                onChange={(e) => {
+                                                    const copy = [...packagesDraft];
+                                                    copy[idx] = { ...pkg, name_he: e.target.value };
+                                                    setPackagesDraft(copy);
+                                                }}
+                                                placeholder="שם בעברית"
+                                                className="p-2 rounded border border-themeText/20 bg-themeCardBg"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={pkg.name_en}
+                                                onChange={(e) => {
+                                                    const copy = [...packagesDraft];
+                                                    copy[idx] = { ...pkg, name_en: e.target.value };
+                                                    setPackagesDraft(copy);
+                                                }}
+                                                placeholder="English title"
+                                                className="p-2 rounded border border-themeText/20 bg-themeCardBg"
+                                            />
+                                            <input
+                                                type="number"
+                                                min={1}
+                                                value={pkg.recommended_guests_max}
+                                                onChange={(e) => {
+                                                    const guests = Math.max(1, Number(e.target.value) || 10);
+                                                    const copy = [...packagesDraft];
+                                                    copy[idx] = { ...pkg, recommended_guests_min: Math.max(1, guests - 5), recommended_guests_max: guests };
+                                                    setPackagesDraft(copy);
+                                                }}
+                                                className="p-2 rounded border border-themeText/20 bg-themeCardBg"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                            <input
+                                                type="text"
+                                                value={pkg.description_he}
+                                                onChange={(e) => {
+                                                    const copy = [...packagesDraft];
+                                                    copy[idx] = { ...pkg, description_he: e.target.value };
+                                                    setPackagesDraft(copy);
+                                                }}
+                                                placeholder="תיאור החבילה בעברית"
+                                                className="p-2 rounded border border-themeText/20 bg-themeCardBg"
+                                            />
+                                            <input
+                                                type="text"
+                                                value={pkg.description_en}
+                                                onChange={(e) => {
+                                                    const copy = [...packagesDraft];
+                                                    copy[idx] = { ...pkg, description_en: e.target.value };
+                                                    setPackagesDraft(copy);
+                                                }}
+                                                placeholder="Package description (EN)"
+                                                className="p-2 rounded border border-themeText/20 bg-themeCardBg"
+                                                dir="ltr"
+                                            />
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5 pt-1">
+                                            {(menuItems || []).filter((m) => m.availability_status !== false && m.category !== 'Extras').slice(0, 18).map((dish) => {
+                                                const existing = pkg.items.find((pi) => pi.menu_item_id === dish.id);
+                                                return (
+                                                    <button
+                                                        key={dish.id}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            const copy = [...packagesDraft];
+                                                            const nextItems = existing
+                                                                ? pkg.items.filter((pi) => pi.menu_item_id !== dish.id)
+                                                                : [...pkg.items, { menu_item_id: dish.id, quantity: 1 }];
+                                                            copy[idx] = { ...pkg, items: nextItems };
+                                                            setPackagesDraft(copy);
+                                                        }}
+                                                        className={`px-2 py-1 rounded text-[11px] border transition ${
+                                                            existing
+                                                                ? 'bg-themePrimary text-themeHeaderBg border-themePrimary font-bold'
+                                                                : 'bg-themeCardBg text-themeText/75 border-themeText/15'
+                                                        }`}
+                                                    >
+                                                        {language === 'he' ? dish.name : (dish.name_en || dish.name)}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {(packagesDraft.length > 0 || packages.length > 0) && (
+                            <div className="flex justify-end">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        await updatePackages(packagesDraft);
+                                        setFeedback({
+                                            isOpen: true,
+                                            type: 'success',
+                                            title: language === 'he' ? 'נשמר' : 'Saved',
+                                            message: language === 'he' ? 'חבילות האירוח נשמרו.' : 'Packages saved.',
+                                        });
+                                    }}
+                                    className="px-4 py-2 bg-themePrimary text-themeHeaderBg rounded-xl font-bold text-xs flex items-center gap-1.5"
+                                >
+                                    <Save size={14} />
+                                    <span>{language === 'he' ? 'שמור חבילות' : 'Save Packages'}</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Aggregate Funnel Telemetry Card (30 Days, Non-PII) */}
+                    <div className="bg-themeCardBg p-6 rounded-2xl shadow-sm border border-themeText/10 space-y-3">
+                        <div className="flex items-center gap-2">
+                            <div className="p-1.5 bg-themePrimary/20 rounded text-themePrimary"><BarChart3 size={16} /></div>
+                            <h3 className="text-sm font-bold text-themeText uppercase">
+                                {language === 'he' ? 'סיכום פעילות אתר (30 ימים, אנונימי)' : 'Anonymous 30-Day Funnel Telemetry'}
+                            </h3>
+                        </div>
+                        {telemetrySummary.length === 0 ? (
+                            <p className="text-xs text-themeText/60">{language === 'he' ? 'אין עדיין אירועי מדידה מתועדים.' : 'No telemetry events recorded yet.'}</p>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                {telemetrySummary.map((row) => (
+                                    <div key={row.event_name} className="p-3 rounded-xl bg-themeBg/40 border border-themeText/10">
+                                        <div className="text-lg font-bold text-themeText">{row.count}</div>
+                                        <div className="text-[11px] font-mono text-themeText/70 break-all">{row.event_name}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     {/* Theme Settings Customizer Card */}
@@ -2461,7 +3156,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                             <div className="border-t border-themeText/10 pt-6">
                                 <h4 className="text-themeText font-bold mb-3 flex items-center gap-2 text-sm"><span className="w-2 h-6 bg-themePrimary rounded-sm"></span>{language === 'he' ? 'התאמת צבעים אישית' : 'Custom Theme Colors'}</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {[
+                                    {([
                                         { key: 'bg_color', label: language === 'he' ? 'צבע רקע כללי' : 'General Background' },
                                         { key: 'text_color', label: language === 'he' ? 'צבע טקסט כללי' : 'General Text Color' },
                                         { key: 'primary_color', label: language === 'he' ? 'צבע ראשי (כפתורים וזהב)' : 'Primary Theme Color' },
@@ -2471,12 +3166,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                         { key: 'hero_bg_color', label: language === 'he' ? 'רקע אזור הירו (פתיחה)' : 'Hero Background' },
                                         { key: 'card_bg_color', label: language === 'he' ? 'רקע כרטיס מנה' : 'Dish Card Background' },
                                         { key: 'card_text_color', label: language === 'he' ? 'טקסט כרטיס מנה' : 'Dish Card Text Color' },
-                                    ].map(({ key, label }) => (
+                                    ] as Array<{ key: keyof ThemeConfig; label: string }>).map(({ key, label }) => (
                                         <div key={key} className="flex items-center justify-between p-3 bg-themeBg/40 rounded-xl border border-themeText/10 shadow-sm">
                                             <span className="text-xs font-bold text-themeText/80">{label}</span>
                                             <input
                                                 type="color"
-                                                value={(theme as any)[key] || '#ffffff'}
+                                                value={theme[key] || '#ffffff'}
                                                 onChange={(e) => updateTheme({ [key]: e.target.value })}
                                                 className="w-8 h-8 rounded cursor-pointer border border-themeText/20 bg-transparent"
                                             />
@@ -2490,15 +3185,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
             </div>
 
             {/* Add Item Modal */}
-            {isAddModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsAddModalOpen(false)}></div>
-                    <div className="relative bg-themeCardBg border border-themeText/10 w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl animate-zoom-in text-start flex flex-col text-themeText">
+            <AccessibleModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                ariaLabel={t.createItemTitle}
+                dir={language === 'he' ? 'rtl' : 'ltr'}
+                showCloseButton={false}
+                overlayClassName="z-50 bg-black/60 backdrop-blur-sm"
+                contentClassName="bg-themeCardBg border border-themeText/10 w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl text-start flex flex-col text-themeText"
+            >
                         <div className="flex justify-between items-center mb-6 shrink-0">
                             <h2 className="text-2xl font-serif font-bold text-themeText">
                                 {t.createItemTitle}
                             </h2>
-                            <button onClick={() => setIsAddModalOpen(false)} className="text-themeText/70 hover:text-themeText bg-themeBg/50 hover:bg-themeBg p-2 rounded-full"><X size={20} /></button>
+                            <button onClick={() => setIsAddModalOpen(false)} aria-label={t.cancelBtn} className="text-themeText/70 hover:text-themeText bg-themeBg/50 hover:bg-themeBg p-2 rounded-full"><X size={20} /></button>
                         </div>
                         <div className="space-y-4 flex-1 overflow-y-auto">
                             {/* Image Upload */}
@@ -2541,9 +3241,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                             </div>
 
                             {/* Name */}
-                            <div>
-                                <label className="block text-sm font-bold text-themeText/80 mb-1">{t.productName}</label>
-                                <input type="text" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.productName}</label>
+                                    <input type="text" value={newItem.name} onChange={(e) => setNewItem({ ...newItem, name: e.target.value })} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{language === 'he' ? 'שם באנגלית (למצב EN)' : 'English Name'}</label>
+                                    <input type="text" value={newItem.name_en || ''} onChange={(e) => setNewItem({ ...newItem, name_en: e.target.value })} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" dir="ltr" />
+                                </div>
                             </div>
 
                             {/* Category & Unit Type Row */}
@@ -2566,7 +3272,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                         className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none text-start bg-transparent"
                                     >
                                         {CATEGORY_OPTIONS.map(cat => (
-                                            <option key={cat} value={cat}>{(rootT.categories as any)[cat] || cat}</option>
+                                            <option key={cat} value={cat}>{rootT.categories[cat] || cat}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -2596,10 +3302,38 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                 </div>
                             </div>
 
-                            {/* Description */}
+                            {/* Description & Dietary Tags */}
                             <div>
                                 <label className="block text-sm font-bold text-themeText/80 mb-1">{t.description}</label>
                                 <textarea value={newItem.description} onChange={(e) => setNewItem({ ...newItem, description: e.target.value })} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none h-20 resize-none" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-themeText/80 mb-1">{language === 'he' ? 'תיאור באנגלית' : 'Description (EN)'}</label>
+                                <textarea value={newItem.description_en || ''} onChange={(e) => setNewItem({ ...newItem, description_en: e.target.value })} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none h-16 resize-none" dir="ltr" />
+                            </div>
+                            <div>
+                                <span className="block text-sm font-bold text-themeText/80 mb-1">{language === 'he' ? 'תגיות תזונה' : 'Dietary Tags'}</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {DIETARY_TAG_OPTIONS.map((tag) => {
+                                        const checked = (newItem.dietary_tags || []).includes(tag.id);
+                                        return (
+                                            <label key={tag.id} className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-themeText/20 bg-themeBg/40 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={(e) => {
+                                                        const prev = newItem.dietary_tags || [];
+                                                        setNewItem({
+                                                            ...newItem,
+                                                            dietary_tags: e.target.checked ? [...prev, tag.id] : prev.filter((x) => x !== tag.id),
+                                                        });
+                                                    }}
+                                                />
+                                                <span>{language === 'he' ? tag.labelHe : tag.labelEn}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
                             </div>
 
                             {/* Premium Toggle */}
@@ -2640,25 +3374,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                 {t.cancelBtn}
                             </button>
                         </div>
-                    </div>
-                </div>
-            )}
+            </AccessibleModal>
 
-            {editingItem && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingItem(null)}></div>
-                    <div className="relative bg-themeCardBg border border-themeText/10 w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl animate-zoom-in text-start flex flex-col text-themeText">
+            <AccessibleModal
+                isOpen={Boolean(editingItem)}
+                onClose={() => setEditingItem(null)}
+                ariaLabel={editingItem ? `${t.editItemTitle}: ${getLocalizedItem(editingItem, language).name}` : t.editItemTitle}
+                dir={language === 'he' ? 'rtl' : 'ltr'}
+                showCloseButton={false}
+                overlayClassName="z-50 bg-black/60 backdrop-blur-sm"
+                contentClassName="bg-themeCardBg border border-themeText/10 w-full max-h-[85vh] h-auto md:max-w-lg rounded-2xl p-6 shadow-2xl text-start flex flex-col text-themeText"
+            >
+                {editingItem && (
+                    <>
                         <div className="flex justify-between items-center mb-6 shrink-0">
                             <h2 className="text-2xl font-serif font-bold text-themeText">
                                 {t.editItemTitle}: {getLocalizedItem(editingItem, language).name}
                             </h2>
-                            <button onClick={() => setEditingItem(null)} className="text-themeText/70 hover:text-themeText bg-themeBg/50 hover:bg-themeBg p-2 rounded-full"><X size={20} /></button>
+                            <button onClick={() => setEditingItem(null)} aria-label={t.cancelBtn} className="text-themeText/70 hover:text-themeText bg-themeBg/50 hover:bg-themeBg p-2 rounded-full"><X size={20} /></button>
                         </div>
                         <div className="space-y-4 flex-1 overflow-y-auto">
                             {/* Dish Name */}
-                            <div>
-                                <label className="block text-sm font-bold text-themeText/80 mb-1">{t.dishName}</label>
-                                <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{t.dishName}</label>
+                                    <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-themeText/80 mb-1">{language === 'he' ? 'שם באנגלית' : 'Name (EN)'}</label>
+                                    <input type="text" value={editNameEn} onChange={(e) => setEditNameEn(e.target.value)} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none" dir="ltr" />
+                                </div>
                             </div>
                             
                             {/* Image Upload */}
@@ -2720,7 +3465,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                         className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none text-start bg-transparent"
                                     >
                                         {CATEGORY_OPTIONS.map(cat => (
-                                            <option key={cat} value={cat}>{(rootT.categories as any)[cat] || cat}</option>
+                                            <option key={cat} value={cat}>{rootT.categories[cat] || cat}</option>
                                         ))}
                                     </select>
                                 </div>
@@ -2750,10 +3495,32 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                 </div>
                             </div>
 
-                            {/* Description */}
+                            {/* Description & Dietary Tags */}
                             <div>
                                 <label className="block text-sm font-bold text-themeText/80 mb-1">{t.description}</label>
                                 <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none h-20 resize-none" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-themeText/80 mb-1">{language === 'he' ? 'תיאור באנגלית' : 'Description (EN)'}</label>
+                                <textarea value={editDescriptionEn} onChange={(e) => setEditDescriptionEn(e.target.value)} className="w-full p-2 border border-themeText/20 bg-themeBg/50 text-themeText rounded focus:border-themePrimary outline-none h-16 resize-none" dir="ltr" />
+                            </div>
+                            <div>
+                                <span className="block text-sm font-bold text-themeText/80 mb-1">{language === 'he' ? 'תגיות תזונה' : 'Dietary Tags'}</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {DIETARY_TAG_OPTIONS.map((tag) => {
+                                        const checked = editDietaryTags.includes(tag.id);
+                                        return (
+                                            <label key={tag.id} className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg border border-themeText/20 bg-themeBg/40 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={(e) => setEditDietaryTags(e.target.checked ? [...editDietaryTags, tag.id] : editDietaryTags.filter((x) => x !== tag.id))}
+                                                />
+                                                <span>{language === 'he' ? tag.labelHe : tag.labelEn}</span>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
                             </div>
 
                             <div>
@@ -2811,16 +3578,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                 {t.deleteItem}
                             </button>
                         </div>
-                    </div>
-                </div>
-            )}
+                    </>
+                )}
+            </AccessibleModal>
 
             {/* Quote Edit & PDF Generation Modal */}
-            {quoteOrder && (
-                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 md:p-6 font-sans">
-                    <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" onClick={() => setQuoteOrder(null)}></div>
-                    
-                    <div className="relative bg-themeBg w-full max-w-xl max-h-[85vh] rounded-2xl md:rounded-3xl flex flex-col shadow-2xl animate-zoom-in overflow-hidden border border-themeText/10 text-themeText">
+            <AccessibleModal
+                isOpen={Boolean(quoteOrder)}
+                onClose={() => setQuoteOrder(null)}
+                ariaLabel={language === 'he' ? 'עריכת הצעת מחיר' : 'Edit Quote'}
+                dir={language === 'he' ? 'rtl' : 'ltr'}
+                showCloseButton={false}
+                overlayClassName="z-[150] bg-stone-900/80 backdrop-blur-sm"
+                contentClassName="bg-themeBg w-full max-w-xl max-h-[85vh] rounded-2xl md:rounded-3xl flex flex-col shadow-2xl overflow-hidden border border-themeText/10 text-themeText"
+            >
+                {quoteOrder && (
+                    <>
                         {/* Header */}
                         <div className="p-6 bg-themeHeaderBg text-themeHeaderTxt flex items-center justify-between shadow-md z-10 shrink-0">
                             <div className="flex items-center gap-3">
@@ -2829,7 +3602,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                     {language === 'he' ? 'עריכת הצעת מחיר' : 'Edit Quote'}
                                 </h3>
                             </div>
-                            <button onClick={() => setQuoteOrder(null)} className="hover:text-themePrimary text-themeHeaderTxt transition hover:rotate-90 duration-200">
+                            <button onClick={() => setQuoteOrder(null)} aria-label={language === 'he' ? 'סגור' : 'Close'} className="hover:text-themePrimary text-themeHeaderTxt transition hover:rotate-90 duration-200">
                                 <X />
                             </button>
                         </div>
@@ -3121,30 +3894,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                             </button>
                             <button 
                                 onClick={handleGenerateQuotePdf}
-                                className="flex-1 bg-themePrimary text-themeCardBg font-bold py-3 rounded-xl hover:bg-themeSecondary active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 text-sm"
+                                className="flex-1 bg-themePrimary text-themeHeaderBg font-bold py-3 rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 text-sm"
                             >
                                 <FileText size={16} />
                                 {language === 'he' ? 'הפקת הצעת מחיר' : 'Generate Quote'}
                             </button>
                         </div>
-                    </div>
-                </div>
-            )}
+                    </>
+                )}
+            </AccessibleModal>
 
-            {quoteSuccessData?.isOpen && (
-                <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 animate-fade-in">
-                    <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm transition-opacity" onClick={() => setQuoteSuccessData(null)}></div>
-                    <div className="bg-themeCardBg border border-themeText/10 rounded-2xl max-w-md w-full p-6 shadow-2xl relative z-10 text-center">
+            <AccessibleModal
+                isOpen={Boolean(quoteSuccessData?.isOpen)}
+                onClose={() => setQuoteSuccessData(null)}
+                ariaLabel={language === 'he' ? 'הצעת המחיר הופקה בהצלחה' : 'Quote Generated Successfully'}
+                dir={language === 'he' ? 'rtl' : 'ltr'}
+                overlayClassName="z-[250] bg-stone-900/80 backdrop-blur-sm"
+                contentClassName="bg-themeCardBg border border-themeText/10 rounded-2xl max-w-md w-full p-6 shadow-2xl text-center"
+            >
+                {quoteSuccessData && (
+                    <div>
                         <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <CheckCheck className="text-green-500" size={24} />
+                            <CheckCheck className="text-green-600" size={24} />
                         </div>
                         <h3 className="text-lg font-bold text-themeText mb-2">
                             {language === 'he' ? 'הצעת המחיר הופקה בהצלחה!' : 'Quote Generated Successfully!'}
                         </h3>
-                        <p className="text-xs text-themeText/60 mb-6">
-                            {language === 'he' 
-                                ? `הצעת המחיר נשמרה בבסיס הנתונים עבור ${quoteSuccessData.customerName}.` 
-                                : `The quote was saved in the database for ${quoteSuccessData.customerName}.`}
+                        <p className="text-xs text-themeText/70 mb-6">
+                            {language === 'he'
+                                ? `הצעת המחיר נשמרה בבסיס הנתונים עבור ${quoteSuccessData.customerName} עם קישור צפייה מאובטח ומוגבל בזמן.`
+                                : `The quote was saved for ${quoteSuccessData.customerName} with a scoped expiring link.`}
                         </p>
 
                         <div className="flex flex-col gap-3">
@@ -3153,45 +3932,47 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                     const orderToQuote = orders.find(o => o.id === quoteSuccessData.orderId);
                                     if (orderToQuote) {
                                         openQuoteDialog(orderToQuote);
-                                    } else {
-                                        window.open(`/?quote=${quoteSuccessData.orderId}`, '_blank');
+                                    } else if (quoteSuccessData.quoteUrl) {
+                                        window.open(quoteSuccessData.quoteUrl, '_blank', 'noopener,noreferrer');
                                     }
                                 }}
-                                className="w-full bg-themePrimary text-themeCardBg font-bold py-3 rounded-xl hover:bg-themeSecondary transition-all shadow-md flex items-center justify-center gap-2 text-sm"
+                                className="w-full bg-themePrimary text-themeHeaderBg font-bold py-3 rounded-xl hover:opacity-90 transition-all shadow-md flex items-center justify-center gap-2 text-sm"
                             >
                                 <FileText size={16} />
-                                <span>{language === 'he' ? '📄 פתיחה / הורדת קובץ PDF' : 'Open / Download PDF'}</span>
+                                <span>{language === 'he' ? 'עריכה / הדפסה חוזרת של ההצעה' : 'Re-open / Print Quote'}</span>
                             </button>
 
                             <button
                                 onClick={() => {
-                                    const cleanPhone = quoteSuccessData.customerPhone.replace(/[-+\s]/g, '');
-                                    const formattedPhone = cleanPhone.startsWith('0') ? '972' + cleanPhone.slice(1) : cleanPhone;
-                                    const quoteUrl = `${window.location.origin}/?quote=${quoteSuccessData.orderId}`;
+                                    const cleanPhone = cleanPhoneForWhatsapp(quoteSuccessData.customerPhone || '');
+                                    const quoteUrl = quoteSuccessData.quoteUrl || '';
                                     const message = language === 'he'
-                                        ? `היי ${quoteSuccessData.customerName}, הנה הצעת המחיר המעוצבת שהכנתי עבורך לאירוע 📄✨:\n${quoteUrl}`
-                                        : `Hi ${quoteSuccessData.customerName}, here is the quote proposal for your event:\n${quoteUrl}`;
-                                    window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+                                        ? `היי ${quoteSuccessData.customerName}, הנה הצעת המחיר המעוצבת שהכנתי עבורך לאירוע:${quoteUrl ? `\n${quoteUrl}` : ''}`
+                                        : `Hi ${quoteSuccessData.customerName}, here is the quote proposal for your event:${quoteUrl ? `\n${quoteUrl}` : ''}`;
+                                    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
                                 }}
                                 className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm"
                             >
-                                <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.625 1.45 5.326.002 9.66-4.322 9.663-9.654.002-2.585-1.005-5.01-2.835-6.84C16.25 2.28 13.824 1.272 11.24 1.27c-5.328 0-9.664 4.321-9.667 9.656-.001 1.544.412 3.052 1.196 4.385l-.974 3.556 3.649-.957z"/>
-                                </svg>
                                 <span>{language === 'he' ? 'שליחה בוואטסאפ ללקוח' : 'Send via WhatsApp to Customer'}</span>
                             </button>
 
-                            <button
-                                onClick={() => {
-                                    const quoteUrl = `${window.location.origin}/?quote=${quoteSuccessData.orderId}`;
-                                    navigator.clipboard.writeText(quoteUrl);
-                                    alert(language === 'he' ? 'הקישור הועתק ללוח!' : 'Link copied to clipboard!');
-                                }}
-                                className="w-full border border-themeText/25 text-themeText font-bold py-3 rounded-xl hover:bg-themeBg/20 transition-all text-sm flex items-center justify-center gap-2"
-                            >
-                                <span>🔗</span>
-                                <span>{language === 'he' ? 'העתקת קישור להצעה' : 'Copy Quote Link'}</span>
-                            </button>
+                            {quoteSuccessData.quoteUrl && (
+                                <button
+                                    onClick={async () => {
+                                        await navigator.clipboard?.writeText(quoteSuccessData.quoteUrl);
+                                        setFeedback({
+                                            isOpen: true,
+                                            type: 'success',
+                                            title: language === 'he' ? 'הועתק' : 'Copied',
+                                            message: language === 'he' ? 'הקישור המאובטח הועתק ללוח.' : 'Scoped quote link copied to clipboard.',
+                                        });
+                                    }}
+                                    className="w-full border border-themeText/25 text-themeText font-bold py-3 rounded-xl hover:bg-themeBg/20 transition-all text-sm flex items-center justify-center gap-2"
+                                >
+                                    <Copy size={15} />
+                                    <span>{language === 'he' ? 'העתקת קישור מאובטח להצעה' : 'Copy Scoped Quote Link'}</span>
+                                </button>
+                            )}
 
                             <button
                                 onClick={() => setQuoteSuccessData(null)}
@@ -3201,8 +3982,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+            </AccessibleModal>
         </div>
     );
 };

@@ -1,15 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Bell, CheckCheck, ExternalLink, Volume2, VolumeX, X } from 'lucide-react';
-import { db } from '../lib/db';
+import { api } from '../lib/api';
 import { useStore } from '../store';
+import type { CartItem, MenuItem, Order } from '../types';
 
 interface NotificationBellProps {
   onOpenOrder?: (orderId: string) => void;
 }
 
+type WebkitAudioWindow = Window & { webkitAudioContext?: typeof AudioContext };
+
 export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder }) => {
   const { language, menuItems } = useStore();
-  const [unreadOrders, setUnreadOrders] = useState<any[]>([]);
+  const [unreadOrders, setUnreadOrders] = useState<Order[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -24,7 +27,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
     const unlockAudio = () => {
       try {
         if (!audioCtxRef.current) {
-          const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+          const AudioCtx = window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext;
           if (AudioCtx) {
             audioCtxRef.current = new AudioCtx();
           }
@@ -46,11 +49,11 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
   }, []);
 
   // Play pleasant chime sound
-  const playChimeSound = () => {
+  const playChimeSound = useCallback(() => {
     if (!soundEnabled) return;
     try {
       if (!audioCtxRef.current) {
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        const AudioCtx = window.AudioContext || (window as WebkitAudioWindow).webkitAudioContext;
         if (AudioCtx) audioCtxRef.current = new AudioCtx();
       }
       const ctx = audioCtxRef.current;
@@ -85,87 +88,47 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
     } catch (e) {
       console.warn("Could not play chime sound:", e);
     }
-  };
+  }, [soundEnabled]);
 
-  // Fetch pending orders function
-  const fetchPendingOrders = async (isPolling = false) => {
+  // Fetch pending orders via authenticated Admin API
+  const fetchPendingOrders = useCallback(async (isPolling = false) => {
     try {
-      const { data, error } = await db.from('orders')
-        .select('*')
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(10);
+      const res = await api.fetchAdminOrders();
+      const pending = (res.orders || []).filter((o) => o.status === 'pending').slice(0, 10);
 
-      if (!error && data) {
-        // Detect newly arrived orders during polling
-        if (isPolling) {
-          const brandNewOrders = data.filter((order: any) => !knownOrderIdsRef.current.has(order.id));
-          if (brandNewOrders.length > 0) {
-            playChimeSound();
-            const latest = brandNewOrders[0];
-            const name = latest.customer_name || (language === 'he' ? 'לקוח חדש' : 'New Customer');
-            setToastMessage(
-              language === 'he'
-                ? `🔔 הזמנה חדשה נכנסה למערכת מ-${name}!`
-                : `🔔 New order received from ${name}!`
-            );
-            setTimeout(() => setToastMessage(null), 6000);
-          }
+      if (isPolling) {
+        const brandNewOrders = pending.filter((order) => order.id && !knownOrderIdsRef.current.has(order.id));
+        if (brandNewOrders.length > 0) {
+          playChimeSound();
+          const latest = brandNewOrders[0];
+          const name = latest.customer_name || (language === 'he' ? 'לקוח חדש' : 'New Customer');
+          setToastMessage(
+            language === 'he'
+              ? `הזמנה/בקשה חדשה התקבלה מ-${name}`
+              : `New quote request received from ${name}`
+          );
+          setTimeout(() => setToastMessage(null), 6000);
         }
-
-        // Update known IDs
-        data.forEach((order: any) => knownOrderIdsRef.current.add(order.id));
-        setUnreadOrders(data);
       }
-    } catch (err) {
-      console.error("Error fetching pending orders:", err);
-    }
-  };
 
-  // Initial fetch and Polling interval (every 10 seconds for robust mobile updates)
+      pending.forEach((order) => {
+        if (order.id) knownOrderIdsRef.current.add(order.id);
+      });
+      setUnreadOrders(pending);
+    } catch {
+      // Unauthenticated or transient polling errors are ignored quietly
+    }
+  }, [language, playChimeSound]);
+
   useEffect(() => {
-    fetchPendingOrders(false);
+    void fetchPendingOrders(false);
 
     const interval = setInterval(() => {
-      fetchPendingOrders(true);
-    }, 10000);
+      void fetchPendingOrders(true);
+    }, 15000);
 
     return () => clearInterval(interval);
-  }, [language, soundEnabled]);
-
-  // Listen for real-time WebSocket inserts in database
-  useEffect(() => {
-    const channel = db.channel('orders-realtime-bell')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'orders'
-        },
-        (payload: any) => {
-          const newOrder = payload.new;
-          if (newOrder && !knownOrderIdsRef.current.has(newOrder.id)) {
-            knownOrderIdsRef.current.add(newOrder.id);
-            playChimeSound();
-            setUnreadOrders((prev) => [newOrder, ...prev]);
-
-            const customerName = newOrder.customer_name || (language === 'he' ? 'לקוח חדש' : 'New Customer');
-            const message = language === 'he'
-              ? `🔔 הזמנה חדשה נכנסה למערכת מ-${customerName}!`
-              : `🔔 New order received from ${customerName}!`;
-
-            setToastMessage(message);
-            setTimeout(() => setToastMessage(null), 6000);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      db.removeChannel(channel);
-    };
-  }, [soundEnabled, language]);
+  }, [fetchPendingOrders]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -264,19 +227,19 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
               unreadOrders.map((order) => {
                 const dateStr = order.created_at
                   ? new Date(order.created_at).toLocaleTimeString(language === 'he' ? 'he-IL' : 'en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })
                   : '';
                 const orderNo = order.id ? order.id.slice(0, 8) : '';
 
                 const displayPrice = (() => {
                   if (order.total_price && order.total_price > 0) return order.total_price;
                   if (!order.items || order.items.length === 0) return 0;
-                  return order.items.reduce((sum: number, item: any) => {
+                  return order.items.reduce((sum: number, item: CartItem) => {
                     let p = item.price || 0;
                     if (!p || p === 0) {
-                      const menuI = menuItems.find((m: any) => m.id === item.id || m.name === item.name);
+                      const menuI = menuItems.find((m: MenuItem) => m.id === item.id || m.name === item.name);
                       if (menuI) p = menuI.price;
                     }
                     return sum + (p * (item.quantity || 1));
@@ -311,7 +274,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenOrder 
                     <button
                       onClick={() => {
                         setIsOpen(false);
-                        if (onOpenOrder) {
+                        if (onOpenOrder && order.id) {
                           onOpenOrder(order.id);
                         }
                       }}
