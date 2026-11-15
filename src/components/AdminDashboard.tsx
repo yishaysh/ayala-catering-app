@@ -1036,28 +1036,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         }
     };
 
-    const handleResendNotification = async (orderId: string) => {
-        try {
-            const res = await api.resendOrderNotification(orderId);
-            await loadOrders();
-            setFeedback({
-                isOpen: true,
-                type: res.ok ? 'success' : 'warning',
-                title: res.ok ? (language === 'he' ? 'התראה נשלחה' : 'Notification Sent') : (language === 'he' ? 'סטטוס התראה' : 'Notification Status'),
-                message: res.ok
-                    ? (language === 'he' ? 'התראת המייל נשלחה מחדש בהצלחה.' : 'Notification email resent successfully.')
-                    : (res.notification?.error || (language === 'he' ? 'שליחת המייל נכשלה או שכתובת יעד/מפתח שרת אינם מוגדרים.' : 'Email send failed or notification provider is not configured.')),
-            });
-        } catch (err: unknown) {
-            setFeedback({
-                isOpen: true,
-                type: 'error',
-                title: language === 'he' ? 'שגיאה' : 'Error',
-                message: getErrorMessage(err, 'Resend failed'),
-            });
-        }
-    };
-
     const handleCopyScopedLink = async (orderId: string) => {
         try {
             const res = await api.updateAdminOrder({ id: orderId, mint_share_token: true });
@@ -1691,17 +1669,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                                             <div className="flex items-center gap-2 flex-wrap">
                                                                 <span className="text-sm font-bold text-themeText">#{partialId}</span>
                                                                 <span className="text-xs text-themeText/65 flex items-center gap-1"><Calendar size={12} /> {dateStr}</span>
-                                                                {order.notification_status && (
-                                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                                                        order.notification_status === 'sent'
-                                                                            ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20'
-                                                                            : order.notification_status === 'failed'
-                                                                                ? 'bg-red-500/10 text-red-700 border-red-500/25'
-                                                                                : 'bg-amber-500/10 text-amber-700 border-amber-500/25'
-                                                                    }`}>
-                                                                        {language === 'he' ? `התראת מייל: ${order.notification_status}` : `Email: ${order.notification_status}`}
-                                                                    </span>
-                                                                )}
                                                                 {order.handoff_status && (
                                                                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-themeBg text-themeText/75 border border-themeText/15">
                                                                         {language === 'he' ? `וואטסאפ/מעקב: ${order.handoff_status}` : `Handoff: ${order.handoff_status}`}
@@ -1755,11 +1722,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                                                     <strong>{language === 'he' ? 'הערות:' : 'Notes:'}</strong> {order.notes}
                                                                 </p>
                                                             )}
-                                                            {order.notification_error && (
-                                                                <p className="mt-1 text-[11px] text-red-700 font-medium">
-                                                                    {language === 'he' ? 'שגיאת התראה:' : 'Alert error:'} {order.notification_error}
-                                                                </p>
-                                                            )}
                                                         </div>
                                                         <div className="flex items-center gap-2 md:gap-3">
                                                             <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${statusColors[order.status] || 'bg-themeBg text-themeText/80 border-themeText/10'}`}>
@@ -1809,16 +1771,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                                             <Copy size={15} />
                                                             <span>{language === 'he' ? 'קישור מאובטח' : 'Customer Link'}</span>
                                                         </button>
-
-                                                        {(order.notification_status === 'failed' || order.notification_status === 'unconfigured') && (
-                                                            <button
-                                                                onClick={() => handleResendNotification(order.id!)}
-                                                                className="p-2 bg-amber-500/10 text-amber-800 border border-amber-500/25 rounded-xl hover:bg-amber-500/20 transition-all duration-200 flex items-center gap-1 text-xs font-bold"
-                                                            >
-                                                                <RefreshCw size={15} />
-                                                                <span>{language === 'he' ? 'שלח התראה מחדש' : 'Resend Alert'}</span>
-                                                            </button>
-                                                        )}
 
                                                         {order.handoff_status !== 'confirmed_by_owner' && (
                                                             <button
