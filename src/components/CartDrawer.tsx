@@ -60,6 +60,22 @@ const KEDUMIM_COORDS = {
   lon: 35.1643,
 };
 
+// 24-hour time slots in 30-minute intervals (starts at 06:00 through midnight/early morning)
+const HALF_HOUR_TIME_SLOTS: string[] = [
+  ...Array.from({ length: 36 }, (_, i) => {
+    const totalMinutes = 6 * 60 + i * 30;
+    const h = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+    const m = String(totalMinutes % 60).padStart(2, '0');
+    return `${h}:${m}`;
+  }),
+  ...Array.from({ length: 12 }, (_, i) => {
+    const totalMinutes = i * 30;
+    const h = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+    const m = String(totalMinutes % 60).padStart(2, '0');
+    return `${h}:${m}`;
+  }),
+];
+
 const deg2rad = (deg: number) => deg * (Math.PI / 180);
 
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -124,6 +140,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const [wantsSetup, setWantsSetup] = useState(false);
   const [eventDate, setEventDate] = useState(customerDetails.eventDate || '');
   const [eventTime, setEventTime] = useState(customerDetails.eventTime || '');
+
+  const timeOptions = useMemo(() => {
+    if (eventTime && !HALF_HOUR_TIME_SLOTS.includes(eventTime)) {
+      return [eventTime, ...HALF_HOUR_TIME_SLOTS];
+    }
+    return HALF_HOUR_TIME_SLOTS;
+  }, [eventTime]);
   const [allergyNotes, setAllergyNotes] = useState(customerDetails.allergyNotes || '');
   const [generalNotes, setGeneralNotes] = useState(customerDetails.notes || '');
 
@@ -1279,16 +1302,24 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         <Clock size={12} className="text-themePrimary" aria-hidden="true" />
                         <span>{isHe ? 'שעה משוערת (אופציונלי)' : 'Event Time (Optional)'}</span>
                       </label>
-                      <input
+                      <select
                         id="cart-event-time"
-                        type="time"
                         value={eventTime}
                         onChange={(e) => {
                           setEventTime(e.target.value);
                           markTouched('eventDate');
                         }}
-                        className="w-full bg-themeBg border border-themeText/20 focus:border-themePrimary rounded-lg p-2 text-sm outline-none text-themeText font-sans"
-                      />
+                        className="w-full bg-themeBg border border-themeText/20 focus:border-themePrimary rounded-lg p-2 text-sm outline-none text-themeText font-sans cursor-pointer"
+                      >
+                        <option value="">
+                          {isHe ? 'שעה גמישה / לא נבחר' : 'Select time (optional)'}
+                        </option>
+                        {timeOptions.map((time) => (
+                          <option key={time} value={time}>
+                            {time}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <p id="hint-eventDate" className="text-[11px] text-themeText/70 -mt-1.5">

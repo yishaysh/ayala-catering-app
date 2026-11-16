@@ -77,7 +77,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         advancedSettings, updateAdvancedSettings,
         featureFlags, updateFeatureFlags,
         language, getCoupons, createCoupon, deleteCoupon,
-        appConfig, updateAppConfig,
+        appConfig, updateAppConfig, getDeliveryFee,
         theme, updateTheme, gallery, updateGallery,
         kosherCertUrl, kosherMetadata, kosherEvaluation, updateKosherMetadata,
         publicContact, packages, updatePracticalInfo, updatePackages,
@@ -198,11 +198,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         const rawTotalPrice = Number(order.total_price || 0);
         const rawDeliveryFee = Number(order.delivery_fee || 0);
         const deducedDelivery = Math.max(0, rawTotalPrice - (calcSubtotal - calcDisc + calcSetup));
+        const autoDelivery = order.delivery_method === 'delivery' && Number(order.distance_km || 0) > 0
+            ? getDeliveryFee(Number(order.distance_km), calcSubtotal)
+            : (rawDeliveryFee > 0 ? rawDeliveryFee : deducedDelivery);
 
         setQuoteItems(items);
         setQuoteDiscountPercent(0);
         setQuoteWantsSetup(!!order.wants_setup);
-        setQuoteDeliveryFee(rawDeliveryFee > 0 ? rawDeliveryFee : deducedDelivery);
+        setQuoteDeliveryFee(autoDelivery);
     };
 
     const handleRemoveDishFromQuote = (index: number) => {

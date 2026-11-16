@@ -1,7 +1,7 @@
 // Public API handlers: bootstrap catalog/settings, coupon check, quote creation & scoped viewing, reviews, AI menu planner, telemetry.
 
 import { ALLOWED_TELEMETRY_EVENTS } from '../../shared/config.js';
-import { calculateServerQuoteTotals } from '../../shared/pricing.js';
+import { calculateDeliveryFeeAmount, calculateServerQuoteTotals } from '../../shared/pricing.js';
 import type {
   CartItem,
   Coupon,
@@ -288,6 +288,27 @@ async function handleGetScopedQuote(
       };
     });
 
+    const distanceKm = row.distance_km != null ? Number(row.distance_km) : null;
+    let deliveryFee = Number(row.delivery_fee || 0);
+    let totalPrice = Number(row.total_price || 0);
+    const subtotal = Number(row.subtotal || 0);
+    const discountAmount = Number(row.discount_amount || 0);
+
+    // Apply active delivery fee logic to quotes where distance is known
+    if (row.delivery_method === 'delivery' && distanceKm !== null && distanceKm > 0) {
+      const calculatedFee = calculateDeliveryFeeAmount(
+        distanceKm,
+        subtotal,
+        settings.config,
+        settings.calculation_settings
+      );
+      if (deliveryFee === 0 || deliveryFee !== calculatedFee) {
+        deliveryFee = calculatedFee;
+        const setupFee = row.wants_setup ? 1000 : 0;
+        totalPrice = Math.max(0, subtotal - discountAmount + deliveryFee + setupFee);
+      }
+    }
+
     const payload: CustomerSafeQuoteView = {
       reference_code: String(row.reference_code || ''),
       customer_name: String(row.customer_name || ''),
@@ -303,7 +324,7 @@ async function handleGetScopedQuote(
         typeof row.resolved_location === 'string' && row.resolved_location
           ? row.resolved_location
           : undefined,
-      distance_km: row.distance_km != null ? Number(row.distance_km) : null,
+      distance_km: distanceKm,
       adult_count: row.adult_count != null ? Number(row.adult_count) : null,
       child_count: row.child_count != null ? Number(row.child_count) : null,
       wants_setup: Boolean(row.wants_setup),
@@ -312,10 +333,10 @@ async function handleGetScopedQuote(
       status: (row.status || 'Pending') as Order['status'],
       items: safeItems,
       ecommerce_mode: true,
-      subtotal: Number(row.subtotal || 0),
-      discount_amount: Number(row.discount_amount || 0),
-      delivery_fee: Number(row.delivery_fee || 0),
-      total_price: Number(row.total_price || 0),
+      subtotal,
+      discount_amount: discountAmount,
+      delivery_fee: deliveryFee,
+      total_price: totalPrice,
       created_at: String(row.created_at || ''),
       expires_at: expiresAt.toISOString(),
       contact: settings.public_contact,
