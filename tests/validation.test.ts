@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { calculateDeliveryFeeAmount } from '../shared/pricing.js';
 import {
   getJerusalemParts,
   jerusalemWallClockToUtcMs,
@@ -234,5 +235,35 @@ describe('validateQuoteRequest and idempotency serialization', () => {
     expect(validateReviewInput({ customer_name: 'דנה', rating: 5, comment: 'היה מושלם!' }).valid).toBe(true);
     expect(validateReviewInput({ customer_name: 'דנה', rating: 6, comment: 'היה מושלם!' }).valid).toBe(false);
     expect(validateReviewInput({ customer_name: 'א', rating: 5, comment: 'א' }).valid).toBe(false);
+  });
+});
+
+describe('calculateDeliveryFeeAmount', () => {
+  it('calculates 150 base + 4.5 per km (e.g. 50 km: 150 + 225 = 375)', () => {
+    expect(calculateDeliveryFeeAmount(50)).toBe(375);
+  });
+
+  it('calculates 13 km accurately to nearest integer (150 + 58.5 = 209)', () => {
+    expect(calculateDeliveryFeeAmount(13)).toBe(209);
+  });
+
+  it('returns 0 for 0, negative, or null distance', () => {
+    expect(calculateDeliveryFeeAmount(0)).toBe(0);
+    expect(calculateDeliveryFeeAmount(-5)).toBe(0);
+    expect(calculateDeliveryFeeAmount(null)).toBe(0);
+  });
+
+  it('never grants free delivery regardless of subtotal amount', () => {
+    expect(calculateDeliveryFeeAmount(50, 100000)).toBe(375);
+    expect(calculateDeliveryFeeAmount(20, 500000)).toBe(240);
+  });
+
+  it('supports custom base fee and price per km if configured', () => {
+    expect(
+      calculateDeliveryFeeAmount(10, 1000, {
+        delivery_base_fee: 200,
+        delivery_price_per_km: 6,
+      })
+    ).toBe(260);
   });
 });

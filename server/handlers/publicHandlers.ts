@@ -269,7 +269,6 @@ async function handleGetScopedQuote(
       });
     }
 
-    const ecommerceMode = Boolean(settings.config.ecommerce_mode);
     const rawItems = Array.isArray(row.items) ? (row.items as unknown[]) : [];
     const safeItems: CartItem[] = rawItems.map((raw) => {
       const obj = raw as Record<string, unknown>;
@@ -282,7 +281,7 @@ async function handleGetScopedQuote(
         : [];
       return {
         ...base,
-        price: ecommerceMode ? Number(base.price || 0) : 0,
+        price: Number(base.price || 0),
         quantity: Number(obj.quantity || 1),
         selected_modifications: mods,
         notes: typeof obj.notes === 'string' ? obj.notes : undefined,
@@ -312,15 +311,11 @@ async function handleGetScopedQuote(
       notes: typeof row.notes === 'string' && row.notes ? row.notes : undefined,
       status: (row.status || 'Pending') as Order['status'],
       items: safeItems,
-      ecommerce_mode: ecommerceMode,
-      ...(ecommerceMode
-        ? {
-            subtotal: Number(row.subtotal || 0),
-            discount_amount: Number(row.discount_amount || 0),
-            delivery_fee: Number(row.delivery_fee || 0),
-            total_price: Number(row.total_price || 0),
-          }
-        : {}),
+      ecommerce_mode: true,
+      subtotal: Number(row.subtotal || 0),
+      discount_amount: Number(row.discount_amount || 0),
+      delivery_fee: Number(row.delivery_fee || 0),
+      total_price: Number(row.total_price || 0),
       created_at: String(row.created_at || ''),
       expires_at: expiresAt.toISOString(),
       contact: settings.public_contact,

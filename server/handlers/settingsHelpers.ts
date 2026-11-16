@@ -20,11 +20,11 @@ import type { ServerEnv } from '../env.js';
 export const DEFAULT_APP_CONFIG: AppSettings = {
   min_order_price: 400,
   lead_time_hours: 48,
-  delivery_fee: 50,
+  delivery_fee: 150,
   is_shop_open: true,
-  delivery_base_fee: 125,
+  delivery_base_fee: 150,
   delivery_price_per_km: 4.5,
-  delivery_min_radius_included: 50,
+  delivery_min_radius_included: 0,
   ecommerce_mode: false,
 };
 
@@ -33,7 +33,6 @@ export const DEFAULT_CALCULATION_SETTINGS: CalculationSettings = {
   pastriesPerPerson: 1,
   averageTrayCapacity: 10,
   serviceRadiusKm: 50,
-  minOrderFreeDelivery: 2500,
   aiCustomInstructions: '',
 };
 

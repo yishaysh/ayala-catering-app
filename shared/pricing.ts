@@ -7,29 +7,15 @@ export const SETUP_SERVICE_FEE = 1000;
 
 export function calculateDeliveryFeeAmount(
   distanceKm: number | null,
-  subtotal: number,
-  appConfig: Pick<
-    AppSettings,
-    'delivery_base_fee' | 'delivery_price_per_km' | 'delivery_min_radius_included' | 'delivery_fee'
-  >,
-  calculationSettings: Pick<CalculationSettings, 'minOrderFreeDelivery'>
+  _subtotal?: number,
+  appConfig?: Partial<Pick<AppSettings, 'delivery_base_fee' | 'delivery_price_per_km' | 'delivery_fee'>>,
+  _calculationSettings?: Partial<CalculationSettings>
 ): number {
-  if (distanceKm === null || distanceKm <= 0) return 0;
-  if (
-    typeof calculationSettings.minOrderFreeDelivery === 'number' &&
-    calculationSettings.minOrderFreeDelivery > 0 &&
-    subtotal >= calculationSettings.minOrderFreeDelivery
-  ) {
-    return 0;
-  }
-  const baseFee = Number(appConfig.delivery_base_fee ?? appConfig.delivery_fee ?? 60);
-  const includedKm = Number(appConfig.delivery_min_radius_included ?? 15);
-  const perKm = Number(appConfig.delivery_price_per_km ?? 4);
-  let fee = baseFee;
-  if (distanceKm > includedKm) {
-    fee += (distanceKm - includedKm) * perKm;
-  }
-  return Math.ceil(fee / 5) * 5;
+  if (distanceKm === null || distanceKm === undefined || distanceKm <= 0) return 0;
+  const baseFee = Number(appConfig?.delivery_base_fee ?? appConfig?.delivery_fee ?? 150);
+  const perKm = Number(appConfig?.delivery_price_per_km ?? 4.5);
+  const fee = baseFee + (distanceKm * perKm);
+  return Math.round(fee);
 }
 
 export interface ServerCalculatedTotals {

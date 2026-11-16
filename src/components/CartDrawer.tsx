@@ -283,15 +283,6 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const setupFee = wantsSetup ? 1000 : 0;
   const finalTotal = Math.max(0, subtotal - discountAmount + deliveryFee + setupFee);
   const MIN_ORDER = appConfig.min_order_price;
-  const FREE_DELIVERY_THRESHOLD = calculationSettings.minOrderFreeDelivery;
-  const isWithinRadius =
-    isDelivery &&
-    parsedDistanceForFee > 0 &&
-    parsedDistanceForFee <= calculationSettings.serviceRadiusKm;
-  const progress =
-    FREE_DELIVERY_THRESHOLD > 0
-      ? Math.min((subtotal / FREE_DELIVERY_THRESHOLD) * 100, 100)
-      : 0;
 
   const resolvedEventType =
     eventType === 'basic'
@@ -1075,39 +1066,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             </div>
           ) : (
             <>
-              {/* Ecommerce free delivery progress bar */}
-              {appConfig.ecommerce_mode && (
-                <div className="bg-themeHeaderBg/95 px-5 py-3 shadow-inner shrink-0">
-                  {isWithinRadius ? (
-                    <>
-                      <div className="flex justify-between text-[11px] font-bold text-themeHeaderTxt/85 mb-1.5">
-                        <span>
-                          {t.freeDeliveryAt as string} ₪{FREE_DELIVERY_THRESHOLD}
-                        </span>
-                        {subtotal < FREE_DELIVERY_THRESHOLD ? (
-                          <span>
-                            {t.justMore as string} ₪{FREE_DELIVERY_THRESHOLD - subtotal}{' '}
-                            {t.forVip as string}
-                          </span>
-                        ) : (
-                          <span className="text-themePrimary flex items-center gap-1">
-                            <Sparkles size={11} /> {t.vipDelivery as string}
-                          </span>
-                        )}
-                      </div>
-                      <div className="h-2 bg-black/25 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-themePrimary transition-all duration-500"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="text-xs font-bold text-themeHeaderTxt flex items-center gap-2 justify-center py-1.5">
-                      <MapPin size={14} className="text-themePrimary" />
-                      <span>{t.deliveryByDistance as string}</span>
-                    </div>
-                  )}
+              {/* Delivery distance notification */}
+              {isDelivery && (
+                <div className="bg-themeHeaderBg/95 px-5 py-2.5 shadow-inner shrink-0">
+                  <div className="text-xs font-bold text-themeHeaderTxt flex items-center gap-2 justify-center">
+                    <MapPin size={14} className="text-themePrimary" />
+                    <span>{t.deliveryByDistance as string}</span>
+                  </div>
                 </div>
               )}
 

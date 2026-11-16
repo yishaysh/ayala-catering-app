@@ -2399,49 +2399,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                 </div>
                             </div>
                             <div className="flex flex-col">
-                                <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.minFreeDelivery}</label>
+                                <label className="text-[10px] text-themeText/60 font-bold mb-1">
+                                    {language === 'he' ? 'דמי משלוח בסיס (העמסה, פריקה וארגון קל)' : 'Base Delivery Fee'}
+                                </label>
                                 <div className="flex items-center gap-1">
                                     <span className="text-themeText/40">₪</span>
                                     <input
                                         type="number"
-                                        value={calculationSettings?.minOrderFreeDelivery || 1500}
-                                        onChange={(e) => updateCalculationSettings({ minOrderFreeDelivery: Number(e.target.value) })}
-                                        className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.baseDeliveryFee}</label>
-                                <div className="flex items-center gap-1">
-                                    <span className="text-themeText/40">₪</span>
-                                    <input
-                                        type="number"
-                                        value={appConfig.delivery_base_fee ?? 60}
+                                        value={appConfig.delivery_base_fee ?? 150}
                                         onChange={(e) => updateAppConfig({ delivery_base_fee: Number(e.target.value) })}
                                         className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
                                     />
                                 </div>
                             </div>
                             <div className="flex flex-col">
-                                <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.pricePerKm}</label>
+                                <label className="text-[10px] text-themeText/60 font-bold mb-1">
+                                    {language === 'he' ? 'מחיר לק"מ' : 'Price per KM'}
+                                </label>
                                 <div className="flex items-center gap-1">
                                     <span className="text-themeText/40">₪</span>
                                     <input
                                         type="number"
-                                        value={appConfig.delivery_price_per_km ?? 4}
+                                        step="0.5"
+                                        value={appConfig.delivery_price_per_km ?? 4.5}
                                         onChange={(e) => updateAppConfig({ delivery_price_per_km: Number(e.target.value) })}
-                                        className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex flex-col">
-                                <label className="text-[10px] text-themeText/60 font-bold mb-1">{t.includedRadius}</label>
-                                <div className="flex items-center gap-1">
-                                    <span className="text-themeText/40">KM</span>
-                                    <input
-                                        type="number"
-                                        value={appConfig.delivery_min_radius_included ?? 15}
-                                        onChange={(e) => updateAppConfig({ delivery_min_radius_included: Number(e.target.value) })}
                                         className="w-full border-b border-themeText/20 bg-transparent text-themeText text-lg font-bold pb-1 focus:outline-none focus:border-themePrimary"
                                     />
                                 </div>

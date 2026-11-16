@@ -294,10 +294,13 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({
                     {isHe ? 'מנה / פריט' : 'Dish / Item'}
                   </th>
                   <th className="py-3 px-3 text-center font-bold text-themePrimary">
-                    {isHe ? 'הערכת סועדים' : 'Est. Servings'}
+                    {isHe ? 'כמות' : 'Qty'}
                   </th>
                   <th className="py-3 px-3 text-end font-bold text-themePrimary">
-                    {isHe ? 'כמות' : 'Qty'}
+                    {isHe ? 'מחיר יחידה' : 'Unit Price'}
+                  </th>
+                  <th className="py-3 px-3 text-end font-bold text-themePrimary">
+                    {isHe ? 'סה"כ' : 'Total'}
                   </th>
                 </tr>
               </thead>
@@ -305,14 +308,8 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({
                 {quote.items.map((item, idx) => {
                   const title = isHe ? item.name : item.name_en || item.name;
                   const mods = item.selected_modifications || [];
-                  const servingText =
-                    item.category === 'Extras'
-                      ? isHe
-                        ? 'פריט ליווי'
-                        : 'Accessory'
-                      : item.serves_min === item.serves_max
-                      ? `${item.serves_min} ${isHe ? 'סועדים (הערכה)' : 'guests (est.)'}`
-                      : `${item.serves_min}–${item.serves_max} ${isHe ? 'סועדים (הערכה)' : 'guests (est.)'}`;
+                  const unitPrice = Number(item.price || 0);
+                  const lineTotal = unitPrice * Number(item.quantity || 1);
                   return (
                     <tr key={`${item.id}-${idx}`} className="break-inside-avoid">
                       <td className="py-3 px-3 text-start">
@@ -326,10 +323,13 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({
                           <p className="text-xs italic text-themeText/70 mt-0.5">{item.notes}</p>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-center text-xs text-themeText/75">
-                        {servingText}
+                      <td className="py-3 px-3 text-center font-bold">{item.quantity}</td>
+                      <td className="py-3 px-3 text-end text-themeText/80 font-medium">
+                        {unitPrice > 0 ? `₪${unitPrice.toLocaleString()}` : '-'}
                       </td>
-                      <td className="py-3 px-3 text-end font-bold">{item.quantity}</td>
+                      <td className="py-3 px-3 text-end font-bold text-themeText">
+                        {lineTotal > 0 ? `₪${lineTotal.toLocaleString()}` : '-'}
+                      </td>
                     </tr>
                   );
                 })}
@@ -346,13 +346,65 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({
             </div>
           )}
 
-          {/* Footer / Pricing mode honest summary */}
+          {/* Summary Box */}
+          {typeof quote.total_price === 'number' && (
+            <div className="flex justify-end mb-6 break-inside-avoid">
+              <div className="bg-themePrimary/5 border border-themePrimary/20 rounded-2xl p-5 min-w-[280px] sm:min-w-[340px] space-y-2 text-sm text-themeText/85">
+                {Number(quote.discount_amount || 0) > 0 ? (
+                  <>
+                    <div className="flex justify-between items-center text-xs text-themeText/70">
+                      <span>{isHe ? 'סכום לפני הנחה:' : 'Subtotal:'}</span>
+                      <span className="line-through font-bold">₪{Number(quote.subtotal || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-amber-600 font-bold">
+                      <span>{isHe ? 'הנחה:' : 'Discount:'}</span>
+                      <span>-₪{Number(quote.discount_amount || 0).toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs text-emerald-700 font-bold pb-1.5 border-b border-themeText/10">
+                      <span>{isHe ? 'סכום לאחר הנחה:' : 'After Discount:'}</span>
+                      <span>₪{(Number(quote.subtotal || 0) - Number(quote.discount_amount || 0)).toLocaleString()}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between items-center text-xs">
+                    <span>{isHe ? 'סכום פריטים:' : 'Subtotal:'}</span>
+                    <span className="font-semibold">₪{Number(quote.subtotal || 0).toLocaleString()}</span>
+                  </div>
+                )}
+
+                {quote.delivery_method === 'delivery' && Number(quote.delivery_fee || 0) > 0 && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span>🚚 {isHe ? 'דמי משלוח:' : 'Delivery Fee:'}</span>
+                    <span className="font-bold">₪{Number(quote.delivery_fee).toLocaleString()}</span>
+                  </div>
+                )}
+
+                {quote.wants_setup && (
+                  <div className="flex justify-between items-center text-xs">
+                    <span>✨ {isHe ? 'שירותי עריכה ופינוי:' : 'Setup & Cleanup:'}</span>
+                    <span className="font-bold">₪1,000</span>
+                  </div>
+                )}
+
+                <div className="border-t border-themePrimary/20 pt-3 mt-2 flex justify-between items-baseline">
+                  <span className="text-xs font-bold uppercase tracking-wider text-themeText">
+                    {isHe ? 'סה"כ לתשלום:' : 'Total Amount:'}
+                  </span>
+                  <span className="text-2xl font-serif font-bold text-themePrimary">
+                    ₪{Number(quote.total_price || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Footer / Contact info */}
           <div className="border-t border-themeText/15 pt-5 flex flex-col md:flex-row justify-between gap-4 items-start md:items-center break-inside-avoid">
             <div className="text-xs text-themeText/75 space-y-1 max-w-lg">
               <p className="font-bold text-themeText">
                 {isHe
-                  ? 'מסמך זה מהווה סיכום בקשת הצעת מחיר וכפוף לאישור זמינות ותמחור סופי מול איילה.'
-                  : 'This document summarizes your quote request and is subject to availability & final confirmation by Ayala.'}
+                  ? 'מסמך זה מהווה סיכום הצעת המחיר וכפוף לאישור זמינות סופי מול איילה.'
+                  : 'This document summarizes your quote and is subject to final availability confirmation by Ayala.'}
               </p>
               <p>
                 {isHe ? 'ליצירת קשר:' : 'Contact:'}{' '}
@@ -360,17 +412,6 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({
                 {quote.contact?.contactEmail ? ` · ${quote.contact.contactEmail}` : ''}
               </p>
             </div>
-
-            {quote.ecommerce_mode && typeof quote.total_price === 'number' && (
-              <div className="bg-themePrimary/10 border border-themePrimary/25 rounded-2xl px-5 py-3 text-end min-w-[200px]">
-                <span className="text-xs font-bold text-themeText/75 block">
-                  {isHe ? 'אומדן כולל:' : 'Estimated Total:'}
-                </span>
-                <span className="text-2xl font-serif font-bold text-themePrimary">
-                  ₪{quote.total_price.toLocaleString()}
-                </span>
-              </div>
-            )}
           </div>
         </article>
       </div>

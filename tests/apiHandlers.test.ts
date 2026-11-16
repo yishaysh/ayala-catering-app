@@ -553,8 +553,8 @@ describe('P1 Quote validation, persistence, idempotency, and scoped viewer', () 
     expect(viewer.res.statusCode).toBe(200);
     const quote = viewer.getJson<{ quote: Record<string, unknown> }>().quote;
     expect(quote.delivery_address).toBe('קדומים, רחוב הזית 5');
-    expect(quote.ecommerce_mode).toBe(false);
-    expect(quote.total_price).toBeUndefined();
+    expect(quote.ecommerce_mode).toBe(true);
+    expect(typeof quote.total_price).toBe('number');
     expect(quote.idempotency_key).toBeUndefined();
 
     // Unknown token returns 404

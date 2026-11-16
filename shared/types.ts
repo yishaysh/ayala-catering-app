@@ -188,7 +188,7 @@ export interface CalculationSettings {
   pastriesPerPerson: number;
   averageTrayCapacity: number;
   serviceRadiusKm: number;
-  minOrderFreeDelivery: number;
+  minOrderFreeDelivery?: number;
   aiCustomInstructions: string;
   setupServiceDetailsHe?: string;
   setupServiceDetailsEn?: string;
