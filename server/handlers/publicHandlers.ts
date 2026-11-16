@@ -281,7 +281,7 @@ async function handleGetScopedQuote(
         : [];
       return {
         ...base,
-        price: Number(base.price || 0),
+        price: 0,
         quantity: Number(obj.quantity || 1),
         selected_modifications: mods,
         notes: typeof obj.notes === 'string' ? obj.notes : undefined,

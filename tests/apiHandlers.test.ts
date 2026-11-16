@@ -556,6 +556,7 @@ describe('P1 Quote validation, persistence, idempotency, and scoped viewer', () 
     expect(quote.ecommerce_mode).toBe(true);
     expect(typeof quote.total_price).toBe('number');
     expect(quote.idempotency_key).toBeUndefined();
+    expect((quote.items as Array<Record<string, unknown>>)[0].price).toBe(0);
 
     // Unknown token returns 404
     const unknown = createMockRes();
