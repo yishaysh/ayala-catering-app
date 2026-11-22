@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>איילה פשוט טעים — מה התחדש באתר שלך</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=David+Libre:wght@400;500;700&family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-cream: #fafaf9;
+      --bg-warm: #f5f2eb;
+      --surface-card: #ffffff;
+      --stone-dark: #1c1917;
+      --stone-soft: #44403c;
+      --stone-muted: #78716c;
+      --gold-primary: #d4af37;
+      --gold-deep: #b4941f;
+      --gold-soft: rgba(212, 175, 55, 0.14);
+      --olive-deep: #2e4033;
+      --olive-mid: #4a5d4e;
+      --olive-soft: rgba(74, 93, 78, 0.11);
+      --border-subtle: rgba(28, 25, 23, 0.09);
+      --border-gold: rgba(180, 148, 31, 0.35);
+      --shadow-card: 0 12px 30px -14px rgba(28, 25, 23, 0.12);
+      --radius-lg: 20px;
+      --radius-md: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Heebo', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(212, 175, 55, 0.1), transparent 44%),
+        linear-gradient(180deg, var(--bg-warm) 0%, var(--bg-cream) 28%, var(--bg-cream) 100%);
+      color: var(--stone-dark);
+      line-height: 1.72;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3 {
+      font-family: 'David Libre', Georgia, serif;
+      letter-spacing: -0.01em;
+    }
+
+    .container {
+      max-width: 1040px;
+      margin: 0 auto;
+    }
+
+    /* Boutique Hero Header */
+    .hero {
+      background:
+        radial-gradient(circle at 20% 25%, rgba(212, 175, 55, 0.18), transparent 45%),
+        radial-gradient(circle at 82% 80%, rgba(74, 93, 78, 0.28), transparent 48%),
+        var(--stone-dark);
+      color: #ffffff;
+      border-bottom: 3px solid var(--gold-primary);
+      padding: 2.6rem 1.25rem 2.3rem;
+    }
+
+    .hero-top {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+    }
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 1.15rem;
+    }
+
+    .brand-logo-wrap {
+      width: 78px;
+      height: 78px;
+      border-radius: 999px;
+      border: 2px solid var(--gold-primary);
+      background: #292524;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+    }
+
+    .brand-logo-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--gold-primary);
+      background: rgba(212, 175, 55, 0.13);
+      border: 1px solid rgba(212, 175, 55, 0.38);
+      padding: 0.25rem 0.85rem;
+      border-radius: 999px;
+      margin-bottom: 0.55rem;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(1.95rem, 3.5vw, 2.75rem);
+      font-weight: 700;
+      line-height: 1.15;
+      color: #ffffff;
+    }
+
+    .hero-subtitle {
+      margin: 0.55rem 0 0;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: 1.04rem;
+      max-width: 660px;
+    }
+
+    .btn-print {
+      appearance: none;
+      border: 1px solid var(--gold-primary);
+      background: linear-gradient(135deg, var(--gold-primary), var(--gold-deep));
+      color: var(--stone-dark);
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 0.92rem;
+      padding: 0.65rem 1.2rem;
+      border-radius: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .btn-print:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 22px rgba(212, 175, 55, 0.35);
+    }
+
+    /* Warm Intro Strip */
+    .welcome-note {
+      margin-top: 1.75rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(212, 175, 55, 0.32);
+      border-radius: var(--radius-md);
+      padding: 1.1rem 1.35rem;
+      color: rgba(255, 255, 255, 0.92);
+      font-size: 0.98rem;
+    }
+
+    .welcome-note strong {
+      color: var(--gold-primary);
+    }
+
+    /* Sticky Category Filter Bar */
+    .toolbar-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(250, 250, 249, 0.94);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0.9rem 1.25rem;
+    }
+
+    .filter-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+
+    .filter-btn {
+      appearance: none;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface-card);
+      color: var(--stone-dark);
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 500;
+      padding: 0.46rem 0.95rem;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .filter-btn:hover {
+      border-color: var(--gold-deep);
+    }
+
+    .filter-btn.active {
+      background: var(--stone-dark);
+      color: #ffffff;
+      border-color: var(--stone-dark);
+    }
+
+    /* Main Content */
+    main {
+      padding: 2rem 1.25rem 3.5rem;
+    }
+
+    .highlights-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 0.95rem;
+      margin-bottom: 2.25rem;
+    }
+
+    .highlight-box {
+      background: var(--surface-card);
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius-md);
+      padding: 1.05rem 1.15rem;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .highlight-icon {
+      font-size: 1.4rem;
+      line-height: 1;
+      flex-shrink: 0;
+      margin-top: 0.15rem;
+    }
+
+    .highlight-box h3 {
+      margin: 0 0 0.2rem;
+      font-size: 1.12rem;
+      color: var(--olive-deep);
+    }
+
+    .highlight-box p {
+      margin: 0;
+      font-size: 0.88rem;
+      color: var(--stone-soft);
+    }
+
+    .story-section {
+      margin-bottom: 2.4rem;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1.05rem;
+      padding-bottom: 0.55rem;
+      border-bottom: 2px solid var(--gold-soft);
+    }
+
+    .section-emoji {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: var(--gold-soft);
+      border: 1px solid var(--border-gold);
+      display: grid;
+      place-items: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 1.65rem;
+      color: var(--stone-dark);
+    }
+
+    .section-subtitle {
+      margin: 0.1rem 0 0;
+      font-size: 0.9rem;
+      color: var(--stone-muted);
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(295px, 1fr));
+      gap: 1rem;
+    }
+
+    .story-card {
+      background: var(--surface-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 1.3rem 1.35rem;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      transition: transform 0.16s ease, border-color 0.16s ease;
+    }
+
+    .story-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-gold);
+    }
+
+    .card-badge {
+      align-self: flex-start;
+      font-size: 0.76rem;
+      font-weight: 700;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      background: var(--olive-soft);
+      color: var(--olive-deep);
+      border: 1px solid rgba(46, 64, 51, 0.2);
+    }
+
+    .story-card h3 {
+      margin: 0;
+      font-size: 1.26rem;
+      color: var(--stone-dark);
+      line-height: 1.28;
+    }
+
+    .story-card p {
+      margin: 0;
+      font-size: 0.94rem;
+      color: var(--stone-soft);
+    }
+
+    .benefit-line {
+      margin-top: auto;
+      padding-top: 0.7rem;
+      border-top: 1px dashed rgba(28, 25, 23, 0.1);
+      font-size: 0.88rem;
+      color: var(--olive-deep);
+      font-weight: 500;
+    }
+
+    .benefit-line strong {
+      color: var(--gold-deep);
+    }
+
+    .closing-card {
+      margin-top: 2.5rem;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(74, 93, 78, 0.09));
+      border: 1px solid var(--border-gold);
+      border-radius: var(--radius-lg);
+      padding: 1.45rem 1.6rem;
+    }
+
+    .closing-card h2 {
+      margin: 0 0 0.4rem;
+      font-size: 1.45rem;
+      color: var(--olive-deep);
+    }
+
+    .closing-card p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--stone-dark);
+    }
+
+    footer {
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-warm);
+      padding: 1.4rem 1.25rem;
+      text-align: center;
+      font-size: 0.88rem;
+      color: var(--stone-muted);
+    }
+
+    .hidden-by-filter {
+      display: none !important;
+    }
+
+    @media (max-width: 640px) {
+      .hero {
+        padding: 1.85rem 1rem 1.6rem;
+      }
+      .brand-logo-wrap {
+        width: 62px;
+        height: 62px;
+      }
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media print {
+      .toolbar-wrap,
+      .btn-print {
+        display: none !important;
+      }
+      body {
+        background: #ffffff;
+      }
+      .hero {
+        background: #1c1917 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .story-card,
+      .highlight-box,
+      .closing-card {
+        box-shadow: none;
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="container">
+      <div class="hero-top">
+        <div class="brand-lockup">
+          <div class="brand-logo-wrap" aria-hidden="true">
+            <img
+              src="https://res.cloudinary.com/md6mhfhd/image/upload/v1787038447/ayala_catering/menu-images/logo.jpg"
+              alt="לוגו איילה פשוט טעים"
+              onerror="this.replaceWith(document.getElementById('ayala-fallback-logo').content.cloneNode(true))"
+            />
+            <template id="ayala-fallback-logo">
+              <svg viewBox="0 0 64 64" width="44" height="44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="32" cy="32" r="28" stroke="#d4af37" stroke-width="2.5" />
+                <text x="32" y="39" text-anchor="middle" fill="#d4af37" font-family="David Libre, serif" font-size="24" font-weight="700">א</text>
+              </svg>
+            </template>
+          </div>
+          <div>
+            <span class="eyebrow">עדכון מיוחד לאיילה · נובמבר 2026</span>
+            <h1>מה התחדש באתר של איילה פשוט טעים</h1>
+            <p class="hero-subtitle">
+              סקירה פשוטה ונעימה של כל השיפורים, התיקונים והשדרוגים שעשינו באתר — כדי שללקוחות שלך יהיה תענוג להזמין, ולך יהיה שקט, סדר וביטחון בניהול העסק.
+            </p>
+          </div>
+        </div>
+
+        <button type="button" class="btn-print" onclick="window.print()">
+          <span aria-hidden="true">🖨️</span>
+          הדפסה / שמירה כ־PDF
+        </button>
+      </div>
+
+      <div class="welcome-note">
+        <strong>היי איילה,</strong> האתר עבר שדרוג מקיף מאחורי הקלעים וגם בנראות ללקוח: סגרנו תקלות קטנות שהפריעו ללקוחות מהטלפון, דאגנו שכל בקשה להצעת מחיר תגיע אלייך מסודרת ועם כל הפרטים החשובים, והוספנו שכבת הגנה ושליטה מלאה על המידע של העסק ושל הלקוחות שלך.
+      </div>
+    </div>
+  </header>
+
+  <nav class="toolbar-wrap" aria-label="בחירת נושא לצפייה">
+    <div class="container filter-pills">
+      <button type="button" class="filter-btn active" data-filter="all">הכול</button>
+      <button type="button" class="filter-btn" data-filter="order">חוויית הזמנה ללקוחות</button>
+      <button type="button" class="filter-btn" data-filter="menu">תפריט, חבילות והשף החכם</button>
+      <button type="button" class="filter-btn" data-filter="gallery">גלריה, נראות ונייד</button>
+      <button type="button" class="filter-btn" data-filter="admin">ניהול האתר ופרטיות</button>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="highlights-strip">
+      <div class="highlight-box">
+        <span class="highlight-icon" aria-hidden="true">📋</span>
+        <div>
+          <h3>הזמנות מדויקות בלי טעויות</h3>
+          <p>כל פרטי המשלוח, התאריך, האלרגיות וכמות הסועדים נשמרים בצורה מסודרת.</p>
+        </div>
+      </div>
+      <div class="highlight-box">
+        <span class="highlight-icon" aria-hidden="true">🎬</span>
+        <div>
+          <h3>גלריה ותפריט שעובדים חלק</h3>
+          <p>סרטונים מתנגנים בכל טלפון והתמונות נטענות מהר יותר ובחדות גבוהה.</p>
+        </div>
+      </div>
+      <div class="highlight-box">
+        <span class="highlight-icon" aria-hidden="true">🔒</span>
+        <div>
+          <h3>פרטיות מלאה לעסק וללקוח</h3>
+          <p>כל לקוח רואה רק את ההצעה האישית שלו, והכניסה לניהול מוגנת בסיסמה פרטית.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1: Quote & Ordering Experience -->
+    <section class="story-section" data-section>
+      <div class="section-head">
+        <div class="section-emoji" aria-hidden="true">🧺</div>
+        <div>
+          <h2>חוויית בקשת הצעת מחיר חלקה ומדויקת</h2>
+          <p class="section-subtitle">פחות התכתבויות הלוך־וחזור ויותר בהירות כבר מהרגע שהלקוח משאיר פרטים</p>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <article class="story-card" data-category="order">
+          <span class="card-badge">הזמנות מסודרות</span>
+          <h3>כל פרטי האירוע נשמרים ונשלחים אלייך במלואם</h3>
+          <p>
+            קודם לכן, חלק מהפרטים שהלקוח מילא — כמו האם ביקש משלוח או איסוף עצמי, הכתובת המדויקת או כמות המבוגרים והילדים — לא נשמרו יחד עם הבקשה במערכת.
+          </p>
+          <p>
+            מהיום כל בקשה נשמרת עם מלוא התמונה: שיטת קבלת המנות, כתובת ומרחק משלוח, שעת האירוע, סוג האירוע, כמות סועדים, שירות עריכה והערות אלרגיה.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> את פותחת את הבקשה ומקבלת מיד את כל המידע כדי להכין הצעה מדויקת.</div>
+        </article>
+
+        <article class="story-card" data-category="order">
+          <span class="card-badge">בלי טעויות הקלדה</span>
+          <h3>בדיקה חכמה שמונעת טלפון שגוי או תאריך קרוב מדי</h3>
+          <p>
+            שיפרנו את הבדיקות בטופס ההזמנה ובמחשבון האורחים: האתר כבר לא מאפשר לשלוח טלפון לא הגיוני, מרחק משלוח שלילי, מספר שלילי של אורחים או תאריך אירוע שכבר עבר.
+          </p>
+          <p>
+            בנוסף, המערכת בודקת בזמן אמת לפי השעון בישראל שהלקוח עומד בזמן ההתראה מראש שקבעת, ושהתאריך אינו נמצא בתאריכים שחסמת.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> חוסך טלפונים מיותרים ללקוחות שהקלידו ספרה שגויה או ביקשו תאריך לא אפשרי.</div>
+        </article>
+
+        <article class="story-card" data-category="order">
+          <span class="card-badge">פשוט ונוח ללקוח</span>
+          <h3>לחיצה אחת בלי כפילויות ומעבר ברור לוואטסאפ</h3>
+          <p>
+            אם לקוח לוחץ בטעות פעמיים על כפתור השליחה, המערכת מזהה שזו אותה בקשה ומונעת פתיחה של הזמנות כפולות אצלך ביומן.
+          </p>
+          <p>
+            בסיום השמירה הלקוח מקבל אישור מסודר עם מספר פנייה, וכפתור ברור «פתחו את הבקשה בוואטסאפ» (בתוספת אפשרות להעתקת ההודעה) — כך ששיחות לא נתקעות בדפדפנים שחוסמים חלונות קופצים.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> חוויית הזמנה אמינה ומרגיעה ללקוח ויומן בקשות נקי מכפילויות.</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Section 2: Menu, Packages & Dietary Tags -->
+    <section class="story-section" data-section>
+      <div class="section-head">
+        <div class="section-emoji" aria-hidden="true">🥗</div>
+        <div>
+          <h2>תפריט עשיר יותר, חבילות אירוח מוכנות וסימון רגישויות</h2>
+          <p class="section-subtitle">כלים שעוזרים ללקוחות לבחור מהר יותר ולהרגיש בטוחים בבחירה</p>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <article class="story-card" data-category="menu">
+          <span class="card-badge">שדרוג למכירות</span>
+          <h3>חבילות אירוח מוכנות להוספה מהירה</h3>
+          <p>
+            נוספה אפשרות להגדיר באתר חבילות אירוח מוכנות מראש (למשל לבראנץ׳, ליום הולדת או להרמת כוסית) עם הרכב מנות מומלץ ומספר סועדים מתאים.
+          </p>
+          <p>
+            לקוח שמתלבט מה לבחור יכול פשוט להוסיף חבילה מתאימה לעגלה ומשם להמשיך לדייק או להוסיף עוד מנות.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> מקצר משמעותית את זמן ההתלבטות של לקוחות ומקל על סגירת אירועים.</div>
+        </article>
+
+        <article class="story-card" data-category="menu">
+          <span class="card-badge">התאמה אישית</span>
+          <h3>סינון לפי העדפות תזונה ואזהרת אלרגנים ברורה</h3>
+          <p>
+            שיפרנו את סימון המנות באתר כך שניתן לסמן לכל מנה העדפות תזונה (כגון צמחוני, טבעוני או אפשרויות ללא גלוטן) וכן תזכורת לאורחים בעלי אלרגיות.
+          </p>
+          <p>
+            האתר מדגיש בצורה אחראית שבכל מקרה של אלרגיה משמעותית יש לתאם זאת ישירות מולך ולא מסתמך על ניחושים.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> שקיפות מלאה ללקוחות וראש שקט בהכנת אירועים עם רגישויות מזון.</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Section 3: Digital Chef & Event Calculator -->
+    <section class="story-section" data-section>
+      <div class="section-head">
+        <div class="section-emoji" aria-hidden="true">✨</div>
+        <div>
+          <h2>השף הדיגיטלי ומחשבון הכמויות</h2>
+          <p class="section-subtitle">הצעות תפריט חכמות שמכבדות את הזמינות במטבח ואת הרצון של הלקוח</p>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <article class="story-card" data-category="menu">
+          <span class="card-badge">תיקון תקלה</span>
+          <h3>המלצות חכמות רק ממנות זמינות — ועריכה לפני הוספה לעגלה</h3>
+          <p>
+            תיקנו את מנגנון השף הדיגיטלי שהחזיר בעבר הודעת שגיאה ללקוחות. כעת השף מציע מנות אך ורק מתוך המנות הפעילות שבתפריט שלך באותו רגע.
+          </p>
+          <p>
+            לפני שההצעה נכנסת לעגלה, הלקוח רואה את הרשימה ויכול לשנות כמויות או לבחור האם לצרף אותה למה שכבר אסף בעגלה או להתחיל מחדש.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> הלקוחות מקבלים עזרה אמיתית בהרכבת התפריט בלי אכזבה ממנות שלא במלאי.</div>
+        </article>
+
+        <article class="story-card" data-category="menu">
+          <span class="card-badge">תמיד יש חלופה נוחה</span>
+          <h3>מעבר מיידי למחשבון האורחים ולתפריט המלא</h3>
+          <p>
+            אם בשלב מסוים השף הדיגיטלי כבוי או עמוס, הלקוח לא נתקע מול הודעת תקלה מבלבלת אלא מקבל כפתורים נוחים שמובילים אותו ישירות למחשבון הכמויות או לתפריט המנות.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> אף לקוח לא עוזב את האתר בגלל תקלה רגעית ויכול תמיד להרכיב הזמנה.</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Section 4: Gallery & Mobile Experience -->
+    <section class="story-section" data-section>
+      <div class="section-head">
+        <div class="section-emoji" aria-hidden="true">📸</div>
+        <div>
+          <h2>גלריית אירועים מרשימה ונוחות שימוש בטלפון</h2>
+          <p class="section-subtitle">האוכל והעריכה שלך נראים מצוין בכל מסך ונטענים בלי המתנה</p>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <article class="story-card" data-category="gallery">
+          <span class="card-badge">תיקון בגלריה</span>
+          <h3>סרטונים בגלריה מתנגנים חלק ועם תמונת פתיחה יפה</h3>
+          <p>
+            סרטוני אירועים בגלריה לא תמיד הופיעו או התנגנו היטב בחלק מהמכשירים. מהיום כל סרטון מותאם אוטומטית לצפייה חלקה באייפון, באנדרואיד ובמחשב, ומקבל תמונת שער ברורה מראש.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> הלקוחות מתרשמים מיד מהשולחנות ומהאירועים שלך כבר במבט ראשון.</div>
+        </article>
+
+        <article class="story-card" data-category="gallery">
+          <span class="card-badge">מהיר ונעים בנייד</span>
+          <h3>תמונות קלות יותר ומסכים נוחים לצפייה בכל טלפון</h3>
+          <p>
+            שיפרנו את התאמת התמונות כך שייפתחו מהר יותר בגלישה סלולרית, שמרנו על שורת הכותרת נקייה ומסודרת במסכים קטנים, והחזרנו את האפשרות להגדיל טקסט ותמונות באצבעות למי שזקוק לכך.
+          </p>
+          <p>
+            בנוסף שדרגנו את תפריט הנגישות ואת נוחות המעבר בין חלונות ודירוג כוכבים למי שגולש מהמקלדת או מקוראי מסך.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> אתר קליל, ייצוגי ומזמין יותר לרוב הגולשים שמגיעים ישירות מהטלפון.</div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Section 5: Privacy, Kosher & Admin Comfort -->
+    <section class="story-section" data-section>
+      <div class="section-head">
+        <div class="section-emoji" aria-hidden="true">🛡️</div>
+        <div>
+          <h2>פרטיות, כשרות שקופה וניהול קל ובטוח עבורך</h2>
+          <p class="section-subtitle">שליטה מלאה על המידע של העסק, חוויית ניהול רגועה ושמירה על הפרטיות שלך ושל הלקוחות</p>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <article class="story-card" data-category="admin">
+          <span class="card-badge">פרטיות ללקוחות ולך</span>
+          <h3>קישורים אישיים מאובטחים והגנת כתובת איסוף</h3>
+          <p>
+            קישור הצעת מחיר שנשלח ללקוח פותח כעת קישור אישי מוצפן ומאובטח ל־30 יום, כך שאיש אינו יכול לנחש כתובות אינטרנט ולצפות בפרטים של לקוחות אחרים.
+          </p>
+          <p>
+            בנוסף, באתר מופיע אזור האיסוף הכללי בלבד (קדומים), והכתובת המדויקת נשארת פרטית ונמסרת ללקוחות בתיאום אישי.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> שמירה מלאה על פרטיותך ועל האמון של כל לקוח שמשאיר פרטים.</div>
+        </article>
+
+        <article class="story-card" data-category="gallery">
+          <span class="card-badge">שקיפות ואמינות</span>
+          <h3>תעודת כשרות עדכנית ופרטי קשר אחידים</h3>
+          <p>
+            איחדנו את מספר הטלפון שלך בכל האתר כך שלקוחות לא ייתקלו במספרים שונים בין עמודים.
+          </p>
+          <p>
+            כמו כן, הצגת תעודת הכשרות הפכה לשקופה יותר: אם התאריך של התעודה באתר דורש רענון, הלקוח רואה הודעה ברורה ויכול לבקש ממך את התעודה העדכנית בלחיצת כפתור לוואטסאפ.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> שקיפות שיוצרת רושם מקצועי ואמין כבר מהשנייה הראשונה.</div>
+        </article>
+
+        <article class="story-card" data-category="admin">
+          <span class="card-badge">שליטה מלאה למנהלת</span>
+          <h3>ממשק ניהול מוגן, אישור ביקורות ודף הצעת מחיר מסודר</h3>
+          <p>
+            הכניסה למסך הניהול מוגנת מהיום בבדיקה מאובטחת מול השרת עם סיסמה אישית שלך בלבד. בתוך הניהול נוספו לך יכולות חדשות:
+          </p>
+          <p>
+            אישור המלצות חדשות של לקוחות לפני פרסומן באתר, ניהול תאריכים חסומים ומדיניות משלוחים, הפקת קישור צפייה אישי ללקוח, והדפסה מעוצבת ונקייה של כל הצעת מחיר.
+          </p>
+          <div class="benefit-line"><strong>היתרון עבורך:</strong> שליטה מסודרת על כל מה שמתפרסם באתר ועבודה שוטפת מהירה יותר.</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="closing-card" aria-label="סיכום קצר להפעלה">
+      <h2>דבר אחרון שכדאי לדעת</h2>
+      <p>
+        כל השדרוגים שכבר עלו לאוויר שומרים על המראה החמים והמוכר של האתר שלך ועל מצב הצעות המחיר (ללא הצגת מחירים פומבית ללקוחות, כפי שרצית).
+        כדי להשלים את ההגנה החדשה על כניסת המנהלת ועל השף הדיגיטלי בענן, יש לוודא שסיסמת הניהול האישית שלך ומפתח הבינה המלאכותית החדש מעודכנים בהגדרות האתר.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      איילה פשוט טעים — קייטרינג חלבי בוטיק כשר למהדרין · מסמך התחדשות לאיילה
+    </div>
+  </footer>
+
+  <script>
+    (function () {
+      var filterButtons = Array.from(document.querySelectorAll('.filter-btn'));
+      var sections = Array.from(document.querySelectorAll('.story-section'));
+
+      filterButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var selected = btn.getAttribute('data-filter') || 'all';
+          filterButtons.forEach(function (b) {
+            b.classList.toggle('active', b === btn);
+          });
+
+          sections.forEach(function (section) {
+            var cards = Array.from(section.querySelectorAll('.story-card'));
+            var visibleCount = 0;
+
+            cards.forEach(function (card) {
+              var matches = selected === 'all' || card.getAttribute('data-category') === selected;
+              card.classList.toggle('hidden-by-filter', !matches);
+              if (matches) {
+                visibleCount += 1;
+              }
+            });
+
+            section.classList.toggle('hidden-by-filter', visibleCount === 0);
+          });
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
