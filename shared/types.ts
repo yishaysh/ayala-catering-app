@@ -151,6 +151,7 @@ export interface Order {
   notification_status?: NotificationStatus;
   notification_error?: string;
   handoff_status?: HandoffStatus;
+  show_item_prices?: boolean;
   quote_token_expires_at?: string;
 }
 
@@ -176,6 +177,7 @@ export interface CustomerSafeQuoteView {
   delivery_fee?: number;
   total_price?: number;
   ecommerce_mode: boolean;
+  show_item_prices?: boolean;
   created_at: string;
   expires_at: string;
   contact: PublicContactSummary;

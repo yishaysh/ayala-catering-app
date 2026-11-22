@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS orders (
     notification_status VARCHAR(32) NOT NULL DEFAULT 'pending',
     notification_error TEXT,
     handoff_status VARCHAR(32) NOT NULL DEFAULT 'not_opened',
+    show_item_prices BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

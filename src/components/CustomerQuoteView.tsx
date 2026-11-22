@@ -290,18 +290,36 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({
             <table className="w-full border-collapse text-sm">
               <thead>
                 <tr className="border-b-2 border-themePrimary">
-                  <th style={{ width: '75%' }} className="py-3 px-3 text-start font-bold text-themePrimary">
+                  <th
+                    style={{ width: quote.show_item_prices ? '50%' : '75%' }}
+                    className="py-3 px-3 text-start font-bold text-themePrimary"
+                  >
                     {isHe ? 'מנה / פריט' : 'Dish / Item'}
                   </th>
-                  <th style={{ width: '25%' }} className="py-3 px-3 text-center font-bold text-themePrimary">
+                  <th
+                    style={{ width: quote.show_item_prices ? '15%' : '25%' }}
+                    className="py-3 px-3 text-center font-bold text-themePrimary"
+                  >
                     {isHe ? 'כמות' : 'Qty'}
                   </th>
+                  {quote.show_item_prices && (
+                    <>
+                      <th style={{ width: '17%' }} className="py-3 px-3 text-end font-bold text-themePrimary">
+                        {isHe ? 'מחיר יחידה' : 'Unit Price'}
+                      </th>
+                      <th style={{ width: '18%' }} className="py-3 px-3 text-end font-bold text-themePrimary">
+                        {isHe ? 'סה"כ' : 'Total'}
+                      </th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-themeText/10">
                 {quote.items.map((item, idx) => {
                   const title = isHe ? item.name : item.name_en || item.name;
                   const mods = item.selected_modifications || [];
+                  const unitPrice = Number(item.price || 0);
+                  const lineTotal = unitPrice * Number(item.quantity || 1);
                   return (
                     <tr key={`${item.id}-${idx}`} className="break-inside-avoid">
                       <td className="py-3 px-3 text-start">
@@ -318,6 +336,16 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({
                       <td className="py-3 px-3 text-center font-bold text-base text-themeText">
                         {item.quantity}
                       </td>
+                      {quote.show_item_prices && (
+                        <>
+                          <td className="py-3 px-3 text-end text-themeText/80 font-medium">
+                            {unitPrice > 0 ? `₪${unitPrice.toLocaleString()}` : '-'}
+                          </td>
+                          <td className="py-3 px-3 text-end font-bold text-themeText">
+                            {lineTotal > 0 ? `₪${lineTotal.toLocaleString()}` : '-'}
+                          </td>
+                        </>
+                      )}
                     </tr>
                   );
                 })}
@@ -338,7 +366,7 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({
           {typeof quote.total_price === 'number' && (
             <div className="flex justify-end mb-6 break-inside-avoid">
               <div className="bg-themePrimary/5 border border-themePrimary/20 rounded-2xl p-5 min-w-[280px] sm:min-w-[340px] space-y-2 text-sm text-themeText/85">
-                {Number(quote.discount_amount || 0) > 0 && (
+                {Number(quote.discount_amount || 0) > 0 ? (
                   <>
                     <div className="flex justify-between items-center text-xs text-themeText/70">
                       <span>{isHe ? 'סכום לפני הנחה:' : 'Original Amount:'}</span>
@@ -353,6 +381,13 @@ export const CustomerQuoteView: React.FC<CustomerQuoteViewProps> = ({
                       <span>₪{(Number(quote.subtotal || 0) - Number(quote.discount_amount || 0)).toLocaleString()}</span>
                     </div>
                   </>
+                ) : (
+                  quote.show_item_prices && (
+                    <div className="flex justify-between items-center text-xs">
+                      <span>{isHe ? 'סכום פריטים:' : 'Subtotal:'}</span>
+                      <span className="font-semibold">₪{Number(quote.subtotal || 0).toLocaleString()}</span>
+                    </div>
+                  )
                 )}
 
                 {quote.delivery_method === 'delivery' && Number(quote.delivery_fee || 0) > 0 && (

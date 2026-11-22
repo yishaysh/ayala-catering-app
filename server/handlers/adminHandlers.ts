@@ -200,6 +200,10 @@ export async function handleAdminOrders(
         updates.push(`wants_setup = $${idx++}`);
         params.push(body.wants_setup);
       }
+      if (typeof body.show_item_prices === 'boolean') {
+        updates.push(`show_item_prices = $${idx++}`);
+        params.push(body.show_item_prices);
+      }
       if (Array.isArray(body.items) && body.items.length > 0 && body.items.length <= 200) {
         const sanitizedItems = body.items.map((rawItem) => {
           const item = (typeof rawItem === 'object' && rawItem !== null ? rawItem : {}) as Record<string, unknown>;

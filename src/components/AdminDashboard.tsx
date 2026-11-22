@@ -159,6 +159,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
     const [quoteItems, setQuoteItems] = useState<CartItem[]>([]);
     const [quoteDiscountPercent, setQuoteDiscountPercent] = useState<number>(0);
     const [quoteWantsSetup, setQuoteWantsSetup] = useState<boolean>(false);
+    const [quoteShowItemPrices, setQuoteShowItemPrices] = useState<boolean>(false);
     const [quoteDeliveryFee, setQuoteDeliveryFee] = useState<number>(0);
     const [quoteNotes, setQuoteNotes] = useState<string>('');
     const [isAddDishOpen, setIsAddDishOpen] = useState<boolean>(false);
@@ -205,6 +206,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         setQuoteItems(items);
         setQuoteDiscountPercent(0);
         setQuoteWantsSetup(!!order.wants_setup);
+        setQuoteShowItemPrices(Boolean(order.show_item_prices));
         setQuoteDeliveryFee(autoDelivery);
     };
 
@@ -283,6 +285,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                 total_price: totalFinal,
                 status: 'approved',
                 wants_setup: quoteWantsSetup,
+                show_item_prices: quoteShowItemPrices,
                 notes: quoteNotes,
                 mint_share_token: true,
             });
@@ -299,7 +302,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
         }
 
         // Update local state immediately
-        setOrders(prev => prev.map(o => o.id === quoteOrder.id ? (savedOrder || { ...o, status: 'approved', subtotal: totalSubtotal, discount_amount: totalDiscount, delivery_fee: deliveryFeeNum, total_price: totalFinal, wants_setup: quoteWantsSetup, notes: quoteNotes, items: sanitizedItems }) : o));
+        setOrders(prev => prev.map(o => o.id === quoteOrder.id ? (savedOrder || { ...o, status: 'approved', subtotal: totalSubtotal, discount_amount: totalDiscount, delivery_fee: deliveryFeeNum, total_price: totalFinal, wants_setup: quoteWantsSetup, show_item_prices: quoteShowItemPrices, notes: quoteNotes, items: sanitizedItems }) : o));
 
         // Generate and open print window (self-contained, sanitized, zero third-party script CDNs)
         const printWindow = window.open('', '_blank');
@@ -623,8 +626,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 70%; text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'פריט' : 'Item'}</th>
-                                <th style="width: 30%; text-align: ${isHe ? 'left' : 'right'}">${isHe ? 'כמות' : 'Qty'}</th>
+                                <th style="width: ${quoteShowItemPrices ? '50%' : '70%'}; text-align: ${isHe ? 'right' : 'left'}">${isHe ? 'פריט' : 'Item'}</th>
+                                <th style="width: ${quoteShowItemPrices ? '15%' : '30%'}; text-align: center;">${isHe ? 'כמות' : 'Qty'}</th>
+                                ${quoteShowItemPrices ? `
+                                    <th style="width: 17%; text-align: ${isHe ? 'left' : 'right'}">${isHe ? 'מחיר יחידה' : 'Unit Price'}</th>
+                                    <th style="width: 18%; text-align: ${isHe ? 'left' : 'right'}">${isHe ? 'סה"כ' : 'Total'}</th>
+                                ` : ''}
                             </tr>
                         </thead>
                         <tbody>
@@ -636,6 +643,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                         ? `<div class="item-details">↳ ${escapeHtml(item.selected_modifications.join(', '))}</div>`
                         : '';
                     const itemNotesHtml = item.notes ? `<div class="item-details">↳ "${escapeHtml(item.notes)}"</div>` : '';
+                    const unitPrice = Number(item.price || 0);
+                    const lineTotal = unitPrice * Number(item.quantity || 1);
                     
                     html += `
                         <tr>
@@ -644,7 +653,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                 ${modsHtml}
                                 ${itemNotesHtml}
                             </td>
-                            <td style="text-align: ${isHe ? 'left' : 'right'}; font-weight: 600;">${Number(item.quantity || 1)}</td>
+                            <td style="text-align: center; font-weight: 600;">${Number(item.quantity || 1)}</td>
+                            ${quoteShowItemPrices ? `
+                                <td style="text-align: ${isHe ? 'left' : 'right'}; font-weight: 500;">
+                                    ${unitPrice > 0 ? `₪${unitPrice.toFixed(2)}` : '-'}
+                                </td>
+                                <td style="text-align: ${isHe ? 'left' : 'right'}; font-weight: 700;">
+                                    ${lineTotal > 0 ? `₪${lineTotal.toFixed(2)}` : '-'}
+                                </td>
+                            ` : ''}
                         </tr>
                     `;
                 });
@@ -655,6 +672,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                     
                     <div class="summary-wrapper">
                         <div style="background-color: ${safePrimaryColor}08; border: 1.5px solid ${safePrimaryColor}30; border-radius: 14px; padding: 20px 24px; min-width: 300px; text-align: ${isHe ? 'right' : 'left'}; font-family: 'Assistant', sans-serif;">
+                            ${quoteShowItemPrices && totalDiscount === 0 ? `
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #78716c;">
+                                    <span>${isHe ? 'סכום פריטים:' : 'Items Subtotal:'}</span>
+                                    <span style="font-weight: 700; font-size: 14px;">₪${Number(totalSubtotal || 0).toFixed(2)}</span>
+                                </div>
+                            ` : ''}
                             ${totalDiscount > 0 ? `
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 13px; color: #78716c;">
                                     <span>${isHe ? 'סכום לפני הנחה:' : 'Original Amount:'}</span>
@@ -3701,7 +3724,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                             </div>
 
                             {/* Options and Discounts */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-[10px] text-themeText/50 font-bold px-1">
                                         {language === 'he' ? 'אחוז הנחה (%)' : 'Discount Percentage (%)'}
@@ -3732,7 +3755,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                 </div>
 
                                 <div className="flex flex-col gap-1.5 justify-end pb-1">
-                                    <label className="flex items-center gap-2 p-2 border border-themeText/15 rounded-lg cursor-pointer hover:bg-themeCardBg/50">
+                                    <label className="flex items-center gap-2 p-2 border border-themeText/15 rounded-lg cursor-pointer hover:bg-themeCardBg/50 transition-colors">
                                         <input 
                                             type="checkbox"
                                             checked={quoteWantsSetup}
@@ -3741,6 +3764,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onExit, initialT
                                         />
                                         <span className="text-xs font-bold text-themeText/80 font-sans">
                                             {language === 'he' ? 'סידור ופינוי (₪1,000)' : 'Setup & Cleanup (₪1,000)'}
+                                        </span>
+                                    </label>
+                                </div>
+
+                                <div className="flex flex-col gap-1.5 justify-end pb-1">
+                                    <label className="flex items-center gap-2 p-2 border border-themeText/15 rounded-lg cursor-pointer hover:bg-themeCardBg/50 transition-colors">
+                                        <input 
+                                            type="checkbox"
+                                            checked={quoteShowItemPrices}
+                                            onChange={(e) => setQuoteShowItemPrices(e.target.checked)}
+                                            className="w-4 h-4 text-themePrimary accent-themePrimary"
+                                        />
+                                        <span className="text-xs font-bold text-themeText/80 font-sans">
+                                            {language === 'he' ? 'הצגת מחיר ליד כל פריט' : 'Show price next to each item'}
                                         </span>
                                     </label>
                                 </div>

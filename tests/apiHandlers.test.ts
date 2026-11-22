@@ -49,6 +49,7 @@ interface StoredOrderRow extends Record<string, unknown> {
   notification_status: string;
   notification_error: string | null;
   handoff_status: string;
+  show_item_prices: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -231,6 +232,7 @@ function createMockDb() {
         notification_status: 'pending',
         notification_error: null,
         handoff_status: 'not_opened',
+        show_item_prices: false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -556,7 +558,23 @@ describe('P1 Quote validation, persistence, idempotency, and scoped viewer', () 
     expect(quote.ecommerce_mode).toBe(true);
     expect(typeof quote.total_price).toBe('number');
     expect(quote.idempotency_key).toBeUndefined();
+    expect(quote.show_item_prices).toBe(false);
     expect((quote.items as Array<Record<string, unknown>>)[0].price).toBe(0);
+
+    // If order has show_item_prices = true, individual prices are exposed
+    db.orders.forEach((o) => {
+      o.show_item_prices = true;
+    });
+    const detailedViewer = createMockRes();
+    await handlePublicQuoteEndpoint(
+      createMockReq({ method: 'GET', url: `/api/public/quote?token=${encodeURIComponent(retryToken)}` }),
+      detailedViewer.res,
+      deps
+    );
+    expect(detailedViewer.res.statusCode).toBe(200);
+    const detailedQuote = detailedViewer.getJson<{ quote: Record<string, unknown> }>().quote;
+    expect(detailedQuote.show_item_prices).toBe(true);
+    expect(Number((detailedQuote.items as Array<Record<string, unknown>>)[0].price)).toBeGreaterThan(0);
 
     // Unknown token returns 404
     const unknown = createMockRes();

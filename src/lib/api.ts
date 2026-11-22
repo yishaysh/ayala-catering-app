@@ -218,6 +218,7 @@ export const api = {
     delivery_fee?: number;
     total_price?: number;
     wants_setup?: boolean;
+    show_item_prices?: boolean;
     notes?: string;
   }) =>
     apiRequest<{ ok: boolean; order: Order; quote_url?: string }>('/api/admin/orders', {

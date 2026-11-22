@@ -243,7 +243,8 @@ async function handleGetScopedQuote(
               delivery_method, delivery_address, resolved_location, distance_km,
               adult_count, child_count, wants_setup, allergy_notes, notes, status,
               items, subtotal, discount_amount, delivery_fee, total_price,
-              created_at, quote_token_expires_at
+              created_at, quote_token_expires_at,
+              COALESCE(show_item_prices, false) AS show_item_prices
        FROM orders
        WHERE quote_token_hash = $1
        LIMIT 1`,
@@ -269,6 +270,7 @@ async function handleGetScopedQuote(
       });
     }
 
+    const showItemPrices = Boolean(row.show_item_prices);
     const rawItems = Array.isArray(row.items) ? (row.items as unknown[]) : [];
     const safeItems: CartItem[] = rawItems.map((raw) => {
       const obj = raw as Record<string, unknown>;
@@ -281,7 +283,7 @@ async function handleGetScopedQuote(
         : [];
       return {
         ...base,
-        price: 0,
+        price: showItemPrices ? Number(base.price || 0) : 0,
         quantity: Number(obj.quantity || 1),
         selected_modifications: mods,
         notes: typeof obj.notes === 'string' ? obj.notes : undefined,
@@ -333,6 +335,7 @@ async function handleGetScopedQuote(
       status: (row.status || 'Pending') as Order['status'],
       items: safeItems,
       ecommerce_mode: true,
+      show_item_prices: showItemPrices,
       subtotal,
       discount_amount: discountAmount,
       delivery_fee: deliveryFee,
